@@ -1,0 +1,17 @@
+# Real-ESRGAN binaries and models
+*.bin
+*.exe
+*.dll
+*.mp4
+
+# Sample inputs
+input.jpg
+input2.jpg
+
+# Directories
+models/
+input/
+output/
+
+# Serena IDE config
+.serena/
