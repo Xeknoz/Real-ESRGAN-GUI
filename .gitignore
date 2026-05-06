@@ -16,6 +16,15 @@ output/
 # Documentation
 README_windows.md
 
-# Serena IDE config
+# Tooling state
 .serena/
+.claude/
 AGENTS.md
+
+# WPF GUI: build artifacts and published output (source under RealESRGAN-GUI/ stays tracked)
+RealESRGAN-GUI/bin/
+RealESRGAN-GUI/obj/
+RealESRGAN-GUI-App/
+
+# Local shortcuts (machine-specific absolute paths)
+*.lnk

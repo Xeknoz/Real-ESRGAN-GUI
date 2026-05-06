@@ -1,0 +1,159 @@
+<Window x:Class="RealESRGAN_GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Real-ESRGAN GUI"
+        Width="720" Height="640"
+        MinWidth="640" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource ForegroundBrush}"
+        FontFamily="Microsoft YaHei UI, Microsoft YaHei, Segoe UI"
+        FontSize="13"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Real-ESRGAN" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock Text="实用图像超分辨率工具 (NCNN + Vulkan)"
+                       Foreground="{StaticResource MutedForegroundBrush}"
+                       Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <!-- Input folder -->
+        <Grid Grid.Row="1" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                <TextBlock Text="输入文件夹" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="InputPathBox" IsReadOnly="True"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="浏览..." VerticalAlignment="Bottom" Click="OnBrowseInputClick"/>
+        </Grid>
+
+        <!-- Output folder -->
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                <TextBlock Text="输出文件夹" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="OutputPathBox" IsReadOnly="True"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="浏览..." VerticalAlignment="Bottom" Click="OnBrowseOutputClick"/>
+        </Grid>
+
+        <!-- Model / Scale / Format -->
+        <Grid Grid.Row="3" Margin="0,4,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="模型" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="ModelCombo"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="放大倍数" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="ScaleCombo"/>
+            </StackPanel>
+            <StackPanel Grid.Column="4">
+                <TextBlock Text="输出格式" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="FormatCombo"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Advanced -->
+        <Border Grid.Row="4"
+                Background="{StaticResource PanelBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="3"
+                Padding="12"
+                Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="线程数 (0 = 自动)" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="ThreadsCombo"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="GPU 设备" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="GpuCombo"/>
+                </StackPanel>
+                <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                    <CheckBox x:Name="TtaCheck" Content="启用 TTA 模式 (更慢，质量更高)"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Actions -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="StartButton" Content="开始处理" Style="{StaticResource AccentButton}" Click="OnStartClick"/>
+            <Button x:Name="StopButton"  Content="停止"     Margin="8,0,0,0" IsEnabled="False" Click="OnStopClick"/>
+            <Button Content="打开输入文件夹" Margin="16,0,0,0" Click="OnOpenInputClick"/>
+            <Button Content="打开输出文件夹" Margin="8,0,0,0"  Click="OnOpenOutputClick"/>
+        </StackPanel>
+
+        <!-- Progress + status -->
+        <ProgressBar Grid.Row="6" x:Name="ProgressBar" Height="6" Margin="0,0,0,4"
+                     Visibility="Collapsed" IsIndeterminate="True"/>
+        <TextBlock Grid.Row="6" x:Name="StatusText" Text="就绪"
+                   Foreground="{StaticResource MutedForegroundBrush}"
+                   Margin="0,8,0,0"/>
+
+        <!-- Log -->
+        <Border Grid.Row="7"
+                Background="#FF0E0E0E"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="3"
+                Margin="0,8,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="日志"
+                           Foreground="{StaticResource MutedForegroundBrush}"
+                           Margin="8,4,8,2"/>
+                <TextBox  Grid.Row="1" x:Name="LogBox"
+                          IsReadOnly="True" TextWrapping="NoWrap"
+                          AcceptsReturn="True"
+                          Background="#FF0E0E0E"
+                          Foreground="#FFD0D0D0"
+                          BorderThickness="0"
+                          FontFamily="Consolas, Menlo, Microsoft YaHei UI"
+                          FontSize="12"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto"
+                          TextChanged="OnLogTextChanged"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
