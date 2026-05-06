@@ -11,8 +11,32 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <PublishReadyToRun>false</PublishReadyToRun>
-    <PublishSingleFile>false</PublishSingleFile>
+    <DebugType>embedded</DebugType>
+    <Version>1.0.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
     <ApplicationIcon></ApplicationIcon>
   </PropertyGroup>
+
+  <!-- Embed Real-ESRGAN backend + OpenMP runtime + sample input image -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\realesrgan-ncnn-vulkan.exe" LogicalName="res/realesrgan-ncnn-vulkan.exe" Visible="false" />
+    <EmbeddedResource Include="..\vcomp140.dll"                LogicalName="res/vcomp140.dll"               Visible="false" />
+    <EmbeddedResource Include="..\vcomp140d.dll"               LogicalName="res/vcomp140d.dll"              Visible="false" />
+    <EmbeddedResource Include="..\input.jpg"                   LogicalName="res/input.jpg"                  Visible="false" />
+  </ItemGroup>
+
+  <!-- Embed all NCNN model files, preserving the models/ subdirectory layout -->
+  <ItemGroup>
+    <_RealEsrganModel Include="..\models\*.bin" />
+    <_RealEsrganModel Include="..\models\*.param" />
+    <EmbeddedResource Include="@(_RealEsrganModel)"
+                      LogicalName="res/models/%(Filename)%(Extension)"
+                      Visible="false" />
+  </ItemGroup>
 </Project>

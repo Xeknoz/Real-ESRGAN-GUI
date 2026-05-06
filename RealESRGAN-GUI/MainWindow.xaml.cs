@@ -19,6 +19,7 @@ namespace RealESRGAN_GUI
             { ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff" };
 
         private readonly string _exePath;
+        private readonly string _runtimeDir;
         private string _inputDir = string.Empty;
         private string _outputDir = string.Empty;
         private Process? _runningProcess;
@@ -28,11 +29,19 @@ namespace RealESRGAN_GUI
         {
             InitializeComponent();
 
-            _exePath = ResolveBackendExe();
+            // Extract embedded backend (real-esrgan-ncnn-vulkan.exe + vcomp + models + sample)
+            // to a stable per-user runtime cache on first launch.
+            _runtimeDir = RuntimeAssets.EnsureExtracted();
+            _exePath    = Path.Combine(_runtimeDir, "realesrgan-ncnn-vulkan.exe");
+
             PopulateComboBoxes();
             InitializeDefaults();
 
-            Loaded += (_, _) => LogLine($"工作引擎: {_exePath}");
+            Loaded += (_, _) =>
+            {
+                LogLine($"运行时目录: {_runtimeDir}");
+                LogLine($"工作引擎: {_exePath}");
+            };
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -61,16 +70,6 @@ namespace RealESRGAN_GUI
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
         // --- Initialization helpers --------------------------------------------------
-
-        private static string ResolveBackendExe()
-        {
-            // The GUI exe lives in <root>\RealESRGAN-GUI-App\, the backend exe in <root>\.
-            string here = AppContext.BaseDirectory;
-            string parent = Path.GetFullPath(Path.Combine(here, ".."));
-            string a = Path.Combine(parent, "realesrgan-ncnn-vulkan.exe");
-            string b = Path.Combine(here,   "realesrgan-ncnn-vulkan.exe");
-            return File.Exists(a) ? a : (File.Exists(b) ? b : a);
-        }
 
         private void PopulateComboBoxes()
         {
@@ -376,11 +375,8 @@ namespace RealESRGAN_GUI
 
         private bool TryCopySample(string dir, out string error)
         {
-            string here = AppContext.BaseDirectory;
-            string a = Path.GetFullPath(Path.Combine(here, "..", "input.jpg"));
-            string b = Path.Combine(here, "input.jpg");
-            string src = File.Exists(a) ? a : (File.Exists(b) ? b : string.Empty);
-            if (string.IsNullOrEmpty(src))
+            string src = Path.Combine(_runtimeDir, "input.jpg");
+            if (!File.Exists(src))
             {
                 error = "找不到示例图片 input.jpg。";
                 return false;
