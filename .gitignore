@@ -26,5 +26,8 @@ RealESRGAN-GUI/bin/
 RealESRGAN-GUI/obj/
 RealESRGAN-GUI-App/
 
+# IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
+*.sln
+
 # Local shortcuts (machine-specific absolute paths)
 *.lnk
