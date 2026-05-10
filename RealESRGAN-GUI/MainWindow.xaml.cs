@@ -19,7 +19,7 @@ namespace RealESRGAN_GUI
             { ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff" };
 
         private readonly string _exePath;
-        private readonly string _runtimeDir;
+        private readonly string _appDir;
         private string _inputDir = string.Empty;
         private string _outputDir = string.Empty;
         private Process? _runningProcess;
@@ -29,19 +29,15 @@ namespace RealESRGAN_GUI
         {
             InitializeComponent();
 
-            // Extract embedded backend (real-esrgan-ncnn-vulkan.exe + vcomp + models + sample)
-            // to a stable per-user runtime cache on first launch.
-            _runtimeDir = RuntimeAssets.EnsureExtracted();
-            _exePath    = Path.Combine(_runtimeDir, "realesrgan-ncnn-vulkan.exe");
+            // Portable folder layout: realesrgan-ncnn-vulkan.exe, vcomp140*.dll,
+            // models\, input.jpg all sit next to this GUI exe.
+            _appDir  = AppContext.BaseDirectory;
+            _exePath = Path.Combine(_appDir, "realesrgan-ncnn-vulkan.exe");
 
             PopulateComboBoxes();
             InitializeDefaults();
 
-            Loaded += (_, _) =>
-            {
-                LogLine($"运行时目录: {_runtimeDir}");
-                LogLine($"工作引擎: {_exePath}");
-            };
+            Loaded += (_, _) => LogLine($"工作引擎: {_exePath}");
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -375,7 +371,7 @@ namespace RealESRGAN_GUI
 
         private bool TryCopySample(string dir, out string error)
         {
-            string src = Path.Combine(_runtimeDir, "input.jpg");
+            string src = Path.Combine(_appDir, "input.jpg");
             if (!File.Exists(src))
             {
                 error = "找不到示例图片 input.jpg。";

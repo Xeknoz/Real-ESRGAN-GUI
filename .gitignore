@@ -25,6 +25,7 @@ AGENTS.md
 RealESRGAN-GUI/bin/
 RealESRGAN-GUI/obj/
 RealESRGAN-GUI-App/
+dist/
 
 # IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
 *.sln

@@ -12,10 +12,6 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <PublishReadyToRun>false</PublishReadyToRun>
     <DebugType>embedded</DebugType>
     <Version>1.0.0.0</Version>
@@ -28,20 +24,36 @@
     <Resource Include="icon.ico" />
   </ItemGroup>
 
-  <!-- Embed Real-ESRGAN backend + OpenMP runtime + sample input image -->
+  <!-- Real-ESRGAN backend, OpenMP runtime, sample image: copied next to the GUI EXE
+       so the published folder is a self-contained "portable" distribution. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\realesrgan-ncnn-vulkan.exe" LogicalName="res/realesrgan-ncnn-vulkan.exe" Visible="false" />
-    <EmbeddedResource Include="..\vcomp140.dll"                LogicalName="res/vcomp140.dll"               Visible="false" />
-    <EmbeddedResource Include="..\vcomp140d.dll"               LogicalName="res/vcomp140d.dll"              Visible="false" />
-    <EmbeddedResource Include="..\input.jpg"                   LogicalName="res/input.jpg"                  Visible="false" />
+    <Content Include="..\realesrgan-ncnn-vulkan.exe" CopyToOutputDirectory="PreserveNewest">
+      <Link>realesrgan-ncnn-vulkan.exe</Link>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="..\vcomp140.dll" CopyToOutputDirectory="PreserveNewest">
+      <Link>vcomp140.dll</Link>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="..\vcomp140d.dll" CopyToOutputDirectory="PreserveNewest">
+      <Link>vcomp140d.dll</Link>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="..\input.jpg" CopyToOutputDirectory="PreserveNewest">
+      <Link>input.jpg</Link>
+      <Visible>false</Visible>
+    </Content>
   </ItemGroup>
 
-  <!-- Embed all NCNN model files, preserving the models/ subdirectory layout -->
+  <!-- NCNN models — preserve the models/ subdirectory layout the backend expects. -->
   <ItemGroup>
-    <_RealEsrganModel Include="..\models\*.bin" />
-    <_RealEsrganModel Include="..\models\*.param" />
-    <EmbeddedResource Include="@(_RealEsrganModel)"
-                      LogicalName="res/models/%(Filename)%(Extension)"
-                      Visible="false" />
+    <Content Include="..\models\*.bin" CopyToOutputDirectory="PreserveNewest">
+      <Link>models\%(Filename)%(Extension)</Link>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="..\models\*.param" CopyToOutputDirectory="PreserveNewest">
+      <Link>models\%(Filename)%(Extension)</Link>
+      <Visible>false</Visible>
+    </Content>
   </ItemGroup>
 </Project>
