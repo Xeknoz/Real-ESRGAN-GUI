@@ -14,7 +14,7 @@
 #define DESIGN_W      400
 #define DESIGN_H      130
 #define TIMER_ID      1
-#define TIMER_MS      40
+#define TIMER_MS      16
 #define FADE_STEPS    12
 #define TIMEOUT_MS    15000
 
@@ -202,20 +202,29 @@ static void Paint(HWND hWnd)
 
     RECT rc;
     GetClientRect(hWnd, &rc);
+    int w = rc.right - rc.left;
+    int h = rc.bottom - rc.top;
+
+    // ---- Double-buffer: draw to memory DC, blit to screen ----
+    HDC memDC = CreateCompatibleDC(hdc);
+    HBITMAP memBmp = CreateCompatibleBitmap(hdc, w, h);
+    HBITMAP oldBmp = (HBITMAP)SelectObject(memDC, memBmp);
+
+    HDC dc = memDC; // All drawing targets memDC
 
     // Background fill
     COLORREF bg = g_dark ? RGB(27, 31, 28) : RGB(247, 244, 238);
     HBRUSH hbrBg = CreateSolidBrush(bg);
-    FillRect(hdc, &rc, hbrBg);
+    FillRect(dc, &rc, hbrBg);
     DeleteObject(hbrBg);
 
     // 1px border
     HPEN hPen = CreatePen(PS_SOLID, S(1), g_dark ? RGB(61, 70, 61) : RGB(217, 209, 196));
-    HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
-    HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
-    Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
-    SelectObject(hdc, hOldPen);
-    SelectObject(hdc, hOldBrush);
+    HPEN hOldPen = (HPEN)SelectObject(dc, hPen);
+    HBRUSH hOldBrush = (HBRUSH)SelectObject(dc, GetStockObject(NULL_BRUSH));
+    Rectangle(dc, rc.left, rc.top, rc.right, rc.bottom);
+    SelectObject(dc, hOldPen);
+    SelectObject(dc, hOldBrush);
     DeleteObject(hPen);
 
     // Text colours
@@ -225,48 +234,48 @@ static void Paint(HWND hWnd)
     COLORREF clrAccent= g_dark ? RGB(102, 194, 178) : RGB(40, 108, 103);
     COLORREF clrTrack = g_dark ? RGB(43, 51, 45)  : RGB(232, 224, 213);
 
-    SetBkMode(hdc, TRANSPARENT);
+    SetBkMode(dc, TRANSPARENT);
 
     // Title: "Real-ESRGAN"
     HFONT hFontTitle = CreateFontW(-S(22), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
-    HFONT hOldFont = (HFONT)SelectObject(hdc, hFontTitle);
-    SetTextColor(hdc, clrText);
+    HFONT hOldFont = (HFONT)SelectObject(dc, hFontTitle);
+    SetTextColor(dc, clrText);
     RECT rcTitle = { S(28), S(20), S(280), S(46) };
-    DrawTextW(hdc, L"Real-ESRGAN", -1, &rcTitle, DT_LEFT | DT_SINGLELINE);
+    DrawTextW(dc, L"Real-ESRGAN", -1, &rcTitle, DT_LEFT | DT_SINGLELINE);
 
     // Version
     HFONT hFontVer = CreateFontW(-S(11), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
-    SelectObject(hdc, hFontVer);
-    SetTextColor(hdc, clrSubtle);
+    SelectObject(dc, hFontVer);
+    SetTextColor(dc, clrSubtle);
     RECT rcVer = { g_w - S(70), S(24), g_w - S(28), S(42) };
-    DrawTextW(hdc, L"v1.0", -1, &rcVer, DT_RIGHT | DT_SINGLELINE);
+    DrawTextW(dc, L"v1.0", -1, &rcVer, DT_RIGHT | DT_SINGLELINE);
 
     // Subtitle
     HFONT hFontSub = CreateFontW(-S(12), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
-    SelectObject(hdc, hFontSub);
-    SetTextColor(hdc, clrMuted);
+    SelectObject(dc, hFontSub);
+    SetTextColor(dc, clrMuted);
     RECT rcSub = { S(28), S(48), S(220), S(66) };
-    DrawTextW(hdc, g_zh ? L"图像超分辨率工具" : L"Image Super-Resolution", -1, &rcSub, DT_LEFT | DT_SINGLELINE);
+    DrawTextW(dc, g_zh ? L"图像超分辨率工具" : L"Image Super-Resolution", -1, &rcSub, DT_LEFT | DT_SINGLELINE);
 
     // Status
     HFONT hFontStatus = CreateFontW(-S(11), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
-    SelectObject(hdc, hFontStatus);
-    SetTextColor(hdc, clrMuted);
+    SelectObject(dc, hFontStatus);
+    SetTextColor(dc, clrMuted);
     RECT rcStatus = { g_w - S(130), S(48), g_w - S(28), S(66) };
-    DrawTextW(hdc, g_zh ? L"正在启动..." : L"Starting...", -1, &rcStatus, DT_RIGHT | DT_SINGLELINE);
+    DrawTextW(dc, g_zh ? L"正在启动..." : L"Starting...", -1, &rcStatus, DT_RIGHT | DT_SINGLELINE);
 
     // Progress track
     HBRUSH hbrTrack = CreateSolidBrush(clrTrack);
     RECT rcTrack = { S(28), g_h - S(26), g_w - S(28), g_h - S(24) };
-    FillRect(hdc, &rcTrack, hbrTrack);
+    FillRect(dc, &rcTrack, hbrTrack);
     DeleteObject(hbrTrack);
 
     // Progress pulse (clipped to track bounds)
@@ -275,15 +284,22 @@ static void Paint(HWND hWnd)
     if (rcPulse.right > rcTrack.left && rcPulse.left < rcTrack.right) {
         if (rcPulse.left < rcTrack.left) rcPulse.left = rcTrack.left;
         if (rcPulse.right > rcTrack.right) rcPulse.right = rcTrack.right;
-        FillRect(hdc, &rcPulse, hbrPulse);
+        FillRect(dc, &rcPulse, hbrPulse);
     }
     DeleteObject(hbrPulse);
 
-    SelectObject(hdc, hOldFont);
+    SelectObject(dc, hOldFont);
     DeleteObject(hFontTitle);
     DeleteObject(hFontVer);
     DeleteObject(hFontSub);
     DeleteObject(hFontStatus);
+
+    // Blit memory buffer to screen
+    BitBlt(hdc, 0, 0, w, h, memDC, 0, 0, SRCCOPY);
+
+    SelectObject(memDC, oldBmp);
+    DeleteObject(memBmp);
+    DeleteDC(memDC);
 
     EndPaint(hWnd, &ps);
 }
