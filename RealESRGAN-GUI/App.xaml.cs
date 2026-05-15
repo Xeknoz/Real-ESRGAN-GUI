@@ -1,10 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace RealESRGAN_GUI
@@ -13,9 +13,18 @@ namespace RealESRGAN_GUI
     {
         private static Mutex? _mutex;
 
-        protected override async void OnStartup(StartupEventArgs e)
+        protected override void OnStartup(StartupEventArgs e)
         {
             ApplyTheme(IsSystemDarkTheme());
+
+            bool launchedByLauncher = Array.Exists(e.Args,
+                arg => string.Equals(arg, "--from-launcher", StringComparison.OrdinalIgnoreCase));
+            if (!launchedByLauncher)
+            {
+                StartLauncherOrNotify();
+                Current.Shutdown();
+                return;
+            }
 
             const string mutexName = @"Global\RealESRGAN_GUI_SingleInstance";
             _mutex = new Mutex(true, mutexName, out bool createdNew);
@@ -33,19 +42,40 @@ namespace RealESRGAN_GUI
 
             base.OnStartup(e);
 
-            var splash = new SplashWindow();
-            MainWindow = splash;
-            splash.Show();
-
-            await Dispatcher.Yield(DispatcherPriority.Background);
-
-            var minimumDisplayTime = Task.Delay(650);
             var mainWindow = new MainWindow();
-            await minimumDisplayTime;
-
             MainWindow = mainWindow;
             mainWindow.Show();
-            splash.Close();
+        }
+
+        private static void StartLauncherOrNotify()
+        {
+            string appDir = AppContext.BaseDirectory;
+            string launcherPath = Path.Combine(appDir, "Launcher.exe");
+
+            try
+            {
+                if (File.Exists(launcherPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = launcherPath,
+                        WorkingDirectory = appDir,
+                        UseShellExecute = true,
+                    });
+                    return;
+                }
+            }
+            catch
+            {
+                // Fall through to a short actionable notice below.
+            }
+
+            bool zh = CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+            string message = zh
+                ? "无法找到 Launcher.exe。"
+                : "Launcher.exe could not be found.";
+            string caption = zh ? "启动失败" : "Launch Failed";
+            MessageBox.Show(message, caption, MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         public static bool IsSystemDarkTheme()
@@ -70,78 +100,78 @@ namespace RealESRGAN_GUI
 
             if (dark)
             {
-                SetBrush(resources, "BgBrush", "#FF0F1412");
-                SetBrush(resources, "SurfaceBrush", "#FF1A1F1C");
-                SetBrush(resources, "PanelBrush", "#FF252A26");
-                SetBrush(resources, "ControlBrush", "#FF2A302B");
-                SetBrush(resources, "ControlHoverBrush", "#FF3A453D");
-                SetBrush(resources, "BorderBrush", "#FF4A524A");
-                SetBrush(resources, "ForegroundBrush", "#FFE0E3E0");
-                SetBrush(resources, "MutedForegroundBrush", "#FFA0A3A0");
-                SetBrush(resources, "SubtleForegroundBrush", "#FF707370");
-                SetBrush(resources, "AccentBrush", "#FF4DB6AC");
-                SetBrush(resources, "AccentHoverBrush", "#FF80CBC4");
-                SetBrush(resources, "AccentSoftBrush", "#FF004D40");
-                SetBrush(resources, "StopBrush", "#FFEF5350");
-                SetBrush(resources, "StopHoverBrush", "#FFE57373");
-                SetBrush(resources, "RailBrush", "#FF3A453D");
-                SetBrush(resources, "HeaderDividerBrush", "#FF3D463D");
+                SetBrush(resources, "BgBrush", "#FF0E151A");
+                SetBrush(resources, "SurfaceBrush", "#FF141D23");
+                SetBrush(resources, "PanelBrush", "#FF1A252C");
+                SetBrush(resources, "ControlBrush", "#FF202D35");
+                SetBrush(resources, "ControlHoverBrush", "#FF293842");
+                SetBrush(resources, "BorderBrush", "#FF33444F");
+                SetBrush(resources, "ForegroundBrush", "#FFF4F7FA");
+                SetBrush(resources, "MutedForegroundBrush", "#FFB5C0C9");
+                SetBrush(resources, "SubtleForegroundBrush", "#FF87949F");
+                SetBrush(resources, "AccentBrush", "#FF2DD4BF");
+                SetBrush(resources, "AccentHoverBrush", "#FF5EEAD4");
+                SetBrush(resources, "AccentSoftBrush", "#FF123A39");
+                SetBrush(resources, "StopBrush", "#FFFB7185");
+                SetBrush(resources, "StopHoverBrush", "#FFFDA4AF");
+                SetBrush(resources, "RailBrush", "#FF10232B");
+                SetBrush(resources, "HeaderDividerBrush", "#FF28454F");
                 SetBrush(resources, "HeaderForegroundBrush", "#FFFFFFFF");
-                SetBrush(resources, "HeaderSubtleBrush", "#FFBBD5CD");
-                SetBrush(resources, "StatusPillBrush", "#FF1B3A2A");
-                SetBrush(resources, "StatusPillForegroundBrush", "#FFA5D6A7");
-                SetBrush(resources, "ProgressTrackBrush", "#FF3A453D");
-                SetBrush(resources, "ScrollThumbBrush", "#FF707370");
-                SetBrush(resources, "ScrollThumbHoverBrush", "#FF9E9E9E");
-                SetBrush(resources, "DangerBackgroundBrush", "#FF3B0806");
-                SetBrush(resources, "DangerBorderBrush", "#FF930000");
-                SetBrush(resources, "DangerHoverBrush", "#FF601410");
-                SetBrush(resources, "SubtleHoverBrush", "#18FFFFFF");
-                SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF4DB6AC");
-                SetBrush(resources, "ComboBoxSelectedFgBrush", "#FF003833");
-                SetBrush(resources, "OnAccentBrush", "#FF003833");
+                SetBrush(resources, "HeaderSubtleBrush", "#FFC1D5DE");
+                SetBrush(resources, "ProgressTrackBrush", "#FF25333A");
+                SetBrush(resources, "ProgressCurrentBrush", "#FF5EEAD4");
+                SetBrush(resources, "ProgressCompleteBrush", "#FF168F83");
+                SetBrush(resources, "ScrollThumbBrush", "#FF566873");
+                SetBrush(resources, "ScrollThumbHoverBrush", "#FF718590");
+                SetBrush(resources, "DangerBackgroundBrush", "#FF311D24");
+                SetBrush(resources, "DangerBorderBrush", "#FF68404A");
+                SetBrush(resources, "DangerHoverBrush", "#FF3D252E");
+                SetBrush(resources, "SubtleHoverBrush", "#1AFFFFFF");
+                SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF2DD4BF");
+                SetBrush(resources, "ComboBoxSelectedFgBrush", "#FF06312D");
+                SetBrush(resources, "OnAccentBrush", "#FF06312D");
             }
             else
             {
-                SetBrush(resources, "BgBrush", "#FFF5F5F5");
+                SetBrush(resources, "BgBrush", "#FFF5F7F9");
                 SetBrush(resources, "SurfaceBrush", "#FFFFFFFF");
-                SetBrush(resources, "PanelBrush", "#FFF0F0F0");
+                SetBrush(resources, "PanelBrush", "#FFEEF3F6");
                 SetBrush(resources, "ControlBrush", "#FFFFFFFF");
-                SetBrush(resources, "ControlHoverBrush", "#FFE0F2F1");
-                SetBrush(resources, "BorderBrush", "#FFD6D6D6");
-                SetBrush(resources, "ForegroundBrush", "#FF1A1C1A");
-                SetBrush(resources, "MutedForegroundBrush", "#FF5F6368");
-                SetBrush(resources, "SubtleForegroundBrush", "#FF80868B");
-                SetBrush(resources, "AccentBrush", "#FF00695C");
-                SetBrush(resources, "AccentHoverBrush", "#FF004D40");
-                SetBrush(resources, "AccentSoftBrush", "#FFB2DFDB");
-                SetBrush(resources, "StopBrush", "#FFC62828");
-                SetBrush(resources, "StopHoverBrush", "#FFB71C1C");
-                SetBrush(resources, "RailBrush", "#FFE0E0E0");
-                SetBrush(resources, "HeaderDividerBrush", "#FFD6D6D6");
-                SetBrush(resources, "HeaderForegroundBrush", "#FF1A1C1A");
-                SetBrush(resources, "HeaderSubtleBrush", "#FF5F6368");
-                SetBrush(resources, "StatusPillBrush", "#FFE8F5E9");
-                SetBrush(resources, "StatusPillForegroundBrush", "#FF1B5E20");
-                SetBrush(resources, "ProgressTrackBrush", "#FFE0E0E0");
-                SetBrush(resources, "ScrollThumbBrush", "#FF9E9E9E");
-                SetBrush(resources, "ScrollThumbHoverBrush", "#FF757575");
-                SetBrush(resources, "DangerBackgroundBrush", "#FFFFEBEE");
-                SetBrush(resources, "DangerBorderBrush", "#FFEF9A9A");
-                SetBrush(resources, "DangerHoverBrush", "#FFFFCDD2");
-                SetBrush(resources, "SubtleHoverBrush", "#1E000000");
-                SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF00695C");
+                SetBrush(resources, "ControlHoverBrush", "#FFF4F7F9");
+                SetBrush(resources, "BorderBrush", "#FFD7E0E6");
+                SetBrush(resources, "ForegroundBrush", "#FF18222B");
+                SetBrush(resources, "MutedForegroundBrush", "#FF55636E");
+                SetBrush(resources, "SubtleForegroundBrush", "#FF7B8791");
+                SetBrush(resources, "AccentBrush", "#FF0F766E");
+                SetBrush(resources, "AccentHoverBrush", "#FF0B625C");
+                SetBrush(resources, "AccentSoftBrush", "#FFDDF5F0");
+                SetBrush(resources, "StopBrush", "#FFD9485F");
+                SetBrush(resources, "StopHoverBrush", "#FFBF3550");
+                SetBrush(resources, "RailBrush", "#FF18313A");
+                SetBrush(resources, "HeaderDividerBrush", "#FF284A56");
+                SetBrush(resources, "HeaderForegroundBrush", "#FFFFFFFF");
+                SetBrush(resources, "HeaderSubtleBrush", "#FFC9D8E0");
+                SetBrush(resources, "ProgressTrackBrush", "#FFDCE6EB");
+                SetBrush(resources, "ProgressCurrentBrush", "#FF82CBC2");
+                SetBrush(resources, "ProgressCompleteBrush", "#FF0F766E");
+                SetBrush(resources, "ScrollThumbBrush", "#FFB4C2CC");
+                SetBrush(resources, "ScrollThumbHoverBrush", "#FF91A3AF");
+                SetBrush(resources, "DangerBackgroundBrush", "#FFFFF2F4");
+                SetBrush(resources, "DangerBorderBrush", "#FFF3C4CC");
+                SetBrush(resources, "DangerHoverBrush", "#FFFFE7EC");
+                SetBrush(resources, "SubtleHoverBrush", "#12000000");
+                SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF0F766E");
                 SetBrush(resources, "ComboBoxSelectedFgBrush", "#FFFFFFFF");
                 SetBrush(resources, "OnAccentBrush", "#FFFFFFFF");
             }
 
-            SetBrush(resources, SystemColors.WindowBrushKey, dark ? "#FF1A1F1C" : "#FFFFFFFF");
-            SetBrush(resources, SystemColors.ControlBrushKey, dark ? "#FF2A302B" : "#FFFFFFFF");
-            SetBrush(resources, SystemColors.ControlTextBrushKey, dark ? "#FFE0E3E0" : "#FF1A1C1A");
-            SetBrush(resources, SystemColors.WindowTextBrushKey, dark ? "#FFE0E3E0" : "#FF1A1C1A");
-            SetBrush(resources, SystemColors.HighlightBrushKey, dark ? "#FF4DB6AC" : "#FF00695C");
-            SetBrush(resources, SystemColors.HighlightTextBrushKey, dark ? "#FF003833" : "#FFFFFFFF");
-            SetBrush(resources, SystemColors.GrayTextBrushKey, dark ? "#FF707370" : "#FF80868B");
+            SetBrush(resources, SystemColors.WindowBrushKey, dark ? "#FF141D23" : "#FFFFFFFF");
+            SetBrush(resources, SystemColors.ControlBrushKey, dark ? "#FF202D35" : "#FFFFFFFF");
+            SetBrush(resources, SystemColors.ControlTextBrushKey, dark ? "#FFF4F7FA" : "#FF18222B");
+            SetBrush(resources, SystemColors.WindowTextBrushKey, dark ? "#FFF4F7FA" : "#FF18222B");
+            SetBrush(resources, SystemColors.HighlightBrushKey, dark ? "#FF2DD4BF" : "#FF0F766E");
+            SetBrush(resources, SystemColors.HighlightTextBrushKey, dark ? "#FF06312D" : "#FFFFFFFF");
+            SetBrush(resources, SystemColors.GrayTextBrushKey, dark ? "#FF87949F" : "#FF7B8791");
         }
 
         private static void SetBrush(ResourceDictionary resources, object key, string color)

@@ -1,14 +1,14 @@
-// Launcher.c
+// Launcher/Launcher.c
 // Win32 native splash launcher for Real-ESRGAN GUI.
 // Displays a HiDPI-aware themed splash screen while starting the WPF application.
 //
-// Build (MSVC):    cl.exe Launcher.c /O2 /W3 /Fe:Launcher.exe /link user32.lib gdi32.lib dwmapi.lib advapi32.lib
-// Build (MinGW):   gcc -O2 -o Launcher.exe Launcher.c -municode -luser32 -lgdi32 -ldwmapi -ladvapi32
+// Build: run .\Launcher\build.ps1 from the repository root.
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dwmapi.h>
 #include <strsafe.h>
+#include "resource.h"
 
 // ---- Design values (96 DPI baseline) ----
 #define DESIGN_W      400
@@ -96,6 +96,8 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
     wc.hInstance     = hInst;
     wc.lpszClassName = L"RESG_Splash";
     wc.hCursor       = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
+    wc.hIcon         = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wc.hIconSm       = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_APP_ICON));
     RegisterClassExW(&wc);
 
     int cx = GetSystemMetrics(SM_CXSCREEN);
@@ -119,17 +121,13 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
     DWM_WINDOW_CORNER_PREFERENCE corner = 2; // DWMWCP_ROUND
     DwmSetWindowAttribute(g_hwnd, 33, &corner, sizeof(corner));
 
-    // ---- Fade in ----
-    SetLayeredWindowAttributes(g_hwnd, 0, 0, LWA_ALPHA);
+    // ---- Show a visible splash first, then start the main app beside it ----
+    SetLayeredWindowAttributes(g_hwnd, 0, 255, LWA_ALPHA);
     ShowWindow(g_hwnd, SW_SHOW);
     UpdateWindow(g_hwnd);
-    for (int i = 1; i <= FADE_STEPS; i++) {
-        SetLayeredWindowAttributes(g_hwnd, 0, (BYTE)(i * 255 / FADE_STEPS), LWA_ALPHA);
-        UpdateWindow(g_hwnd);
-        Sleep(10);
-    }
+    DwmFlush(); // Commit the first visible frame before CreateProcess can block.
 
-    // ---- Launch main WPF application ----
+    // Launch immediately after the first visible frame so both phases run together.
     Launch();
     if (!g_pid) {
         DestroyWindow(g_hwnd);
@@ -337,8 +335,10 @@ static void Launch(void)
 
     STARTUPINFOW si = { sizeof(si) };
     PROCESS_INFORMATION pi;
+    WCHAR commandLine[MAX_PATH + 32];
+    StringCchPrintfW(commandLine, ARRAYSIZE(commandLine), L"\"%s\" --from-launcher", appPath);
 
-    if (CreateProcessW(appPath, GetCommandLineW(), NULL, NULL, FALSE,
+    if (CreateProcessW(appPath, commandLine, NULL, NULL, FALSE,
                        CREATE_NEW_PROCESS_GROUP, NULL, launcherPath, &si, &pi)) {
         g_hProc = pi.hProcess;
         g_pid   = pi.dwProcessId;

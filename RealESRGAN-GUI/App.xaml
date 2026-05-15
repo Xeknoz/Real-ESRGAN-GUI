@@ -5,21 +5,21 @@
     <Application.Resources>
         <ResourceDictionary>
             <!-- Palette -->
-            <Color x:Key="BgColor">#FFF7F4EE</Color>
+            <Color x:Key="BgColor">#FFF5F7F9</Color>
             <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
-            <Color x:Key="PanelColor">#FFF0EBE2</Color>
+            <Color x:Key="PanelColor">#FFEEF3F6</Color>
             <Color x:Key="ControlColor">#FFFFFFFF</Color>
-            <Color x:Key="ControlHoverColor">#FFF8F4EC</Color>
-            <Color x:Key="BorderColor">#FFD9D1C4</Color>
-            <Color x:Key="ForegroundColor">#FF22201C</Color>
-            <Color x:Key="MutedForegroundColor">#FF6D675E</Color>
-            <Color x:Key="SubtleForegroundColor">#FF948D82</Color>
-            <Color x:Key="AccentColor">#FF286C67</Color>
-            <Color x:Key="AccentHoverColor">#FF1F5B57</Color>
-            <Color x:Key="AccentSoftColor">#FFE0F0EC</Color>
-            <Color x:Key="StopColor">#FFC65F42</Color>
-            <Color x:Key="StopHoverColor">#FFA94F37</Color>
-            <Color x:Key="RailColor">#FF242821</Color>
+            <Color x:Key="ControlHoverColor">#FFF4F7F9</Color>
+            <Color x:Key="BorderColor">#FFD7E0E6</Color>
+            <Color x:Key="ForegroundColor">#FF18222B</Color>
+            <Color x:Key="MutedForegroundColor">#FF55636E</Color>
+            <Color x:Key="SubtleForegroundColor">#FF7B8791</Color>
+            <Color x:Key="AccentColor">#FF0F766E</Color>
+            <Color x:Key="AccentHoverColor">#FF0B625C</Color>
+            <Color x:Key="AccentSoftColor">#FFDDF5F0</Color>
+            <Color x:Key="StopColor">#FFD9485F</Color>
+            <Color x:Key="StopHoverColor">#FFBF3550</Color>
+            <Color x:Key="RailColor">#FF18313A</Color>
 
             <SolidColorBrush x:Key="BgBrush"              Color="{StaticResource BgColor}"/>
             <SolidColorBrush x:Key="SurfaceBrush"         Color="{StaticResource SurfaceColor}"/>
@@ -36,17 +36,21 @@
             <SolidColorBrush x:Key="StopBrush"            Color="{StaticResource StopColor}"/>
             <SolidColorBrush x:Key="StopHoverBrush"       Color="{StaticResource StopHoverColor}"/>
             <SolidColorBrush x:Key="RailBrush"            Color="{StaticResource RailColor}"/>
-            <SolidColorBrush x:Key="HeaderDividerBrush"   Color="#14334B42"/>
+            <SolidColorBrush x:Key="HeaderDividerBrush"   Color="#FF284A56"/>
             <SolidColorBrush x:Key="HeaderForegroundBrush" Color="White"/>
-            <SolidColorBrush x:Key="HeaderSubtleBrush"     Color="#FFD7E3DA"/>
-            <SolidColorBrush x:Key="StatusPillBrush"       Color="#25334B42"/>
-            <SolidColorBrush x:Key="StatusPillForegroundBrush" Color="#FFEAF5EF"/>
-            <SolidColorBrush x:Key="ProgressTrackBrush"    Color="#FFE8E0D5"/>
-            <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#FFC7BBAA"/>
-            <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#FFA99C8A"/>
-            <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#FFFFF5F1"/>
-            <SolidColorBrush x:Key="DangerBorderBrush"     Color="#FFF0C4B4"/>
-            <SolidColorBrush x:Key="DangerHoverBrush"      Color="#FFFFECE6"/>
+            <SolidColorBrush x:Key="HeaderSubtleBrush"     Color="#FFC9D8E0"/>
+            <SolidColorBrush x:Key="ProgressTrackBrush"    Color="#FFDCE6EB"/>
+            <SolidColorBrush x:Key="ProgressCurrentBrush"  Color="#FF82CBC2"/>
+            <SolidColorBrush x:Key="ProgressCompleteBrush" Color="#FF0F766E"/>
+            <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#FFB4C2CC"/>
+            <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#FF91A3AF"/>
+            <SolidColorBrush x:Key="DangerBackgroundBrush" Color="#FFFFF2F4"/>
+            <SolidColorBrush x:Key="DangerBorderBrush"     Color="#FFF3C4CC"/>
+            <SolidColorBrush x:Key="DangerHoverBrush"      Color="#FFFFE7EC"/>
+            <SolidColorBrush x:Key="SubtleHoverBrush"       Color="#12000000"/>
+            <SolidColorBrush x:Key="ComboBoxSelectedBgBrush" Color="#FF0F766E"/>
+            <SolidColorBrush x:Key="ComboBoxSelectedFgBrush" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="OnAccentBrush"          Color="#FFFFFFFF"/>
 
             <!-- Keep native popups and selected text aligned with the app theme. -->
             <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}"        Color="{StaticResource SurfaceColor}"/>
@@ -101,15 +105,11 @@
                 <Setter Property="Width" Value="34"/>
                 <Setter Property="Height" Value="34"/>
                 <Setter Property="CornerRadius" Value="17"/>
+                <Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="VerticalAlignment" Value="Top"/>
                 <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
                 <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
-            </Style>
-
-            <Style x:Key="StatusPill" TargetType="Border">
-                <Setter Property="Background" Value="{DynamicResource StatusPillBrush}"/>
-                <Setter Property="CornerRadius" Value="14"/>
-                <Setter Property="Padding" Value="12,5"/>
             </Style>
 
             <!-- ScrollBar -->
@@ -314,6 +314,51 @@
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
                 <Setter Property="FontSize" Value="13"/>
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="Track"
+                                        Width="38"
+                                        Height="22"
+                                        Background="{DynamicResource ControlBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="11">
+                                    <Ellipse x:Name="Thumb"
+                                             Width="16"
+                                             Height="16"
+                                             Margin="2"
+                                             HorizontalAlignment="Left"
+                                             Fill="{DynamicResource MutedForegroundBrush}"/>
+                                </Border>
+                                <ContentPresenter Grid.Column="1"
+                                                  Margin="10,0,0,0"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource OnAccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <!-- ComboBox -->
@@ -351,7 +396,7 @@
 
             <Style TargetType="ComboBoxItem">
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
-                <Setter Property="Padding" Value="12,8"/>
+                <Setter Property="Padding" Value="12,9"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBoxItem">
@@ -359,7 +404,7 @@
                                     Background="{TemplateBinding Background}"
                                     Padding="{TemplateBinding Padding}"
                                     CornerRadius="6"
-                                    Margin="4,1">
+                                    Margin="0">
                                 <ContentPresenter VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
@@ -405,18 +450,23 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">
                             <Grid>
-                                <ToggleButton Style="{StaticResource ComboBoxToggleButton}"
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="32"/>
+                                </Grid.ColumnDefinitions>
+                                <ToggleButton Grid.ColumnSpan="2"
+                                              Style="{StaticResource ComboBoxToggleButton}"
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                               ClickMode="Press"/>
-                                <ContentPresenter x:Name="ContentSite"
-                                                  Margin="{TemplateBinding Padding}"
-                                                  HorizontalAlignment="Left"
-                                                  VerticalAlignment="Center"
-                                                  IsHitTestVisible="False"
-                                                  Content="{TemplateBinding SelectionBoxItem}"
-                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                                  ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
-                                                  TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                <TextBlock x:Name="ContentSite"
+                                           Grid.Column="0"
+                                           Margin="12,0,8,0"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False"
+                                           Text="{Binding SelectionBoxItem, RelativeSource={RelativeSource TemplatedParent}}"
+                                           TextTrimming="CharacterEllipsis"
+                                           TextWrapping="NoWrap"
+                                           Foreground="{TemplateBinding Foreground}"/>
                                 <Popup x:Name="Popup"
                                        AllowsTransparency="True"
                                        Focusable="False"
@@ -426,7 +476,7 @@
                                             BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="8"
-                                            Padding="4,10"
+                                            Padding="4"
                                             MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                             MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -477,6 +527,73 @@
             <Style TargetType="Expander">
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
                 <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Expander">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ToggleButton x:Name="HeaderSite"
+                                              Grid.Row="0"
+                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                              Focusable="False"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Padding="0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="IndicatorShell"
+                                                Width="22"
+                                                Height="22"
+                                                CornerRadius="11"
+                                                Background="{DynamicResource AccentSoftBrush}">
+                                            <Path x:Name="Indicator"
+                                                  Width="8"
+                                                  Height="12"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Data="M 1 1 L 7 6 L 1 11"
+                                                  Stroke="{DynamicResource AccentBrush}"
+                                                  StrokeThickness="1.8"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  RenderTransformOrigin="0.5,0.5">
+                                                <Path.RenderTransform>
+                                                    <RotateTransform Angle="0"/>
+                                                </Path.RenderTransform>
+                                            </Path>
+                                        </Border>
+                                        <ContentPresenter Grid.Column="1"
+                                                          Margin="10,0,0,0"
+                                                          VerticalAlignment="Center"
+                                                          ContentSource="Header"/>
+                                    </Grid>
+                                </ToggleButton>
+                                <ContentPresenter x:Name="ExpandSite"
+                                                  Grid.Row="1"
+                                                  Visibility="Collapsed"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsExpanded" Value="True">
+                                    <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="Indicator" Property="RenderTransform">
+                                        <Setter.Value>
+                                            <RotateTransform Angle="90"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                                <Trigger SourceName="HeaderSite" Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="IndicatorShell" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
         </ResourceDictionary>
     </Application.Resources>

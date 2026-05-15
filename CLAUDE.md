@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo actually is
 
-Despite the legacy [README_windows.md](README_windows.md) describing this as a pure "binary distribution", the repo now contains **first-party C# source**: a WPF GUI ([RealESRGAN-GUI/](RealESRGAN-GUI/)) that wraps the upstream `realesrgan-ncnn-vulkan.exe` backend. Three components coexist:
+Despite the legacy [README_windows.md](README_windows.md) describing this as a pure "binary distribution", the repo now contains **first-party source** around the upstream `realesrgan-ncnn-vulkan.exe` backend. Four components coexist:
 
 1. **`realesrgan-ncnn-vulkan.exe`** — opaque NCNN/Vulkan inference binary from upstream (xinntao/Real-ESRGAN, via nihui/realsr-ncnn-vulkan). Treat as an external CLI; do not try to rebuild it.
 2. **[`Start_Real-ESRGAN.ps1`](Start_Real-ESRGAN.ps1)** — PowerShell wrapper (interactive menu / scripted use).
-3. **[`RealESRGAN-GUI/`](RealESRGAN-GUI/)** — WPF GUI (net9.0-windows, x64, self-contained). This is where most code work happens.
+3. **[`Launcher/`](Launcher/)** — native Win32 splash launcher that starts the GUI before the WPF runtime is ready.
+4. **[`RealESRGAN-GUI/`](RealESRGAN-GUI/)** — WPF GUI (net9.0-windows, x64, self-contained). This is where most code work happens.
 
 Both `Start_Real-ESRGAN.ps1` and the WPF GUI are **frontends to the same CLI**. If you change the backend contract (model list, default scales, supported formats), update *both* — they are kept in sync by hand.
 
@@ -18,8 +19,8 @@ Both `Start_Real-ESRGAN.ps1` and the WPF GUI are **frontends to the same CLI**. 
 # Build (debug)
 dotnet build RealESRGAN-GUI/RealESRGAN-GUI.csproj
 
-# Run from source (Visual Studio: F5, or)
-dotnet run --project RealESRGAN-GUI/RealESRGAN-GUI.csproj
+# Run from source when debugging the GUI entry check
+dotnet run --project RealESRGAN-GUI/RealESRGAN-GUI.csproj -- --from-launcher
 
 # Publish portable folder (this is what ships) → dist/
 dotnet publish RealESRGAN-GUI/RealESRGAN-GUI.csproj -c Release -r win-x64 --self-contained true -o dist
@@ -27,32 +28,31 @@ dotnet publish RealESRGAN-GUI/RealESRGAN-GUI.csproj -c Release -r win-x64 --self
 
 The `.sln` file is **gitignored** (Visual Studio auto-recreates it). Don't commit it.
 
-There is **no automated test suite**. Manual validation: launch the published exe, accept the "copy sample input.jpg" prompt, click 开始处理, verify a file appears in the output folder.
+There is **no automated test suite**. Manual validation: launch `dist/Launcher.exe`, accept the "copy sample input.jpg" prompt, click 开始处理, verify a file appears in the output folder.
 
 ## Architecture: the big picture
 
 ### Launcher (Win32 native)
 
-Because the app is shipped via Enigma Virtual Box as a single executable, the extraction phase happens before the CLR/WPF runtime even loads — the WPF `SplashWindow` cannot cover it. A native Win32 launcher ([`Launcher.c`](Launcher.c)) sits in front:
+Because the app is shipped via Enigma Virtual Box as a single executable, the extraction phase happens before the CLR/WPF runtime even loads — the WPF `SplashWindow` cannot cover it. A native Win32 launcher ([`Launcher/Launcher.c`](Launcher/Launcher.c)) sits in front:
 
 1. Acquire a named mutex (`Global\RealESRGAN_Launcher`) → if already held, activate the existing main window and exit.
 2. Detect system dark/light theme + locale (zh vs en).
-3. Create a 400×130 layered GDI splash window (themed, rounded corners via DWM, fade-in).
-4. `CreateProcess` the WPF executable (`Real-ESRGAN GUI.exe`).
+3. Create and present a 400×130 layered GDI splash window (themed, rounded corners via DWM).
+4. After the first visible splash frame is committed, `CreateProcess` the WPF executable (`Real-ESRGAN GUI.exe --from-launcher`) so the user gets feedback before the slower managed startup path begins.
 5. Poll `EnumWindows` + `GetWindowThreadProcessId` until the main window appears.
 6. Fade out and exit. The WPF process continues independently.
 
 **Build:**
 ```powershell
-# MSVC (requires Windows SDK + VC++ tools)
-cl.exe Launcher.c /O2 /W3 /Fe:Launcher.exe /link user32.lib gdi32.lib dwmapi.lib advapi32.lib
+.\Launcher\build.ps1
 ```
 
-**Enigma packing flow:** `dotnet publish -o dist` → copy `Launcher.exe` into `dist/` → set Enigma entry point to `Launcher.exe` (not `Real-ESRGAN GUI.exe`). `Launcher.exe` is a ~130 KB x64 PE with zero external dependencies.
+**Enigma packing flow:** `dotnet publish -o dist` → copy `Launcher\bin\Launcher.exe` into `dist/` → set Enigma entry point to `Launcher.exe` (not `Real-ESRGAN GUI.exe`). `Launcher.exe` is a small x64 PE with zero external dependencies.
 
 ### Boot flow
 
-[App.OnStartup](RealESRGAN-GUI/App.xaml.cs) drives startup in this order: apply theme to match the OS at launch → acquire a named single-instance mutex (`Global\RealESRGAN_GUI_SingleInstance`); if already held, message-box + `Current.Shutdown()` → show [SplashWindow](RealESRGAN-GUI/SplashWindow.xaml.cs) → construct `MainWindow` in parallel with a minimum 650 ms splash display → swap `Application.MainWindow` to the real window and close the splash. Hang new startup work on this sequence so the splash stays visible while it runs.
+[App.OnStartup](RealESRGAN-GUI/App.xaml.cs) accepts only launches marked with `--from-launcher`; a direct double-click on `Real-ESRGAN GUI.exe` immediately starts sibling `Launcher.exe` and exits. Valid launches apply the OS theme, acquire the named single-instance mutex (`Global\RealESRGAN_GUI_SingleInstance`), and show `MainWindow` directly. The native Launcher is the sole splash and PE application-icon owner; the WPF app links the same asset only as its runtime window/taskbar icon.
 
 ### Process-orchestration model
 

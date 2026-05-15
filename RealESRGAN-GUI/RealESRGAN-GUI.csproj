@@ -8,7 +8,6 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SelfContained>true</SelfContained>
@@ -19,9 +18,11 @@
     <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
-  <!-- Window/taskbar icon (loaded as a WPF resource so XAML's Icon attribute can reference it) -->
+  <!-- Runtime window/taskbar icon only. Keep PE application icon ownership with Launcher.exe. -->
   <ItemGroup>
-    <Resource Include="icon.ico" />
+    <Resource Include="..\Launcher\app.ico">
+      <Link>window-icon.ico</Link>
+    </Resource>
   </ItemGroup>
 
   <!-- Real-ESRGAN backend, OpenMP runtime, sample image: copied next to the GUI EXE

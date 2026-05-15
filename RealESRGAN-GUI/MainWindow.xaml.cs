@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
@@ -72,6 +73,7 @@ namespace RealESRGAN_GUI
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
             SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
             LocationChanged += (_, _) => ConfigureWindowSizing();
+            StateChanged += (_, _) => ConfigureWindowSizing();
             ContentRendered += (_, _) => FreezeAdaptiveHeight();
             Activated += (_, _) =>
             {
@@ -102,16 +104,36 @@ namespace RealESRGAN_GUI
             {
                 IntPtr hwnd = new WindowInteropHelper(window).Handle;
                 if (hwnd == IntPtr.Zero) return;
+
                 int useDark = dark ? 1 : 0;
-                if (DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)) != 0)
-                    DwmSetWindowAttribute(hwnd, 19, ref useDark, sizeof(int));
+                if (DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref useDark, sizeof(int)) != 0)
+                    DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkModeLegacy, ref useDark, sizeof(int));
+
+                SetTitleBarColor(hwnd, DwmwaCaptionColor, "RailBrush");
+                SetTitleBarColor(hwnd, DwmwaTextColor, "HeaderForegroundBrush");
+                SetTitleBarColor(hwnd, DwmwaBorderColor, "RailBrush");
             }
             catch { /* DWM call is best-effort; ignore on unsupported OS */ }
+        }
+
+        private static void SetTitleBarColor(IntPtr hwnd, int attribute, string resourceKey)
+        {
+            if (Application.Current.Resources[resourceKey] is not SolidColorBrush brush) return;
+
+            int colorRef = brush.Color.R |
+                           brush.Color.G << 8 |
+                           brush.Color.B << 16;
+            DwmSetWindowAttribute(hwnd, attribute, ref colorRef, sizeof(int));
         }
 
         [DllImport("dwmapi.dll", PreserveSig = true)]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+        private const int DwmwaUseImmersiveDarkModeLegacy = 19;
+        private const int DwmwaUseImmersiveDarkMode = 20;
+        private const int DwmwaBorderColor = 34;
+        private const int DwmwaCaptionColor = 35;
+        private const int DwmwaTextColor = 36;
         private const uint MonitorDefaultToNearest = 2;
 
         [DllImport("user32.dll")]
@@ -149,8 +171,9 @@ namespace RealESRGAN_GUI
             double maxWidth = Math.Max(1, workArea.Width);
             double maxHeight = Math.Max(1, workArea.Height);
 
-            MaxWidth = maxWidth;
-            MaxHeight = maxHeight;
+            bool maximized = WindowState == WindowState.Maximized;
+            MaxWidth = maximized ? double.PositiveInfinity : maxWidth;
+            MaxHeight = maximized ? double.PositiveInfinity : maxHeight;
             MinWidth = Math.Min(860, maxWidth);
             MinHeight = Math.Min(520, maxHeight);
 
@@ -173,7 +196,7 @@ namespace RealESRGAN_GUI
             _windowHeightFrozen = true;
         }
 
-        private NativeRect GetCurrentWorkArea()
+        private Rect GetCurrentWorkArea()
         {
             IntPtr hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd != IntPtr.Zero)
@@ -181,17 +204,21 @@ namespace RealESRGAN_GUI
                 IntPtr monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
                 var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
                 if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
-                    return info.WorkArea;
+                {
+                    var source = PresentationSource.FromVisual(this);
+                    if (source?.CompositionTarget is not null)
+                    {
+                        Matrix transform = source.CompositionTarget.TransformFromDevice;
+                        Point topLeft = transform.Transform(new Point(info.WorkArea.Left, info.WorkArea.Top));
+                        Point bottomRight = transform.Transform(new Point(info.WorkArea.Right, info.WorkArea.Bottom));
+                        return new Rect(topLeft, bottomRight);
+                    }
+
+                    return new Rect(info.WorkArea.Left, info.WorkArea.Top, info.WorkArea.Width, info.WorkArea.Height);
+                }
             }
 
-            Rect fallback = SystemParameters.WorkArea;
-            return new NativeRect
-            {
-                Left = (int)fallback.Left,
-                Top = (int)fallback.Top,
-                Right = (int)fallback.Right,
-                Bottom = (int)fallback.Bottom,
-            };
+            return SystemParameters.WorkArea;
         }
 
         private void PopulatePreferenceCombos()
@@ -219,7 +246,7 @@ namespace RealESRGAN_GUI
         private void PopulateComboBoxes()
         {
             string model = SelectedTag(ModelCombo) ?? "realesrgan-x4plus";
-            string scale = SelectedTag(ScaleCombo) ?? "2";
+            string scale = SelectedTag(ScaleCombo) ?? string.Empty;
             string format = SelectedTag(FormatCombo) ?? "png";
             string threads = SelectedTag(ThreadsCombo) ?? "0";
             string gpu = SelectedTag(GpuCombo) ?? string.Empty;
@@ -283,13 +310,21 @@ namespace RealESRGAN_GUI
             _                         => 4,
         };
 
-        private ComboItem[] BuildScaleItems(int defaultScale) => new[]
+        private ComboItem[] BuildScaleItems(int defaultScale)
         {
-            new ComboItem("2", "2x"),
-            new ComboItem("3", "3x"),
-            new ComboItem("4", "4x"),
-            new ComboItem(string.Empty, string.Format(CultureInfo.CurrentCulture, T("ScaleAuto"), defaultScale)),
-        };
+            var items = new List<ComboItem>
+            {
+                new(string.Empty, string.Format(CultureInfo.CurrentCulture, T("ScaleAuto"), defaultScale)),
+            };
+
+            foreach (int scale in new[] { 2, 3, 4 })
+            {
+                if (scale == defaultScale) continue;
+                items.Add(new ComboItem(scale.ToString(CultureInfo.InvariantCulture), $"{scale}x"));
+            }
+
+            return items.ToArray();
+        }
 
         private void OnModelChanged(object? sender, SelectionChangedEventArgs e)
         {
@@ -386,7 +421,6 @@ namespace RealESRGAN_GUI
             }
 
             HeaderSubtitleText.Text = T("HeaderSubtitle");
-            LocalBadgeText.Text = T("LocalBadge");
             ThemeLabelText.Text = T("ThemeLabel");
             LanguageLabelText.Text = T("LanguageLabel");
             ReadySectionTitleText.Text = T("ReadySection");
@@ -534,8 +568,9 @@ namespace RealESRGAN_GUI
                 else if (exitCode == 0)
                 {
                     _completedFiles = _totalFiles;
+                    _currentFilePercent = 100;
                     SetStatus("StatusDone", _completedFiles);
-                    ProgressBar.Value = 100;
+                    UpdateProgressBars();
                     SetProgressPercent(100);
                 }
                 else
@@ -775,16 +810,11 @@ namespace RealESRGAN_GUI
             if (completed <= _completedFiles) return;
 
             _completedFiles = Math.Min(completed, _totalFiles);
+            _currentFilePercent = _completedFiles >= _totalFiles ? 100 : 0;
             int remaining = Math.Max(0, _totalFiles - _completedFiles);
             SetStatus("StatusProcessingFiles", _completedFiles, remaining);
-
-            if (_totalFiles > 1)
-            {
-                double shownPercent = 100d * _completedFiles / _totalFiles;
-                ProgressBar.IsIndeterminate = false;
-                ProgressBar.Value = shownPercent;
-                SetProgressPercent(shownPercent);
-            }
+            UpdateProgressBars();
+            SetProgressPercent(GetOverallProgressPercent());
         }
 
         private string DescribeInputFolder(string dir)
@@ -848,12 +878,13 @@ namespace RealESRGAN_GUI
             ThreadsCombo.IsEnabled = !busy;
             GpuCombo.IsEnabled = !busy;
             TtaCheck.IsEnabled = !busy;
-            ProgressBar.Visibility = Visibility.Visible;
+            ProgressTrack.Visibility = Visibility.Visible;
             if (busy)
             {
                 SetStatus("StatusProcessingFiles", 0, _totalFiles);
-                ProgressBar.IsIndeterminate = false;
-                ProgressBar.Value = 0;
+                CurrentFileProgressBar.IsIndeterminate = false;
+                CompletedProgressBar.IsIndeterminate = false;
+                UpdateProgressBars();
                 SetProgressPercent(0);
             }
         }
@@ -864,14 +895,32 @@ namespace RealESRGAN_GUI
                 double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
             {
                 _currentFilePercent = Math.Clamp(pct, 0, 100);
-
-                if (_totalFiles <= 1)
-                {
-                    ProgressBar.IsIndeterminate = false;
-                    ProgressBar.Value = _currentFilePercent;
-                    SetProgressPercent(_currentFilePercent);
-                }
+                UpdateProgressBars();
+                SetProgressPercent(GetOverallProgressPercent());
             }
+        }
+
+        private void UpdateProgressBars()
+        {
+            bool multipleFiles = _totalFiles > 1;
+            double completedPercent = _totalFiles > 0
+                ? 100d * _completedFiles / _totalFiles
+                : 0;
+
+            CurrentFileProgressBar.Visibility = multipleFiles ? Visibility.Visible : Visibility.Collapsed;
+            CurrentFileProgressBar.Value = multipleFiles ? GetOverallProgressPercent() : 0;
+            CompletedProgressBar.Value = multipleFiles
+                ? completedPercent
+                : Math.Clamp(_currentFilePercent, 0, 100);
+        }
+
+        private double GetOverallProgressPercent()
+        {
+            if (_totalFiles <= 1)
+                return Math.Clamp(_currentFilePercent, 0, 100);
+
+            double completedUnits = _completedFiles + _currentFilePercent / 100d;
+            return 100d * Math.Clamp(completedUnits, 0, _totalFiles) / _totalFiles;
         }
 
         private void SetStatus(string key, params object[] args)
@@ -916,7 +965,6 @@ namespace RealESRGAN_GUI
         private static string ChineseText(string key) => key switch
         {
             "HeaderSubtitle" => "图片清晰化工作台",
-            "LocalBadge" => "本地处理",
             "ThemeLabel" => "主题",
             "ThemeSystem" => "跟随系统",
             "ThemeLight" => "浅色",
@@ -986,7 +1034,6 @@ namespace RealESRGAN_GUI
         private static string EnglishText(string key) => key switch
         {
             "HeaderSubtitle" => "Image upscaling workspace",
-            "LocalBadge" => "Local processing",
             "ThemeLabel" => "Theme",
             "ThemeSystem" => "System",
             "ThemeLight" => "Light",
