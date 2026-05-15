@@ -30,6 +30,9 @@ dist/
 # IDE / language-service cache
 *.lscache
 
+# Native compilation artifacts
+*.obj
+
 # IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
 *.sln
 
