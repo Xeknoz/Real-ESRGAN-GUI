@@ -363,6 +363,7 @@
                                 <ContentPresenter VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
+                                <!-- 未选中 + 悬停/焦点 → 半透明背景 -->
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
                                         <Condition Property="IsSelected" Value="False"/>
@@ -370,10 +371,23 @@
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleHoverBrush}"/>
                                 </MultiTrigger>
-                                <Trigger Property="IsSelected" Value="True">
+                                <!-- 已选中 + 悬停/焦点 → 完整背景 -->
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsHighlighted" Value="True"/>
+                                    </MultiTrigger.Conditions>
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
                                     <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                </Trigger>
+                                </MultiTrigger>
+                                <!-- 已选中 + 无焦点 → 仅前景色标识，无背景 -->
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsHighlighted" Value="False"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                </MultiTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
