@@ -267,7 +267,7 @@
                 <Setter Property="MinHeight" Value="48"/>
                 <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Template">
                     <Setter.Value>

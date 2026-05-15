@@ -99,6 +99,7 @@ namespace RealESRGAN_GUI
                 SetBrush(resources, "SubtleHoverBrush", "#18FFFFFF");
                 SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF225E58");
                 SetBrush(resources, "ComboBoxSelectedFgBrush", "#FFFFFFFF");
+                SetBrush(resources, "OnAccentBrush", "#FFFFFFFF");
             }
             else
             {
@@ -131,6 +132,7 @@ namespace RealESRGAN_GUI
                 SetBrush(resources, "SubtleHoverBrush", "#1E000000");
                 SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF66C2B2");
                 SetBrush(resources, "ComboBoxSelectedFgBrush", "#FF1B1F1C");
+                SetBrush(resources, "OnAccentBrush", "#FF1B1F1C");
             }
 
             SetBrush(resources, SystemColors.WindowBrushKey, dark ? "#FF1B1F1C" : "#FFFFFFFF");
