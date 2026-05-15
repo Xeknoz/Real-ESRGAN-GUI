@@ -441,6 +441,7 @@ namespace RealESRGAN_GUI
             FormatLabelText.Text = T("FormatLabel");
             UpdateAdvancedToggleText();
             UpdateLogToggleText();
+            LogHeaderText.Text = T("LogHeader");
             ThreadsLabelText.Text = T("ThreadsLabel");
             GpuLabelText.Text = T("GpuLabel");
             TtaCheck.Content = T("Tta");
@@ -688,8 +689,12 @@ namespace RealESRGAN_GUI
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             proc.ErrorDataReceived += (_, e) =>
             {
-                if (!string.IsNullOrEmpty(e.Data))
-                    Dispatcher.Invoke(() => ParseProgress(e.Data));
+                if (string.IsNullOrEmpty(e.Data)) return;
+                Dispatcher.Invoke(() =>
+                {
+                    if (!ParseProgress(e.Data))
+                        AppendLog(e.Data);
+                });
             };
             proc.OutputDataReceived += (_, e) =>
             {
@@ -942,7 +947,7 @@ namespace RealESRGAN_GUI
             }
         }
 
-        private void ParseProgress(string line)
+        private bool ParseProgress(string line)
         {
             if (line.EndsWith("%", StringComparison.Ordinal) &&
                 double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
@@ -952,7 +957,9 @@ namespace RealESRGAN_GUI
                     _currentFilePercent = newPct;
                 UpdateProgressBars();
                 SetProgressPercent(_currentFilePercent);
+                return true;
             }
+            return false;
         }
 
         private void UpdateProgressBars()
@@ -1059,6 +1066,7 @@ namespace RealESRGAN_GUI
             "FormatLabel" => "保存格式",
             "Advanced" => "高级设置",
             "Log" => "日志",
+            "LogHeader" => "输出日志",
             "ThreadsLabel" => "线程数",
             "GpuLabel" => "GPU 设备",
             "Tta" => "质量增强（较慢）",
@@ -1129,6 +1137,7 @@ namespace RealESRGAN_GUI
             "FormatLabel" => "Format",
             "Advanced" => "Advanced settings",
             "Log" => "Log",
+            "LogHeader" => "Output log",
             "ThreadsLabel" => "Threads",
             "GpuLabel" => "GPU device",
             "Tta" => "Enhanced quality (slower)",
