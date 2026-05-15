@@ -229,7 +229,6 @@
                                            VerticalAlignment="Center"/>
                                 <ToggleButton x:Name="AdvancedToggle"
                                               Grid.Column="1"
-                                              Content="高级设置"
                                               Click="OnAdvancedToggleClick"
                                               Cursor="Hand"
                                               Background="Transparent"

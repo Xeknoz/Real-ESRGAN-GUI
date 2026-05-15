@@ -437,7 +437,7 @@ namespace RealESRGAN_GUI
             ModelLabelText.Text = T("ModelLabel");
             ScaleLabelText.Text = T("ScaleLabel");
             FormatLabelText.Text = T("FormatLabel");
-            AdvancedToggle.Content = T("Advanced");
+            UpdateAdvancedToggleText();
             ThreadsLabelText.Text = T("ThreadsLabel");
             GpuLabelText.Text = T("GpuLabel");
             TtaCheck.Content = T("Tta");
@@ -485,9 +485,16 @@ namespace RealESRGAN_GUI
 
         private void OnAdvancedToggleClick(object sender, RoutedEventArgs e)
         {
-            AdvancedPanel.Visibility = AdvancedPanel.Visibility == Visibility.Visible
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            AdvancedPanel.Visibility = AdvancedToggle.IsChecked == true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            UpdateAdvancedToggleText();
+        }
+
+        private void UpdateAdvancedToggleText()
+        {
+            string arrow = AdvancedToggle.IsChecked == true ? "▲" : "▼";
+            AdvancedToggle.Content = $"{arrow} {T("Advanced")}";
         }
 
         private void OpenInExplorer(string path)
