@@ -824,11 +824,10 @@ namespace RealESRGAN_GUI
             if (completed <= _completedFiles) return;
 
             _completedFiles = Math.Min(completed, _totalFiles);
-            _currentFilePercent = _completedFiles >= _totalFiles ? 100 : 0;
             int remaining = Math.Max(0, _totalFiles - _completedFiles);
             SetStatus("StatusProcessingFiles", _completedFiles, remaining);
             UpdateProgressBars();
-            SetProgressPercent(GetOverallProgressPercent());
+            RenderProgressText();
         }
 
         private string DescribeInputFolder(string dir)
@@ -910,7 +909,7 @@ namespace RealESRGAN_GUI
             {
                 _currentFilePercent = Math.Clamp(pct, 0, 100);
                 UpdateProgressBars();
-                SetProgressPercent(GetOverallProgressPercent());
+                SetProgressPercent(_currentFilePercent);
             }
         }
 
@@ -922,7 +921,7 @@ namespace RealESRGAN_GUI
                 : 0;
 
             CurrentFileProgressBar.Visibility = multipleFiles ? Visibility.Visible : Visibility.Collapsed;
-            CurrentFileProgressBar.Value = multipleFiles ? GetOverallProgressPercent() : 0;
+            CurrentFileProgressBar.Value = Math.Clamp(_currentFilePercent, 0, 100);
             CompletedProgressBar.Value = multipleFiles
                 ? completedPercent
                 : Math.Clamp(_currentFilePercent, 0, 100);
@@ -965,9 +964,25 @@ namespace RealESRGAN_GUI
 
         private void RenderProgressText()
         {
-            ProgressPercentText.Text = _progressPercent.HasValue
-                ? string.Format(CultureInfo.InvariantCulture, "{0:0}%", _progressPercent.Value)
-                : T(_progressTextKey ?? "ProgressZero");
+            if (_progressTextKey is not null)
+            {
+                ProgressPercentText.Text = T(_progressTextKey);
+                return;
+            }
+
+            if (_progressPercent.HasValue)
+            {
+                string text = string.Format(CultureInfo.InvariantCulture, "{0:0}%", _progressPercent.Value);
+                if (_totalFiles > 1)
+                {
+                    text += $" ({_completedFiles}/{_totalFiles})";
+                }
+                ProgressPercentText.Text = text;
+            }
+            else
+            {
+                ProgressPercentText.Text = T("ProgressZero");
+            }
         }
 
         private string T(string key)
