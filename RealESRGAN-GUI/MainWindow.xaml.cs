@@ -907,7 +907,9 @@ namespace RealESRGAN_GUI
             if (line.EndsWith("%", StringComparison.Ordinal) &&
                 double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
             {
-                _currentFilePercent = Math.Clamp(pct, 0, 100);
+                double newPct = Math.Clamp(pct, 0, 100);
+                if (newPct >= _currentFilePercent || _currentFilePercent >= 99)
+                    _currentFilePercent = newPct;
                 UpdateProgressBars();
                 SetProgressPercent(_currentFilePercent);
             }
