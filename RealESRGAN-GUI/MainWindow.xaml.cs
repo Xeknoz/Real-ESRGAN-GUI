@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -50,8 +49,6 @@ namespace RealESRGAN_GUI
         private int _totalFiles;
         private int _completedFiles;
         private double _currentFilePercent;
-        private int _currentOutputFile = -1;
-        private readonly Dictionary<int, double> _fileProgress = new();
         private DateTime _runStartedUtc;
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
         private readonly StringBuilder _logBuilder = new();
@@ -592,35 +589,59 @@ namespace RealESRGAN_GUI
             _currentFilePercent = 0;
             _runStartedUtc = DateTime.UtcNow;
             string outputFormat = ((ComboItem)FormatCombo.SelectedItem).Tag;
-            _expectedRunOutputs = files
-                .Select(file => Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(file)}.{outputFormat}"))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            string args = BuildArgs();
 
             SetUIBusy(true);
             _cts = new CancellationTokenSource();
 
+            bool stopped = false;
+            int failed = 0;
+
             try
             {
-                int exitCode = await RunBackendAsync(args, _cts.Token);
-                if (_cts.IsCancellationRequested)
+                for (int i = 0; i < files.Count; i++)
+                {
+                    if (_cts.IsCancellationRequested) { stopped = true; break; }
+
+                    _currentFilePercent = 0;
+                    SetStatus("StatusProcessingFiles", i, _totalFiles - i);
+                    string file = files[i];
+                    string outputFile = Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(file)}.{outputFormat}");
+
+                    int exitCode = await RunBackendAsync(BuildArgs(file, outputFile), _cts.Token);
+
+                    if (_cts.IsCancellationRequested) { stopped = true; break; }
+
+                    if (exitCode == 0)
+                    {
+                        _completedFiles = i + 1;
+                        _currentFilePercent = 100;
+                    }
+                    else
+                    {
+                        failed++;
+                    }
+
+                    UpdateProgressBars();
+                    SetProgressPercent(GetDisplayPercent());
+                }
+
+                if (stopped)
                 {
                     SetStatus("StatusStopped");
                     SetProgressText("ProgressStopped");
                 }
-                else if (exitCode == 0)
+                else if (failed > 0)
+                {
+                    SetStatus("StatusPartial", _completedFiles, _totalFiles - _completedFiles);
+                    SetProgressText("ProgressIncomplete");
+                }
+                else
                 {
                     _completedFiles = _totalFiles;
                     _currentFilePercent = 100;
                     SetStatus("StatusDone", _completedFiles);
                     UpdateProgressBars();
                     SetProgressPercent(100);
-                }
-                else
-                {
-                    SetStatus("StatusFailed", exitCode);
-                    SetProgressText("ProgressIncomplete");
                 }
             }
             catch (Exception ex)
@@ -650,7 +671,7 @@ namespace RealESRGAN_GUI
             catch { /* ignore */ }
         }
 
-        private string BuildArgs()
+        private string BuildArgs(string input, string output)
         {
             string Q(string s) => $"\"{s}\"";
             string model = ((ComboItem)ModelCombo.SelectedItem).Tag;
@@ -662,8 +683,8 @@ namespace RealESRGAN_GUI
 
             var parts = new List<string>
             {
-                "-i", Q(_inputDir),
-                "-o", Q(_outputDir),
+                "-i", Q(input),
+                "-o", Q(output),
                 "-n", model,
                 "-f", format,
             };
@@ -671,7 +692,6 @@ namespace RealESRGAN_GUI
             if (threads != "0")                 { parts.Add("-t"); parts.Add(threads); }
             if (!string.IsNullOrEmpty(gpu))     { parts.Add("-g"); parts.Add(gpu); }
             if (tta)                            parts.Add("-x");
-            parts.Add("-v");
             return string.Join(" ", parts);
         }
 
@@ -942,8 +962,6 @@ namespace RealESRGAN_GUI
             {
                 _logBuilder.Clear();
                 LogText.Text = "";
-                _currentOutputFile = -1;
-                _fileProgress.Clear();
                 SetStatus("StatusProcessingFiles", 0, _totalFiles);
                 CompletedProgressBar.IsIndeterminate = false;
                 UpdateProgressBars();
@@ -953,40 +971,12 @@ namespace RealESRGAN_GUI
 
         private bool ParseProgress(string line)
         {
-            // Match "[N] processing input/xxx.jpg -> output/xxx.jpg ..." lines
-            var fileMatch = Regex.Match(line, @"^\[(\d+)\]\s+processing\s");
-            if (fileMatch.Success)
-            {
-                _currentOutputFile = int.Parse(fileMatch.Groups[1].Value, CultureInfo.InvariantCulture);
-                _completedFiles = _currentOutputFile; // files before the current one are done
-                _fileProgress[_currentOutputFile] = 0;
-                _currentFilePercent = 0;
-                UpdateProgressBars();
-                SetProgressPercent(GetDisplayPercent());
-                return true;
-            }
-
-            // Match percentage lines
             if (line.EndsWith("%", StringComparison.Ordinal) &&
                 double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
             {
                 double newPct = Math.Clamp(pct, 0, 100);
-                if (_currentOutputFile >= 0)
-                {
-                    // Per-file monotonic guard
-                    _fileProgress.TryGetValue(_currentOutputFile, out double oldPct);
-                    if (newPct >= oldPct)
-                    {
-                        _fileProgress[_currentOutputFile] = newPct;
-                        _currentFilePercent = newPct;
-                    }
-                }
-                else
-                {
-                    // Fallback: no file marker seen yet
-                    if (newPct >= _currentFilePercent || _currentFilePercent >= 99)
-                        _currentFilePercent = newPct;
-                }
+                if (newPct >= _currentFilePercent)
+                    _currentFilePercent = newPct;
                 UpdateProgressBars();
                 SetProgressPercent(GetDisplayPercent());
                 return true;
@@ -1131,6 +1121,7 @@ namespace RealESRGAN_GUI
             "StatusStopped" => "已停止",
             "StatusDone" => "完成，输出 {0} 个文件",
             "StatusFailed" => "失败 (代码 {0})",
+            "StatusPartial" => "部分完成，已处理 {0}/{1} 个文件",
             "StatusError" => "错误: {0}",
             "ProgressZero" => "0%",
             "ProgressPreparing" => "准备中",
@@ -1202,6 +1193,7 @@ namespace RealESRGAN_GUI
             "StatusStopped" => "Stopped",
             "StatusDone" => "Done, exported {0} files",
             "StatusFailed" => "Failed (code {0})",
+            "StatusPartial" => "Partial, {0}/{1} files completed",
             "StatusError" => "Error: {0}",
             "ProgressZero" => "0%",
             "ProgressPreparing" => "Preparing",
