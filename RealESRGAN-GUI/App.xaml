@@ -371,14 +371,14 @@
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleHoverBrush}"/>
                                 </MultiTrigger>
-                                <!-- 已选中 + 悬停/焦点 → 实心 Accent 背景 + 白字 -->
+                                <!-- 已选中 + 悬停/焦点 → 主题适配的实心背景 + 对比前景 -->
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
                                         <Condition Property="IsSelected" Value="True"/>
                                         <Condition Property="IsHighlighted" Value="True"/>
                                     </MultiTrigger.Conditions>
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxSelectedBgBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ComboBoxSelectedFgBrush}"/>
                                 </MultiTrigger>
                                 <!-- 已选中 + 无焦点 → 仅前景色标识，无背景 -->
                                 <MultiTrigger>
