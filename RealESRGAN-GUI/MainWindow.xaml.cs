@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace RealESRGAN_GUI
@@ -24,38 +26,83 @@ namespace RealESRGAN_GUI
         private string _outputDir = string.Empty;
         private Process? _runningProcess;
         private CancellationTokenSource? _cts;
+        private FileSystemWatcher? _inputWatcher;
+        private FileSystemWatcher? _outputWatcher;
+        private readonly DispatcherTimer _folderSummaryTimer = new()
+        {
+            Interval = TimeSpan.FromMilliseconds(250),
+        };
+        private bool _windowHeightFrozen;
+
+        private string _languagePreference = "auto";
+        private string _currentLanguage = "zh";
+        private string _themePreference = "system";
+        private bool _updatingSelections;
+        private bool _busy;
+        private string _statusKey = "StatusReady";
+        private object[] _statusArgs = Array.Empty<object>();
+        private string? _progressTextKey = "ProgressZero";
+        private double? _progressPercent = 0;
+
+        private int _totalFiles;
+        private int _completedFiles;
+        private double _currentFilePercent;
+        private DateTime _runStartedUtc;
+        private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
 
         public MainWindow()
         {
             InitializeComponent();
+            ConfigureWindowSizing();
 
             // Portable folder layout: realesrgan-ncnn-vulkan.exe, vcomp140*.dll,
             // models\, input.jpg all sit next to this GUI exe.
             _appDir  = AppContext.BaseDirectory;
             _exePath = Path.Combine(_appDir, "realesrgan-ncnn-vulkan.exe");
 
+            _currentLanguage = ResolveLanguage();
+            PopulatePreferenceCombos();
+            ApplyThemePreference();
             PopulateComboBoxes();
             InitializeDefaults();
+            ApplyLanguage(rebuildCombos: false);
+            _folderSummaryTimer.Tick += OnFolderSummaryTimerTick;
+            ConfigureFolderWatchers();
 
-            Loaded += (_, _) => LogLine($"工作引擎: {_exePath}");
+            SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+            SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+            LocationChanged += (_, _) => ConfigureWindowSizing();
+            ContentRendered += (_, _) => FreezeAdaptiveHeight();
+            Activated += (_, _) =>
+            {
+                ConfigureFolderWatchers();
+                RefreshFolderSummaries();
+            };
+            Closed += (_, _) =>
+            {
+                SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+                SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+                DisposeWatcher(ref _inputWatcher);
+                DisposeWatcher(ref _outputWatcher);
+                _folderSummaryTimer.Stop();
+            };
         }
 
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            EnableDarkTitleBar(this);
+            ConfigureWindowSizing();
+            ApplyThemePreference();
         }
 
-        // Tell DWM to render the non-client area (title bar, border) in dark mode.
-        // DWMWA_USE_IMMERSIVE_DARK_MODE = 20 on Windows 10 build 19041+ and Windows 11.
-        // 19 was the pre-release attribute used on builds 18985..19041; we try both.
-        private static void EnableDarkTitleBar(Window window)
+        // Tell DWM to render the non-client area (title bar, border) in the active app theme.
+        private static void SetTitleBarTheme(Window window, bool dark)
         {
             try
             {
                 IntPtr hwnd = new WindowInteropHelper(window).Handle;
                 if (hwnd == IntPtr.Zero) return;
-                int useDark = 1;
+                int useDark = dark ? 1 : 0;
                 if (DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)) != 0)
                     DwmSetWindowAttribute(hwnd, 19, ref useDark, sizeof(int));
             }
@@ -65,58 +112,168 @@ namespace RealESRGAN_GUI
         [DllImport("dwmapi.dll", PreserveSig = true)]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+        private const uint MonitorDefaultToNearest = 2;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfo monitorInfo);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativeRect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+
+            public int Width => Right - Left;
+            public int Height => Bottom - Top;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MonitorInfo
+        {
+            public int Size;
+            public NativeRect MonitorArea;
+            public NativeRect WorkArea;
+            public uint Flags;
+        }
+
         // --- Initialization helpers --------------------------------------------------
+
+        private void ConfigureWindowSizing()
+        {
+            var workArea = GetCurrentWorkArea();
+            double maxWidth = Math.Max(1, workArea.Width);
+            double maxHeight = Math.Max(1, workArea.Height);
+
+            MaxWidth = maxWidth;
+            MaxHeight = maxHeight;
+            MinWidth = Math.Min(860, maxWidth);
+            MinHeight = Math.Min(520, maxHeight);
+
+            if (WindowState == WindowState.Normal)
+            {
+                if (Width > maxWidth) Width = maxWidth;
+                if (_windowHeightFrozen && Height > maxHeight) Height = maxHeight;
+            }
+
+            MainScrollViewer.MaxHeight = Math.Max(80, maxHeight - 156);
+        }
+
+        private void FreezeAdaptiveHeight()
+        {
+            if (_windowHeightFrozen) return;
+
+            UpdateLayout();
+            Height = Math.Min(ActualHeight, MaxHeight);
+            SizeToContent = SizeToContent.Manual;
+            _windowHeightFrozen = true;
+        }
+
+        private NativeRect GetCurrentWorkArea()
+        {
+            IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+            {
+                IntPtr monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
+                var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+                if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
+                    return info.WorkArea;
+            }
+
+            Rect fallback = SystemParameters.WorkArea;
+            return new NativeRect
+            {
+                Left = (int)fallback.Left,
+                Top = (int)fallback.Top,
+                Right = (int)fallback.Right,
+                Bottom = (int)fallback.Bottom,
+            };
+        }
+
+        private void PopulatePreferenceCombos()
+        {
+            string theme = _themePreference;
+            string language = _languagePreference;
+
+            _updatingSelections = true;
+            SetComboItems(ThemeCombo, new[]
+            {
+                new ComboItem("system", T("ThemeSystem")),
+                new ComboItem("light",  T("ThemeLight")),
+                new ComboItem("dark",   T("ThemeDark")),
+            }, theme);
+
+            SetComboItems(LanguageCombo, new[]
+            {
+                new ComboItem("auto", T("LanguageAuto")),
+                new ComboItem("zh",   T("LanguageZh")),
+                new ComboItem("en",   T("LanguageEn")),
+            }, language);
+            _updatingSelections = false;
+        }
 
         private void PopulateComboBoxes()
         {
-            ModelCombo.ItemsSource = new[]
-            {
-                new ComboItem("realesrgan-x4plus",          "realesrgan-x4plus  (通用照片)"),
-                new ComboItem("realesrgan-x4plus-anime",    "realesrgan-x4plus-anime  (动漫/插画)"),
-                new ComboItem("realesr-animevideov3-x2",    "realesr-animevideov3-x2  (动漫视频 x2)"),
-                new ComboItem("realesr-animevideov3-x3",    "realesr-animevideov3-x3  (动漫视频 x3)"),
-                new ComboItem("realesr-animevideov3-x4",    "realesr-animevideov3-x4  (动漫视频 x4)"),
-            };
-            ModelCombo.DisplayMemberPath = nameof(ComboItem.Display);
-            ModelCombo.SelectedIndex = 0;
+            string model = SelectedTag(ModelCombo) ?? "realesrgan-x4plus";
+            string scale = SelectedTag(ScaleCombo) ?? "2";
+            string format = SelectedTag(FormatCombo) ?? "png";
+            string threads = SelectedTag(ThreadsCombo) ?? "0";
+            string gpu = SelectedTag(GpuCombo) ?? string.Empty;
 
-            ScaleCombo.ItemsSource = BuildScaleItems(DefaultScaleFor("realesrgan-x4plus"));
-            ScaleCombo.DisplayMemberPath = nameof(ComboItem.Display);
-            ScaleCombo.SelectedIndex = 0;
+            ModelCombo.SelectionChanged -= OnModelChanged;
+            _updatingSelections = true;
 
-            FormatCombo.ItemsSource = new[]
+            SetComboItems(ModelCombo, new[]
             {
-                new ComboItem("png",  "PNG"),
-                new ComboItem("jpg",  "JPG"),
-                new ComboItem("webp", "WebP"),
-            };
-            FormatCombo.DisplayMemberPath = nameof(ComboItem.Display);
-            FormatCombo.SelectedIndex = 0;
+                new ComboItem("realesrgan-x4plus",       T("ModelPhoto")),
+                new ComboItem("realesrgan-x4plus-anime", T("ModelAnime")),
+                new ComboItem("realesr-animevideov3-x2", T("ModelVideo2")),
+                new ComboItem("realesr-animevideov3-x3", T("ModelVideo3")),
+                new ComboItem("realesr-animevideov3-x4", T("ModelVideo4")),
+            }, model);
 
-            ThreadsCombo.ItemsSource = new[]
+            SetComboItems(ScaleCombo, BuildScaleItems(DefaultScaleFor(model)), scale);
+            SetComboItems(FormatCombo, new[]
             {
-                new ComboItem("0", "自动"),
+                new ComboItem("png",  T("FormatPng")),
+                new ComboItem("jpg",  T("FormatJpg")),
+                new ComboItem("webp", T("FormatWebp")),
+            }, format);
+
+            SetComboItems(ThreadsCombo, new[]
+            {
+                new ComboItem("0", T("AutoRecommended")),
                 new ComboItem("1", "1"),
                 new ComboItem("2", "2"),
                 new ComboItem("4", "4"),
                 new ComboItem("8", "8"),
-            };
-            ThreadsCombo.DisplayMemberPath = nameof(ComboItem.Display);
-            ThreadsCombo.SelectedIndex = 0;
+            }, threads);
 
-            GpuCombo.ItemsSource = new[]
+            SetComboItems(GpuCombo, new[]
             {
-                new ComboItem(string.Empty, "自动"),
+                new ComboItem(string.Empty, T("AutoRecommended")),
                 new ComboItem("0", "0"),
                 new ComboItem("1", "1"),
                 new ComboItem("2", "2"),
-            };
-            GpuCombo.DisplayMemberPath = nameof(ComboItem.Display);
-            GpuCombo.SelectedIndex = 0;
+            }, gpu);
 
-            // Attach AFTER the initial selection so the handler doesn't run during population.
+            _updatingSelections = false;
             ModelCombo.SelectionChanged += OnModelChanged;
         }
+
+        private static void SetComboItems(ComboBox combo, ComboItem[] items, string selectedTag)
+        {
+            combo.ItemsSource = items;
+            combo.DisplayMemberPath = nameof(ComboItem.Display);
+            combo.SelectedItem = items.FirstOrDefault(item => item.Tag == selectedTag) ?? items[0];
+        }
+
+        private static string? SelectedTag(ComboBox combo)
+            => combo.SelectedItem is ComboItem item ? item.Tag : null;
 
         // The CLI flag -s defaults are model-specific; reflect that in the UI label.
         private static int DefaultScaleFor(string model) => model switch
@@ -126,20 +283,21 @@ namespace RealESRGAN_GUI
             _                         => 4,
         };
 
-        private static ComboItem[] BuildScaleItems(int defaultScale) => new[]
+        private ComboItem[] BuildScaleItems(int defaultScale) => new[]
         {
-            new ComboItem(string.Empty, $"默认 ({defaultScale}x)"),
             new ComboItem("2", "2x"),
             new ComboItem("3", "3x"),
             new ComboItem("4", "4x"),
+            new ComboItem(string.Empty, string.Format(CultureInfo.CurrentCulture, T("ScaleAuto"), defaultScale)),
         };
 
         private void OnModelChanged(object? sender, SelectionChangedEventArgs e)
         {
-            if (ModelCombo.SelectedItem is not ComboItem mi) return;
-            int prev = ScaleCombo.SelectedIndex;
-            ScaleCombo.ItemsSource = BuildScaleItems(DefaultScaleFor(mi.Tag));
-            ScaleCombo.SelectedIndex = prev >= 0 ? prev : 0;
+            if (_updatingSelections || ModelCombo.SelectedItem is not ComboItem mi) return;
+            string scale = SelectedTag(ScaleCombo) ?? string.Empty;
+            _updatingSelections = true;
+            SetComboItems(ScaleCombo, BuildScaleItems(DefaultScaleFor(mi.Tag)), scale);
+            _updatingSelections = false;
         }
 
         private void InitializeDefaults()
@@ -149,6 +307,110 @@ namespace RealESRGAN_GUI
             _outputDir = Path.Combine(pictures, "Real-ESRGAN_Output");
             InputPathBox.Text  = _inputDir;
             OutputPathBox.Text = _outputDir;
+            RefreshFolderSummaries();
+            SetStatus("StatusReady");
+            SetProgressText("ProgressZero");
+        }
+
+        // --- Preferences -------------------------------------------------------------
+
+        private void OnThemeChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_updatingSelections || ThemeCombo.SelectedItem is not ComboItem item) return;
+            _themePreference = item.Tag;
+            ApplyThemePreference();
+        }
+
+        private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_updatingSelections || LanguageCombo.SelectedItem is not ComboItem item) return;
+            _languagePreference = item.Tag;
+            _currentLanguage = ResolveLanguage();
+            ApplyLanguage();
+        }
+
+        private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category is not (UserPreferenceCategory.General or UserPreferenceCategory.Color)) return;
+
+            Dispatcher.Invoke(() =>
+            {
+                if (_themePreference == "system")
+                    ApplyThemePreference();
+
+                if (_languagePreference == "auto")
+                {
+                    string resolved = ResolveLanguage();
+                    if (resolved != _currentLanguage)
+                    {
+                        _currentLanguage = resolved;
+                        ApplyLanguage();
+                    }
+                }
+            });
+        }
+
+        private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+        {
+            Dispatcher.Invoke(ConfigureWindowSizing);
+        }
+
+        private void ApplyThemePreference()
+        {
+            bool dark = _themePreference switch
+            {
+                "dark" => true,
+                "light" => false,
+                _ => App.IsSystemDarkTheme(),
+            };
+
+            App.ApplyTheme(dark);
+            SetTitleBarTheme(this, dark);
+        }
+
+        private string ResolveLanguage()
+        {
+            if (_languagePreference is "zh" or "en")
+                return _languagePreference;
+
+            string name = CultureInfo.CurrentUICulture.Name;
+            return name.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? "zh" : "en";
+        }
+
+        private void ApplyLanguage(bool rebuildCombos = true)
+        {
+            if (rebuildCombos)
+            {
+                PopulatePreferenceCombos();
+                PopulateComboBoxes();
+            }
+
+            HeaderSubtitleText.Text = T("HeaderSubtitle");
+            LocalBadgeText.Text = T("LocalBadge");
+            ThemeLabelText.Text = T("ThemeLabel");
+            LanguageLabelText.Text = T("LanguageLabel");
+            ReadySectionTitleText.Text = T("ReadySection");
+            InputTitleText.Text = T("InputTitle");
+            OpenInputButton.Content = T("OpenFolder");
+            BrowseInputButton.Content = T("BrowseInput");
+            OutputTitleText.Text = T("OutputTitle");
+            OpenOutputButton.Content = T("OpenFolder");
+            BrowseOutputButton.Content = T("BrowseOutput");
+            StartTitleText.Text = T("StartTitle");
+            StartButton.Content = T("StartButton");
+            StopButton.Content = T("StopButton");
+            SettingsSectionTitleText.Text = T("SettingsSection");
+            ModelLabelText.Text = T("ModelLabel");
+            ScaleLabelText.Text = T("ScaleLabel");
+            FormatLabelText.Text = T("FormatLabel");
+            AdvancedExpander.Header = T("Advanced");
+            ThreadsLabelText.Text = T("ThreadsLabel");
+            GpuLabelText.Text = T("GpuLabel");
+            TtaCheck.Content = T("Tta");
+            HintText.Text = T("Hint");
+            RenderStatusText();
+            RenderProgressText();
+            RefreshFolderSummaries();
         }
 
         // --- Folder picking ----------------------------------------------------------
@@ -157,7 +419,7 @@ namespace RealESRGAN_GUI
         {
             var dlg = new OpenFolderDialog
             {
-                Title = "选择文件夹",
+                Title = T("PickFolderTitle"),
                 Multiselect = false,
                 InitialDirectory = Directory.Exists(initial) ? initial : Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
             };
@@ -170,6 +432,8 @@ namespace RealESRGAN_GUI
             if (picked is null) return;
             _inputDir = picked;
             InputPathBox.Text = picked;
+            ConfigureFolderWatchers();
+            RefreshFolderSummaries();
         }
 
         private void OnBrowseOutputClick(object sender, RoutedEventArgs e)
@@ -178,6 +442,8 @@ namespace RealESRGAN_GUI
             if (picked is null) return;
             _outputDir = picked;
             OutputPathBox.Text = picked;
+            ConfigureFolderWatchers();
+            RefreshFolderSummaries();
         }
 
         private void OnOpenInputClick(object sender, RoutedEventArgs e)  => OpenInExplorer(_inputDir);
@@ -191,10 +457,7 @@ namespace RealESRGAN_GUI
                 if (!Directory.Exists(path)) Directory.CreateDirectory(path);
                 Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
             }
-            catch (Exception ex)
-            {
-                LogLine($"无法打开 {path}: {ex.Message}");
-            }
+            catch { /* ignore */ }
         }
 
         // --- Process orchestration ---------------------------------------------------
@@ -204,23 +467,25 @@ namespace RealESRGAN_GUI
             if (!File.Exists(_exePath))
             {
                 MessageBox.Show(this,
-                    $"找不到主程序：\n{_exePath}\n\n请确认 realesrgan-ncnn-vulkan.exe 与 GUI 安装目录相邻。",
+                    string.Format(CultureInfo.CurrentCulture, T("MissingExe"), _exePath),
                     "Real-ESRGAN GUI", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             try { Directory.CreateDirectory(_inputDir);  } catch { /* surfaced below */ }
             try { Directory.CreateDirectory(_outputDir); } catch { /* surfaced below */ }
+            ConfigureFolderWatchers();
+            RefreshFolderSummaries();
 
             if (!Directory.Exists(_inputDir))
             {
-                MessageBox.Show(this, "无法创建/访问输入文件夹。", "Real-ESRGAN GUI",
+                MessageBox.Show(this, T("InputAccessError"), "Real-ESRGAN GUI",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             if (!Directory.Exists(_outputDir))
             {
-                MessageBox.Show(this, "无法创建/访问输出文件夹。", "Real-ESRGAN GUI",
+                MessageBox.Show(this, T("OutputAccessError"), "Real-ESRGAN GUI",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -229,7 +494,7 @@ namespace RealESRGAN_GUI
             if (files.Count == 0)
             {
                 var ans = MessageBox.Show(this,
-                    "输入文件夹中没有支持的图片 (png/jpg/jpeg/bmp/webp/tif)。\n是否复制示例 input.jpg 进去？",
+                    T("NoImagesAsk"),
                     "Real-ESRGAN GUI", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (ans != MessageBoxResult.Yes) return;
 
@@ -240,12 +505,20 @@ namespace RealESRGAN_GUI
                     return;
                 }
                 files = EnumerateInputs(_inputDir);
+                RefreshFolderSummaries();
                 if (files.Count == 0) return;
             }
 
+            _totalFiles = files.Count;
+            _completedFiles = 0;
+            _currentFilePercent = 0;
+            _runStartedUtc = DateTime.UtcNow;
+            string outputFormat = ((ComboItem)FormatCombo.SelectedItem).Tag;
+            _expectedRunOutputs = files
+                .Select(file => Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(file)}.{outputFormat}"))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             string args = BuildArgs();
-            LogLine($"命令: realesrgan-ncnn-vulkan.exe {args}");
-            LogLine($"输入文件 {files.Count} 个，开始处理...");
 
             SetUIBusy(true);
             _cts = new CancellationTokenSource();
@@ -255,29 +528,31 @@ namespace RealESRGAN_GUI
                 int exitCode = await RunBackendAsync(args, _cts.Token);
                 if (_cts.IsCancellationRequested)
                 {
-                    LogLine("已停止。");
-                    StatusText.Text = "已停止";
+                    SetStatus("StatusStopped");
+                    SetProgressText("ProgressStopped");
                 }
                 else if (exitCode == 0)
                 {
-                    int produced = EnumerateInputs(_outputDir).Count;
-                    LogLine($"完成。输出文件夹中有 {produced} 个图片。");
-                    StatusText.Text = $"完成 — 输出 {produced} 个文件";
+                    _completedFiles = _totalFiles;
+                    SetStatus("StatusDone", _completedFiles);
+                    ProgressBar.Value = 100;
+                    SetProgressPercent(100);
                 }
                 else
                 {
-                    LogLine($"进程退出码: {exitCode}");
-                    StatusText.Text = $"失败 (代码 {exitCode})";
+                    SetStatus("StatusFailed", exitCode);
+                    SetProgressText("ProgressIncomplete");
                 }
             }
             catch (Exception ex)
             {
-                LogLine($"异常: {ex.Message}");
-                StatusText.Text = "发生错误";
+                SetStatus("StatusError", ex.Message);
+                SetProgressText("ProgressError");
             }
             finally
             {
                 SetUIBusy(false);
+                RefreshFolderSummaries();
                 _cts?.Dispose();
                 _cts = null;
             }
@@ -293,10 +568,7 @@ namespace RealESRGAN_GUI
                     _runningProcess.Kill(entireProcessTree: true);
                 }
             }
-            catch (Exception ex)
-            {
-                LogLine($"停止时出错: {ex.Message}");
-            }
+            catch { /* ignore */ }
         }
 
         private string BuildArgs()
@@ -339,8 +611,11 @@ namespace RealESRGAN_GUI
             };
 
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            proc.OutputDataReceived += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) AppendLog(e.Data); };
-            proc.ErrorDataReceived  += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) AppendLog("[stderr] " + e.Data); };
+            proc.ErrorDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                    Dispatcher.Invoke(() => ParseProgress(e.Data));
+            };
             proc.Start();
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
@@ -374,46 +649,409 @@ namespace RealESRGAN_GUI
             string src = Path.Combine(_appDir, "input.jpg");
             if (!File.Exists(src))
             {
-                error = "找不到示例图片 input.jpg。";
+                error = T("MissingSample");
                 return false;
             }
             try
             {
                 File.Copy(src, Path.Combine(dir, "input.jpg"), overwrite: true);
                 error = string.Empty;
-                LogLine("已复制示例图片到输入文件夹。");
                 return true;
             }
             catch (Exception ex)
             {
-                error = $"复制示例图片失败: {ex.Message}";
+                error = string.Format(CultureInfo.CurrentCulture, T("CopySampleFailed"), ex.Message);
                 return false;
             }
         }
 
         // --- UI helpers --------------------------------------------------------------
 
+        private void RefreshFolderSummaries()
+        {
+            InputSummaryText.Text = DescribeInputFolder(_inputDir);
+            OutputSummaryText.Text = DescribeOutputFolder(_outputDir);
+        }
+
+        private void ConfigureFolderWatchers()
+        {
+            ReplaceWatcher(ref _inputWatcher, _inputDir);
+            ReplaceWatcher(ref _outputWatcher, _outputDir);
+        }
+
+        private void ReplaceWatcher(ref FileSystemWatcher? watcher, string path)
+        {
+            string? currentPath = watcher?.Path;
+            bool shouldWatch = !string.IsNullOrWhiteSpace(path) && Directory.Exists(path);
+
+            if (shouldWatch &&
+                watcher is not null &&
+                string.Equals(currentPath, path, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            DisposeWatcher(ref watcher);
+            if (!shouldWatch) return;
+
+            try
+            {
+                watcher = new FileSystemWatcher(path)
+                {
+                    IncludeSubdirectories = false,
+                    NotifyFilter = NotifyFilters.FileName |
+                                   NotifyFilters.DirectoryName |
+                                   NotifyFilters.CreationTime |
+                                   NotifyFilters.LastWrite,
+                    EnableRaisingEvents = true,
+                };
+                watcher.Created += OnFolderContentsChanged;
+                watcher.Deleted += OnFolderContentsChanged;
+                watcher.Changed += OnFolderContentsChanged;
+                watcher.Renamed += OnFolderContentsChanged;
+                watcher.Error += OnFolderWatcherError;
+            }
+            catch
+            {
+                DisposeWatcher(ref watcher);
+            }
+        }
+
+        private void DisposeWatcher(ref FileSystemWatcher? watcher)
+        {
+            if (watcher is null) return;
+            watcher.Created -= OnFolderContentsChanged;
+            watcher.Deleted -= OnFolderContentsChanged;
+            watcher.Changed -= OnFolderContentsChanged;
+            watcher.Renamed -= OnFolderContentsChanged;
+            watcher.Error -= OnFolderWatcherError;
+            watcher.Dispose();
+            watcher = null;
+        }
+
+        private void OnFolderContentsChanged(object sender, FileSystemEventArgs e)
+        {
+            Dispatcher.BeginInvoke(ScheduleFolderSummaryRefresh);
+        }
+
+        private void OnFolderWatcherError(object sender, ErrorEventArgs e)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                ConfigureFolderWatchers();
+                ScheduleFolderSummaryRefresh();
+            });
+        }
+
+        private void ScheduleFolderSummaryRefresh()
+        {
+            _folderSummaryTimer.Stop();
+            _folderSummaryTimer.Start();
+        }
+
+        private void OnFolderSummaryTimerTick(object? sender, EventArgs e)
+        {
+            _folderSummaryTimer.Stop();
+            RefreshFolderSummaries();
+            RefreshRunProgressFromOutputs();
+        }
+
+        private void RefreshRunProgressFromOutputs()
+        {
+            if (!_busy || _totalFiles <= 0 || _expectedRunOutputs.Count == 0) return;
+
+            int completed = _expectedRunOutputs.Count(path =>
+            {
+                if (!File.Exists(path)) return false;
+
+                try
+                {
+                    return File.GetLastWriteTimeUtc(path) >= _runStartedUtc.AddSeconds(-2);
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+
+            if (completed <= _completedFiles) return;
+
+            _completedFiles = Math.Min(completed, _totalFiles);
+            int remaining = Math.Max(0, _totalFiles - _completedFiles);
+            SetStatus("StatusProcessingFiles", _completedFiles, remaining);
+
+            if (_totalFiles > 1)
+            {
+                double shownPercent = 100d * _completedFiles / _totalFiles;
+                ProgressBar.IsIndeterminate = false;
+                ProgressBar.Value = shownPercent;
+                SetProgressPercent(shownPercent);
+            }
+        }
+
+        private string DescribeInputFolder(string dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir))
+                return T("InputSummaryNone");
+
+            if (!Directory.Exists(dir))
+                return T("FolderCreateOnStart");
+
+            int count = CountSupportedFiles(dir);
+            if (count < 0)
+                return T("FolderUnreadable");
+
+            return count == 0
+                ? T("InputNoImages")
+                : string.Format(CultureInfo.CurrentCulture, T("InputCount"), count);
+        }
+
+        private string DescribeOutputFolder(string dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir))
+                return T("OutputSummaryNone");
+
+            if (!Directory.Exists(dir))
+                return T("FolderCreateOnStart");
+
+            int count = CountSupportedFiles(dir);
+            if (count < 0)
+                return T("FolderUnreadable");
+
+            return count == 0
+                ? T("OutputNoFiles")
+                : string.Format(CultureInfo.CurrentCulture, T("OutputCount"), count);
+        }
+
+        private static int CountSupportedFiles(string dir)
+        {
+            try
+            {
+                return EnumerateInputs(dir).Count;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
         private void SetUIBusy(bool busy)
         {
+            _busy = busy;
             StartButton.IsEnabled = !busy;
             StopButton.IsEnabled  =  busy;
-            ProgressBar.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
-            if (busy) StatusText.Text = "正在处理...";
+            BrowseInputButton.IsEnabled = !busy;
+            BrowseOutputButton.IsEnabled = !busy;
+            OpenInputButton.IsEnabled = !busy;
+            OpenOutputButton.IsEnabled = !busy;
+            ModelCombo.IsEnabled = !busy;
+            ScaleCombo.IsEnabled = !busy;
+            FormatCombo.IsEnabled = !busy;
+            ThreadsCombo.IsEnabled = !busy;
+            GpuCombo.IsEnabled = !busy;
+            TtaCheck.IsEnabled = !busy;
+            ProgressBar.Visibility = Visibility.Visible;
+            if (busy)
+            {
+                SetStatus("StatusProcessingFiles", 0, _totalFiles);
+                ProgressBar.IsIndeterminate = false;
+                ProgressBar.Value = 0;
+                SetProgressPercent(0);
+            }
         }
 
-        private void AppendLog(string line)
+        private void ParseProgress(string line)
         {
-            if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(() => AppendLog(line)); return; }
-            LogLine(line);
+            if (line.EndsWith("%", StringComparison.Ordinal) &&
+                double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
+            {
+                _currentFilePercent = Math.Clamp(pct, 0, 100);
+
+                if (_totalFiles <= 1)
+                {
+                    ProgressBar.IsIndeterminate = false;
+                    ProgressBar.Value = _currentFilePercent;
+                    SetProgressPercent(_currentFilePercent);
+                }
+            }
         }
 
-        private void LogLine(string line)
+        private void SetStatus(string key, params object[] args)
         {
-            string ts = DateTime.Now.ToString("HH:mm:ss");
-            LogBox.AppendText($"[{ts}] {line}{Environment.NewLine}");
+            _statusKey = key;
+            _statusArgs = args;
+            RenderStatusText();
         }
 
-        private void OnLogTextChanged(object sender, TextChangedEventArgs e) => LogBox.ScrollToEnd();
+        private void RenderStatusText()
+        {
+            StatusText.Text = string.Format(CultureInfo.CurrentCulture, T(_statusKey), _statusArgs);
+        }
+
+        private void SetProgressText(string key)
+        {
+            _progressTextKey = key;
+            _progressPercent = null;
+            RenderProgressText();
+        }
+
+        private void SetProgressPercent(double percent)
+        {
+            _progressTextKey = null;
+            _progressPercent = percent;
+            RenderProgressText();
+        }
+
+        private void RenderProgressText()
+        {
+            ProgressPercentText.Text = _progressPercent.HasValue
+                ? string.Format(CultureInfo.InvariantCulture, "{0:0}%", _progressPercent.Value)
+                : T(_progressTextKey ?? "ProgressZero");
+        }
+
+        private string T(string key)
+        {
+            bool en = _currentLanguage == "en";
+            return en ? EnglishText(key) : ChineseText(key);
+        }
+
+        private static string ChineseText(string key) => key switch
+        {
+            "HeaderSubtitle" => "图片清晰化工作台",
+            "LocalBadge" => "本地处理",
+            "ThemeLabel" => "主题",
+            "ThemeSystem" => "跟随系统",
+            "ThemeLight" => "浅色",
+            "ThemeDark" => "深色",
+            "LanguageLabel" => "语言",
+            "LanguageAuto" => "自动识别",
+            "LanguageZh" => "简体中文",
+            "LanguageEn" => "English",
+            "ReadySection" => "准备处理",
+            "InputTitle" => "图片来源",
+            "OutputTitle" => "保存位置",
+            "OpenFolder" => "打开文件夹",
+            "BrowseInput" => "选择图片文件夹",
+            "BrowseOutput" => "选择保存文件夹",
+            "StartTitle" => "开始处理",
+            "StartButton" => "开始清晰化",
+            "StopButton" => "停止",
+            "SettingsSection" => "处理方式",
+            "ModelLabel" => "图片类型",
+            "ScaleLabel" => "放大倍数",
+            "FormatLabel" => "保存格式",
+            "Advanced" => "高级设置",
+            "ThreadsLabel" => "线程数",
+            "GpuLabel" => "GPU 设备",
+            "Tta" => "质量增强（较慢）",
+            "Hint" => "请先根据图片内容选择类型，模型不匹配可能影响效果；其余设置保持默认即可。",
+            "ModelPhoto" => "照片 / 人像",
+            "ModelAnime" => "动漫 / 插画",
+            "ModelVideo2" => "动漫视频（2x）",
+            "ModelVideo3" => "动漫视频（3x）",
+            "ModelVideo4" => "动漫视频（4x）",
+            "ScaleAuto" => "模型默认（{0}x）",
+            "FormatPng" => "PNG（清晰，推荐）",
+            "FormatJpg" => "JPG（文件更小）",
+            "FormatWebp" => "WebP（网页友好）",
+            "AutoRecommended" => "自动（推荐）",
+            "PickFolderTitle" => "选择文件夹",
+            "MissingExe" => "找不到主程序：\n{0}\n\n请确认 realesrgan-ncnn-vulkan.exe 与 GUI 安装目录相邻。",
+            "InputAccessError" => "无法创建/访问输入文件夹。",
+            "OutputAccessError" => "无法创建/访问输出文件夹。",
+            "NoImagesAsk" => "输入文件夹中没有支持的图片 (png/jpg/jpeg/bmp/webp/tif)。\n是否复制示例 input.jpg 进去？",
+            "MissingSample" => "找不到示例图片 input.jpg。",
+            "CopySampleFailed" => "复制示例图片失败: {0}",
+            "InputSummaryNone" => "尚未选择文件夹",
+            "OutputSummaryNone" => "尚未选择保存位置",
+            "FolderCreateOnStart" => "开始时会自动创建文件夹",
+            "FolderUnreadable" => "无法读取文件夹内容",
+            "InputNoImages" => "未发现支持的图片",
+            "OutputNoFiles" => "暂无输出结果",
+            "InputCount" => "发现 {0} 张可处理图片",
+            "OutputCount" => "已有 {0} 个结果文件",
+            "StatusReady" => "就绪",
+            "StatusProcessing" => "正在处理...",
+            "StatusProcessingFiles" => "未完成 {1} 个，已完成 {0} 个",
+            "StatusStopped" => "已停止",
+            "StatusDone" => "完成，输出 {0} 个文件",
+            "StatusFailed" => "失败 (代码 {0})",
+            "StatusError" => "错误: {0}",
+            "ProgressZero" => "0%",
+            "ProgressPreparing" => "准备中",
+            "ProgressStopped" => "已停止",
+            "ProgressIncomplete" => "未完成",
+            "ProgressError" => "出错",
+            _ => key,
+        };
+
+        private static string EnglishText(string key) => key switch
+        {
+            "HeaderSubtitle" => "Image upscaling workspace",
+            "LocalBadge" => "Local processing",
+            "ThemeLabel" => "Theme",
+            "ThemeSystem" => "System",
+            "ThemeLight" => "Light",
+            "ThemeDark" => "Dark",
+            "LanguageLabel" => "Language",
+            "LanguageAuto" => "Auto",
+            "LanguageZh" => "简体中文",
+            "LanguageEn" => "English",
+            "ReadySection" => "Prepare",
+            "InputTitle" => "Image source",
+            "OutputTitle" => "Save to",
+            "OpenFolder" => "Open folder",
+            "BrowseInput" => "Choose image folder",
+            "BrowseOutput" => "Choose output folder",
+            "StartTitle" => "Run",
+            "StartButton" => "Start upscaling",
+            "StopButton" => "Stop",
+            "SettingsSection" => "Processing",
+            "ModelLabel" => "Image type",
+            "ScaleLabel" => "Scale",
+            "FormatLabel" => "Format",
+            "Advanced" => "Advanced settings",
+            "ThreadsLabel" => "Threads",
+            "GpuLabel" => "GPU device",
+            "Tta" => "Enhanced quality (slower)",
+            "Hint" => "Choose the image type first. A mismatched model can reduce quality; the other defaults are usually fine.",
+            "ModelPhoto" => "Photo / portrait",
+            "ModelAnime" => "Anime / illustration",
+            "ModelVideo2" => "Anime video (2x)",
+            "ModelVideo3" => "Anime video (3x)",
+            "ModelVideo4" => "Anime video (4x)",
+            "ScaleAuto" => "Model default ({0}x)",
+            "FormatPng" => "PNG (clear, recommended)",
+            "FormatJpg" => "JPG (smaller files)",
+            "FormatWebp" => "WebP (web friendly)",
+            "AutoRecommended" => "Auto (recommended)",
+            "PickFolderTitle" => "Choose a folder",
+            "MissingExe" => "Main program not found:\n{0}\n\nPlease make sure realesrgan-ncnn-vulkan.exe is next to the GUI.",
+            "InputAccessError" => "Cannot create or access the input folder.",
+            "OutputAccessError" => "Cannot create or access the output folder.",
+            "NoImagesAsk" => "No supported images were found in the input folder (png/jpg/jpeg/bmp/webp/tif).\nCopy the sample input.jpg into it?",
+            "MissingSample" => "Sample image input.jpg was not found.",
+            "CopySampleFailed" => "Failed to copy the sample image: {0}",
+            "InputSummaryNone" => "No folder selected",
+            "OutputSummaryNone" => "No output folder selected",
+            "FolderCreateOnStart" => "The folder will be created when processing starts",
+            "FolderUnreadable" => "Cannot read this folder",
+            "InputNoImages" => "No supported images found",
+            "OutputNoFiles" => "No output files yet",
+            "InputCount" => "{0} supported images found",
+            "OutputCount" => "{0} result files already here",
+            "StatusReady" => "Ready",
+            "StatusProcessing" => "Processing...",
+            "StatusProcessingFiles" => "Remaining {1}, completed {0}",
+            "StatusStopped" => "Stopped",
+            "StatusDone" => "Done, exported {0} files",
+            "StatusFailed" => "Failed (code {0})",
+            "StatusError" => "Error: {0}",
+            "ProgressZero" => "0%",
+            "ProgressPreparing" => "Preparing",
+            "ProgressStopped" => "Stopped",
+            "ProgressIncomplete" => "Incomplete",
+            "ProgressError" => "Error",
+            _ => key,
+        };
 
         // --- Helper type -------------------------------------------------------------
 

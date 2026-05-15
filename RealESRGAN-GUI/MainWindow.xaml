@@ -3,158 +3,379 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Real-ESRGAN GUI"
         Icon="/icon.ico"
-        Width="720" Height="640"
-        MinWidth="640" MinHeight="560"
+        Width="980"
+        MinWidth="860" MinHeight="520"
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgBrush}"
-        Foreground="{StaticResource ForegroundBrush}"
-        FontFamily="Microsoft YaHei UI, Microsoft YaHei, Segoe UI"
+        Background="{DynamicResource BgBrush}"
+        Foreground="{DynamicResource ForegroundBrush}"
+        FontFamily="Microsoft YaHei UI, DengXian, Segoe UI"
         FontSize="13"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType">
 
-    <Grid Margin="16">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Real-ESRGAN" FontSize="22" FontWeight="SemiBold"/>
-            <TextBlock Text="实用图像超分辨率工具 (NCNN + Vulkan)"
-                       Foreground="{StaticResource MutedForegroundBrush}"
-                       Margin="0,2,0,0"/>
-        </StackPanel>
-
-        <!-- Input folder -->
-        <Grid Grid.Row="1" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                <TextBlock Text="输入文件夹" Style="{StaticResource FieldLabel}"/>
-                <TextBox x:Name="InputPathBox" IsReadOnly="True"/>
-            </StackPanel>
-            <Button Grid.Column="1" Content="浏览..." VerticalAlignment="Bottom" Click="OnBrowseInputClick"/>
-        </Grid>
-
-        <!-- Output folder -->
-        <Grid Grid.Row="2" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                <TextBlock Text="输出文件夹" Style="{StaticResource FieldLabel}"/>
-                <TextBox x:Name="OutputPathBox" IsReadOnly="True"/>
-            </StackPanel>
-            <Button Grid.Column="1" Content="浏览..." VerticalAlignment="Bottom" Click="OnBrowseOutputClick"/>
-        </Grid>
-
-        <!-- Model / Scale / Format -->
-        <Grid Grid.Row="3" Margin="0,4,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width="1*"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="模型" Style="{StaticResource FieldLabel}"/>
-                <ComboBox x:Name="ModelCombo"/>
-            </StackPanel>
-            <StackPanel Grid.Column="2">
-                <TextBlock Text="放大倍数" Style="{StaticResource FieldLabel}"/>
-                <ComboBox x:Name="ScaleCombo"/>
-            </StackPanel>
-            <StackPanel Grid.Column="4">
-                <TextBlock Text="输出格式" Style="{StaticResource FieldLabel}"/>
-                <ComboBox x:Name="FormatCombo"/>
-            </StackPanel>
-        </Grid>
-
-        <!-- Advanced -->
-        <Border Grid.Row="4"
-                Background="{StaticResource PanelBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="3"
-                Padding="12"
-                Margin="0,0,0,8">
+        <Border Grid.Row="0"
+                Background="{DynamicResource RailBrush}"
+                BorderBrush="{DynamicResource HeaderDividerBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="28,22">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="8"/>
-                    <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="8"/>
-                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="线程数 (0 = 自动)" Style="{StaticResource FieldLabel}"/>
-                    <ComboBox x:Name="ThreadsCombo"/>
+
+                <StackPanel>
+                    <TextBlock Text="Real-ESRGAN" Style="{StaticResource AppTitle}"/>
+                    <TextBlock x:Name="HeaderSubtitleText"
+                               Text="图片清晰化工作台"
+                               Style="{StaticResource HeroSubtitle}"
+                               Margin="1,4,0,0"/>
                 </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="GPU 设备" Style="{StaticResource FieldLabel}"/>
-                    <ComboBox x:Name="GpuCombo"/>
-                </StackPanel>
-                <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
-                    <CheckBox x:Name="TtaCheck" Content="启用 TTA 模式 (更慢，质量更高)"/>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <StackPanel Width="132" Margin="0,0,12,0">
+                        <TextBlock x:Name="ThemeLabelText"
+                                   Text="主题"
+                                   Foreground="{DynamicResource HeaderSubtleBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"/>
+                        <ComboBox x:Name="ThemeCombo"
+                                  SelectionChanged="OnThemeChanged"/>
+                    </StackPanel>
+
+                    <StackPanel Width="132" Margin="0,0,12,0">
+                        <TextBlock x:Name="LanguageLabelText"
+                                   Text="语言"
+                                   Foreground="{DynamicResource HeaderSubtleBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"/>
+                        <ComboBox x:Name="LanguageCombo"
+                                  SelectionChanged="OnLanguageChanged"/>
+                    </StackPanel>
+
+                    <Border Style="{StaticResource StatusPill}"
+                            VerticalAlignment="Bottom"
+                            Margin="2,0,0,0">
+                        <TextBlock x:Name="LocalBadgeText"
+                                   Text="本地处理"
+                                   Foreground="{DynamicResource StatusPillForegroundBrush}"
+                                   FontWeight="SemiBold"/>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Actions -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button x:Name="StartButton" Content="开始处理" Style="{StaticResource AccentButton}" Click="OnStartClick"/>
-            <Button x:Name="StopButton"  Content="停止"     Margin="8,0,0,0" IsEnabled="False" Click="OnStopClick"/>
-            <Button Content="打开输入文件夹" Margin="16,0,0,0" Click="OnOpenInputClick"/>
-            <Button Content="打开输出文件夹" Margin="8,0,0,0"  Click="OnOpenOutputClick"/>
-        </StackPanel>
+        <ScrollViewer x:Name="MainScrollViewer"
+                      Grid.Row="1"
+                      Style="{StaticResource OverlayScrollViewer}"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="False">
+            <StackPanel Margin="28">
+                <TextBlock x:Name="ReadySectionTitleText"
+                           Text="准备处理"
+                           Style="{StaticResource SectionTitle}"
+                           Margin="0,0,0,12"/>
 
-        <!-- Progress + status -->
-        <ProgressBar Grid.Row="6" x:Name="ProgressBar" Height="6" Margin="0,0,0,4"
-                     Visibility="Collapsed" IsIndeterminate="True"/>
-        <TextBlock Grid.Row="6" x:Name="StatusText" Text="就绪"
-                   Foreground="{StaticResource MutedForegroundBrush}"
-                   Margin="0,8,0,0"/>
+                <Grid Margin="0,0,0,18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-        <!-- Log -->
-        <Border Grid.Row="7"
-                Background="#FF0E0E0E"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="3"
-                Margin="0,8,0,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="日志"
-                           Foreground="{StaticResource MutedForegroundBrush}"
-                           Margin="8,4,8,2"/>
-                <TextBox  Grid.Row="1" x:Name="LogBox"
-                          IsReadOnly="True" TextWrapping="NoWrap"
-                          AcceptsReturn="True"
-                          Background="#FF0E0E0E"
-                          Foreground="#FFD0D0D0"
-                          BorderThickness="0"
-                          FontFamily="Consolas, Menlo, Microsoft YaHei UI"
-                          FontSize="12"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Auto"
-                          TextChanged="OnLogTextChanged"/>
-            </Grid>
-        </Border>
+                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,2,14,0">
+                                <TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Name="InputTitleText"
+                                                   Text="图片来源"
+                                                   Style="{StaticResource SectionTitle}"/>
+                                        <TextBlock x:Name="InputSummaryText"
+                                                   Text="尚未选择文件夹"
+                                                   Style="{StaticResource HelperText}"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            x:Name="OpenInputButton"
+                                            Content="打开文件夹"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Top"
+                                            Click="OnOpenInputClick"/>
+                                </Grid>
+
+                                <TextBox Grid.Row="1"
+                                         x:Name="InputPathBox"
+                                         IsReadOnly="True"
+                                         Margin="0,16,0,0"/>
+
+                                <Button Grid.Row="2"
+                                        x:Name="BrowseInputButton"
+                                        Content="选择图片文件夹"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,12,0,0"
+                                        Click="OnBrowseInputClick"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,2,14,0">
+                                <TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Name="OutputTitleText"
+                                                   Text="保存位置"
+                                                   Style="{StaticResource SectionTitle}"/>
+                                        <TextBlock x:Name="OutputSummaryText"
+                                                   Text="处理结果会保存到这里"
+                                                   Style="{StaticResource HelperText}"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            x:Name="OpenOutputButton"
+                                            Content="打开文件夹"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Top"
+                                            Click="OnOpenOutputClick"/>
+                                </Grid>
+
+                                <TextBox Grid.Row="1"
+                                         x:Name="OutputPathBox"
+                                         IsReadOnly="True"
+                                         Margin="0,16,0,0"/>
+
+                                <Button Grid.Row="2"
+                                        x:Name="BrowseOutputButton"
+                                        Content="选择保存文件夹"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,12,0,0"
+                                        Click="OnBrowseOutputClick"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource Card}" Margin="0,0,0,18">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,2,14,0">
+                            <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="SettingsSectionTitleText"
+                                       Text="处理方式"
+                                       Style="{StaticResource SectionTitle}"
+                                       Margin="0,0,0,14"/>
+
+                            <Grid Grid.Row="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.5*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0">
+                                    <TextBlock x:Name="ModelLabelText"
+                                               Text="图片类型"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="ModelCombo"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="2">
+                                    <TextBlock x:Name="ScaleLabelText"
+                                               Text="放大倍数"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="ScaleCombo"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="4">
+                                    <TextBlock x:Name="FormatLabelText"
+                                               Text="保存格式"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="FormatCombo"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Expander Grid.Row="2"
+                                      x:Name="AdvancedExpander"
+                                      Header="高级设置"
+                                      Margin="0,18,0,0">
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="0">
+                                        <TextBlock x:Name="ThreadsLabelText"
+                                                   Text="线程数"
+                                                   Style="{StaticResource FieldLabel}"/>
+                                        <ComboBox x:Name="ThreadsCombo"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="2">
+                                        <TextBlock x:Name="GpuLabelText"
+                                                   Text="GPU 设备"
+                                                   Style="{StaticResource FieldLabel}"/>
+                                        <ComboBox x:Name="GpuCombo"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Row="1"
+                                              Grid.ColumnSpan="3"
+                                              x:Name="TtaCheck"
+                                              Content="质量增强（较慢）"
+                                              Margin="0,16,0,0"/>
+                                </Grid>
+                            </Expander>
+
+                            <Border Grid.Row="3"
+                                    Background="{DynamicResource AccentSoftBrush}"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    Margin="0,18,0,0">
+                                <TextBlock x:Name="HintText"
+                                           Text="请先根据图片内容选择类型，模型不匹配可能影响效果；其余设置保持默认即可。"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,2,14,0">
+                            <TextBlock Text="4" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="StartTitleText"
+                                           Text="开始处理"
+                                           Style="{StaticResource SectionTitle}"/>
+                                <TextBlock Grid.Column="1"
+                                           x:Name="ProgressPercentText"
+                                           Text="0%"
+                                           Foreground="{DynamicResource MutedForegroundBrush}"
+                                           FontWeight="SemiBold"/>
+                            </Grid>
+
+                            <ProgressBar Grid.Row="1"
+                                         x:Name="ProgressBar"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Value="0"
+                                         Margin="0,14,0,10"/>
+
+                            <TextBlock Grid.Row="2"
+                                       x:Name="StatusText"
+                                       Text="就绪"
+                                       Style="{StaticResource HelperText}"
+                                       Margin="0,0,0,14"/>
+
+                            <StackPanel Grid.Row="3" Orientation="Horizontal">
+                                <Button x:Name="StartButton"
+                                        Content="开始清晰化"
+                                        Style="{StaticResource AccentButton}"
+                                        MinWidth="150"
+                                        Click="OnStartClick"/>
+                                <Button x:Name="StopButton"
+                                        Content="停止"
+                                        Style="{StaticResource DangerButton}"
+                                        Margin="10,0,0,0"
+                                        IsEnabled="False"
+                                        Click="OnStopClick"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Window>
