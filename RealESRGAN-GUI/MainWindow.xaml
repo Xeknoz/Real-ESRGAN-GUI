@@ -218,10 +218,46 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock x:Name="SettingsSectionTitleText"
-                                       Text="处理方式"
-                                       Style="{StaticResource SectionTitle}"
-                                       Margin="0,0,0,14"/>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="SettingsSectionTitleText"
+                                           Text="处理方式"
+                                           Style="{StaticResource SectionTitle}"
+                                           VerticalAlignment="Center"/>
+                                <ToggleButton x:Name="AdvancedToggle"
+                                              Grid.Column="1"
+                                              Content="高级设置"
+                                              Click="OnAdvancedToggleClick"
+                                              Cursor="Hand"
+                                              Background="Transparent"
+                                              BorderBrush="Transparent"
+                                              Foreground="{DynamicResource AccentBrush}"
+                                              FontSize="13"
+                                              Padding="4,2"
+                                              VerticalAlignment="Center">
+                                    <ToggleButton.Style>
+                                        <Style TargetType="ToggleButton">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}">
+                                                            <ContentPresenter HorizontalAlignment="Center"
+                                                                              VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ToggleButton.Style>
+                                </ToggleButton>
+                            </Grid>
 
                             <Grid Grid.Row="1">
                                 <Grid.RowDefinitions>
@@ -255,11 +291,11 @@
                                 </StackPanel>
                             </Grid>
 
-                            <Expander Grid.Row="2"
-                                      x:Name="AdvancedExpander"
-                                      Header="高级设置"
-                                      Margin="0,18,0,0">
-                                <Grid Margin="0,14,0,0">
+                            <Border Grid.Row="2"
+                                    x:Name="AdvancedPanel"
+                                    Visibility="Collapsed"
+                                    Margin="0,18,0,0">
+                                <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -288,7 +324,7 @@
                                               Content="质量增强（较慢）"
                                               Margin="0,16,0,0"/>
                                 </Grid>
-                            </Expander>
+                            </Border>
 
                             <Border Grid.Row="3"
                                     Background="{DynamicResource AccentSoftBrush}"

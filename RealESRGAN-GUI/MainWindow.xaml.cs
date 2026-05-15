@@ -437,7 +437,7 @@ namespace RealESRGAN_GUI
             ModelLabelText.Text = T("ModelLabel");
             ScaleLabelText.Text = T("ScaleLabel");
             FormatLabelText.Text = T("FormatLabel");
-            AdvancedExpander.Header = T("Advanced");
+            AdvancedToggle.Content = T("Advanced");
             ThreadsLabelText.Text = T("ThreadsLabel");
             GpuLabelText.Text = T("GpuLabel");
             TtaCheck.Content = T("Tta");
@@ -482,6 +482,13 @@ namespace RealESRGAN_GUI
 
         private void OnOpenInputClick(object sender, RoutedEventArgs e)  => OpenInExplorer(_inputDir);
         private void OnOpenOutputClick(object sender, RoutedEventArgs e) => OpenInExplorer(_outputDir);
+
+        private void OnAdvancedToggleClick(object sender, RoutedEventArgs e)
+        {
+            AdvancedPanel.Visibility = AdvancedPanel.Visibility == Visibility.Visible
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
 
         private void OpenInExplorer(string path)
         {
