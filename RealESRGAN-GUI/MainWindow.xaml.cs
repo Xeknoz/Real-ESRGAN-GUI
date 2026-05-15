@@ -494,7 +494,7 @@ namespace RealESRGAN_GUI
         private void UpdateAdvancedToggleText()
         {
             string arrow = AdvancedToggle.IsChecked == true ? "▲" : "▼";
-            AdvancedToggle.Content = $"{arrow} {T("Advanced")}";
+            AdvancedToggle.Content = $"{T("Advanced")} {arrow}";
         }
 
         private void OpenInExplorer(string path)
