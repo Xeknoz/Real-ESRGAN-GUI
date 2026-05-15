@@ -426,7 +426,7 @@
                                             BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="8"
-                                            Padding="4"
+                                            Padding="4,10"
                                             MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                             MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">

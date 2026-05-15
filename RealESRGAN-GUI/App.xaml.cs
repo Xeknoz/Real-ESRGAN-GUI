@@ -119,8 +119,8 @@ namespace RealESRGAN_GUI
                 SetBrush(resources, "StopHoverBrush", "#FFB71C1C");
                 SetBrush(resources, "RailBrush", "#FFE0E0E0");
                 SetBrush(resources, "HeaderDividerBrush", "#FFD6D6D6");
-                SetBrush(resources, "HeaderForegroundBrush", "#FFFFFFFF");
-                SetBrush(resources, "HeaderSubtleBrush", "#FFE0E0E0");
+                SetBrush(resources, "HeaderForegroundBrush", "#FF1A1C1A");
+                SetBrush(resources, "HeaderSubtleBrush", "#FF5F6368");
                 SetBrush(resources, "StatusPillBrush", "#FFE8F5E9");
                 SetBrush(resources, "StatusPillForegroundBrush", "#FF1B5E20");
                 SetBrush(resources, "ProgressTrackBrush", "#FFE0E0E0");
