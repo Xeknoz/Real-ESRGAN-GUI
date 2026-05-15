@@ -142,6 +142,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
     // ---- Message loop: animate + poll for main window ----
     MSG msg;
     DWORD t0 = GetTickCount();
+    BOOL foundWindow = FALSE;
     while (!g_found) {
         while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) { g_found = TRUE; break; }
@@ -151,7 +152,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
         if (g_found) break;
 
         if (FindMainWindow()) {
-            Sleep(150); // Let main window finish rendering
+            foundWindow = TRUE;
             g_found = TRUE;
             break;
         }
@@ -159,13 +160,18 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
         Sleep(5);
     }
 
-    // ---- Fade out ----
-    for (int i = FADE_STEPS - 1; i >= 0; i--) {
-        SetLayeredWindowAttributes(g_hwnd, 0, (BYTE)(i * 255 / FADE_STEPS), LWA_ALPHA);
-        UpdateWindow(g_hwnd);
-        Sleep(6);
+    if (foundWindow) {
+        // Main window is ready — dismiss splash immediately, no fade-out
+        DestroyWindow(g_hwnd);
+    } else {
+        // Timeout or early exit — graceful fade-out
+        for (int i = FADE_STEPS - 1; i >= 0; i--) {
+            SetLayeredWindowAttributes(g_hwnd, 0, (BYTE)(i * 255 / FADE_STEPS), LWA_ALPHA);
+            UpdateWindow(g_hwnd);
+            Sleep(6);
+        }
+        DestroyWindow(g_hwnd);
     }
-    DestroyWindow(g_hwnd);
 
     if (g_hProc) CloseHandle(g_hProc);
     if (mutex) { ReleaseMutex(mutex); CloseHandle(mutex); }
