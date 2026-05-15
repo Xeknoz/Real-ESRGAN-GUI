@@ -27,6 +27,9 @@ RealESRGAN-GUI/obj/
 RealESRGAN-GUI-App/
 dist/
 
+# IDE / language-service cache
+*.lscache
+
 # IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
 *.sln
 
