@@ -201,64 +201,64 @@
 
                 <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,2,14,0">
-                            <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,0,14,0">
+                                <TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" x:Name="SettingsSectionTitleText"
+                                       Text="处理方式"
+                                       Style="{StaticResource SectionTitle}"
+                                       VerticalAlignment="Center"/>
+                            <ToggleButton Grid.Column="2" x:Name="AdvancedToggle"
+                                          Click="OnAdvancedToggleClick"
+                                          Cursor="Hand"
+                                          Background="Transparent"
+                                          BorderBrush="Transparent"
+                                          Foreground="{DynamicResource AccentBrush}"
+                                          FontSize="13"
+                                          Padding="4,2"
+                                          VerticalAlignment="Center">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                        </Grid>
 
-                        <Grid Grid.Column="1">
+                        <Grid Grid.Row="1">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="SettingsSectionTitleText"
-                                           Text="处理方式"
-                                           Style="{StaticResource SectionTitle}"
-                                           VerticalAlignment="Center"/>
-                                <ToggleButton x:Name="AdvancedToggle"
-                                              Grid.Column="1"
-                                              Click="OnAdvancedToggleClick"
-                                              Cursor="Hand"
-                                              Background="Transparent"
-                                              BorderBrush="Transparent"
-                                              Foreground="{DynamicResource AccentBrush}"
-                                              FontSize="13"
-                                              Padding="4,2"
-                                              VerticalAlignment="Center">
-                                    <ToggleButton.Style>
-                                        <Style TargetType="ToggleButton">
-                                            <Setter Property="Background" Value="Transparent"/>
-                                            <Setter Property="BorderBrush" Value="Transparent"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ToggleButton">
-                                                        <Border Background="{TemplateBinding Background}"
-                                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                                BorderThickness="{TemplateBinding BorderThickness}">
-                                                            <ContentPresenter HorizontalAlignment="Center"
-                                                                              VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ToggleButton.Style>
-                                </ToggleButton>
-                            </Grid>
-
-                            <Grid Grid.Row="1">
+                            <Grid Grid.Row="0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
@@ -290,7 +290,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <Border Grid.Row="2"
+                            <Border Grid.Row="1"
                                     x:Name="AdvancedPanel"
                                     Visibility="Collapsed"
                                     Margin="0,18,0,0">
@@ -325,7 +325,7 @@
                                 </Grid>
                             </Border>
 
-                            <Border Grid.Row="3"
+                            <Border Grid.Row="2"
                                     Background="{DynamicResource AccentSoftBrush}"
                                     CornerRadius="8"
                                     Padding="12"
@@ -341,74 +341,67 @@
 
                 <Border Style="{StaticResource Card}">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,2,14,0">
-                            <TextBlock Text="4" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-
-                        <Grid Grid.Column="1">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="StartTitleText"
-                                           Text="开始处理"
-                                           Style="{StaticResource SectionTitle}"/>
-                                <TextBlock Grid.Column="1"
-                                           x:Name="ProgressPercentText"
-                                           Text="0%"
-                                           Foreground="{DynamicResource MutedForegroundBrush}"
-                                           FontWeight="SemiBold"/>
-                            </Grid>
-
-                            <Grid Grid.Row="1"
-                                  x:Name="ProgressTrack"
-                                  Margin="0,14,0,10">
-                                <ProgressBar x:Name="CurrentFileProgressBar"
-                                             Minimum="0"
-                                             Maximum="100"
-                                             Value="0"
-                                             Foreground="{DynamicResource ProgressCurrentBrush}"
-                                             Visibility="Collapsed"/>
-                                <ProgressBar x:Name="CompletedProgressBar"
-                                             Minimum="0"
-                                             Maximum="100"
-                                             Value="0"
-                                             Foreground="{DynamicResource ProgressCompleteBrush}"/>
-                            </Grid>
-
-                            <TextBlock Grid.Row="2"
-                                       x:Name="StatusText"
-                                       Text="就绪"
-                                       Style="{StaticResource HelperText}"
-                                       Margin="0,0,0,14"/>
-
-                            <StackPanel Grid.Row="3" Orientation="Horizontal">
-                                <Button x:Name="StartButton"
-                                        Content="开始清晰化"
-                                        Style="{StaticResource AccentButton}"
-                                        MinWidth="150"
-                                        Click="OnStartClick"/>
-                                <Button x:Name="StopButton"
-                                        Content="停止"
-                                        Style="{StaticResource DangerButton}"
-                                        Margin="10,0,0,0"
-                                        IsEnabled="False"
-                                        Click="OnStopClick"/>
-                            </StackPanel>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,0,14,0">
+                                <TextBlock Text="4" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" x:Name="StartTitleText"
+                                       Text="开始处理"
+                                       Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Grid.Column="2"
+                                       x:Name="ProgressPercentText"
+                                       Text="0%"
+                                       Foreground="{DynamicResource MutedForegroundBrush}"
+                                       FontWeight="SemiBold"/>
                         </Grid>
+
+                        <Grid Grid.Row="1"
+                              x:Name="ProgressTrack"
+                              Margin="0,14,0,10">
+                            <ProgressBar x:Name="CurrentFileProgressBar"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Value="0"
+                                         Foreground="{DynamicResource ProgressCurrentBrush}"
+                                         Visibility="Collapsed"/>
+                            <ProgressBar x:Name="CompletedProgressBar"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Value="0"
+                                         Foreground="{DynamicResource ProgressCompleteBrush}"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2"
+                                   x:Name="StatusText"
+                                   Text="就绪"
+                                   Style="{StaticResource HelperText}"
+                                   Margin="0,0,0,14"/>
+
+                        <StackPanel Grid.Row="3" Orientation="Horizontal">
+                            <Button x:Name="StartButton"
+                                    Content="开始清晰化"
+                                    Style="{StaticResource AccentButton}"
+                                    MinWidth="150"
+                                    Click="OnStartClick"/>
+                            <Button x:Name="StopButton"
+                                    Content="停止"
+                                    Style="{StaticResource DangerButton}"
+                                    Margin="10,0,0,0"
+                                    IsEnabled="False"
+                                    Click="OnStopClick"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
             </StackPanel>
