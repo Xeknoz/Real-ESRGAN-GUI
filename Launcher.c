@@ -1,6 +1,6 @@
 // Launcher.c
 // Win32 native splash launcher for Real-ESRGAN GUI.
-// Displays a themed splash screen while starting the WPF application.
+// Displays a HiDPI-aware themed splash screen while starting the WPF application.
 //
 // Build (MSVC):    cl.exe Launcher.c /O2 /W3 /Fe:Launcher.exe /link user32.lib gdi32.lib dwmapi.lib advapi32.lib
 // Build (MinGW):   gcc -O2 -o Launcher.exe Launcher.c -municode -luser32 -lgdi32 -ldwmapi -ladvapi32
@@ -10,8 +10,9 @@
 #include <dwmapi.h>
 #include <strsafe.h>
 
-#define SPLASH_W      400
-#define SPLASH_H      130
+// ---- Design values (96 DPI baseline) ----
+#define DESIGN_W      400
+#define DESIGN_H      130
 #define TIMER_ID      1
 #define TIMER_MS      40
 #define FADE_STEPS    12
@@ -24,14 +25,41 @@ static BOOL   g_dark   = TRUE;
 static BOOL   g_zh     = TRUE;
 static BOOL   g_found  = FALSE;
 static int    g_pulse  = -40;
+static int    g_dpi    = 96;
+static int    g_w      = DESIGN_W;
+static int    g_h      = DESIGN_H;
 
-static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+// Scale a 96-DPI design value to the current monitor DPI.
+static int S(int v) { return MulDiv(v, g_dpi, 96); }
+
+static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static void    Paint(HWND hWnd);
 static void    Launch(void);
 static BOOL    FindMainWindow(void);
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
 {
+    (void)hPrev; (void)lpCmd; (void)nShow;
+
+    // ---- Set Per-Monitor V2 DPI awareness (Win10 1703+) ----
+    typedef BOOL (WINAPI *SetProcessDpiAwarenessContextFn)(DPI_AWARENESS_CONTEXT);
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+    SetProcessDpiAwarenessContextFn setDpiCtx =
+        (SetProcessDpiAwarenessContextFn)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+    if (setDpiCtx) {
+        setDpiCtx(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    } else {
+        SetProcessDPIAware();
+    }
+
+    // ---- Query primary monitor DPI ----
+    HDC hdcScreen = GetDC(NULL);
+    g_dpi = GetDeviceCaps(hdcScreen, LOGPIXELSX);
+    ReleaseDC(NULL, hdcScreen);
+
+    g_w = S(DESIGN_W);
+    g_h = S(DESIGN_H);
+
     // ---- Single instance mutex ----
     HANDLE mutex = CreateMutexW(NULL, TRUE, L"Global\\RealESRGAN_Launcher");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -76,8 +104,8 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
     g_hwnd = CreateWindowExW(
         WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
         L"RESG_Splash", L"", WS_POPUP,
-        (cx - SPLASH_W) / 2, (cy - SPLASH_H) / 2,
-        SPLASH_W, SPLASH_H,
+        (cx - g_w) / 2, (cy - g_h) / 2,
+        g_w, g_h,
         NULL, NULL, hInst, NULL);
 
     if (!g_hwnd) {
@@ -146,6 +174,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    (void)lParam;
     switch (msg) {
     case WM_PAINT:
         Paint(hWnd);
@@ -153,8 +182,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 
     case WM_TIMER:
         if (wParam == TIMER_ID) {
-            g_pulse += 5;
-            if (g_pulse > SPLASH_W + 40) g_pulse = -40;
+            g_pulse += S(5);
+            if (g_pulse > g_w + S(40)) g_pulse = -S(40);
             InvalidateRect(hWnd, NULL, FALSE);
         }
         return 0;
@@ -181,7 +210,7 @@ static void Paint(HWND hWnd)
     DeleteObject(hbrBg);
 
     // 1px border
-    HPEN hPen = CreatePen(PS_SOLID, 1, g_dark ? RGB(61, 70, 61) : RGB(217, 209, 196));
+    HPEN hPen = CreatePen(PS_SOLID, S(1), g_dark ? RGB(61, 70, 61) : RGB(217, 209, 196));
     HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
     HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
     Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
@@ -199,50 +228,50 @@ static void Paint(HWND hWnd)
     SetBkMode(hdc, TRANSPARENT);
 
     // Title: "Real-ESRGAN"
-    HFONT hFontTitle = CreateFontW(22, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+    HFONT hFontTitle = CreateFontW(-S(22), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
     HFONT hOldFont = (HFONT)SelectObject(hdc, hFontTitle);
     SetTextColor(hdc, clrText);
-    RECT rcTitle = { 28, 20, 280, 46 };
+    RECT rcTitle = { S(28), S(20), S(280), S(46) };
     DrawTextW(hdc, L"Real-ESRGAN", -1, &rcTitle, DT_LEFT | DT_SINGLELINE);
 
     // Version
-    HFONT hFontVer = CreateFontW(11, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+    HFONT hFontVer = CreateFontW(-S(11), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
     SelectObject(hdc, hFontVer);
     SetTextColor(hdc, clrSubtle);
-    RECT rcVer = { SPLASH_W - 70, 24, SPLASH_W - 28, 42 };
+    RECT rcVer = { g_w - S(70), S(24), g_w - S(28), S(42) };
     DrawTextW(hdc, L"v1.0", -1, &rcVer, DT_RIGHT | DT_SINGLELINE);
 
     // Subtitle
-    HFONT hFontSub = CreateFontW(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    HFONT hFontSub = CreateFontW(-S(12), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
     SelectObject(hdc, hFontSub);
     SetTextColor(hdc, clrMuted);
-    RECT rcSub = { 28, 48, 220, 66 };
+    RECT rcSub = { S(28), S(48), S(220), S(66) };
     DrawTextW(hdc, g_zh ? L"图像超分辨率工具" : L"Image Super-Resolution", -1, &rcSub, DT_LEFT | DT_SINGLELINE);
 
     // Status
-    HFONT hFontStatus = CreateFontW(11, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    HFONT hFontStatus = CreateFontW(-S(11), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
     SelectObject(hdc, hFontStatus);
     SetTextColor(hdc, clrMuted);
-    RECT rcStatus = { SPLASH_W - 130, 48, SPLASH_W - 28, 66 };
+    RECT rcStatus = { g_w - S(130), S(48), g_w - S(28), S(66) };
     DrawTextW(hdc, g_zh ? L"正在启动..." : L"Starting...", -1, &rcStatus, DT_RIGHT | DT_SINGLELINE);
 
     // Progress track
     HBRUSH hbrTrack = CreateSolidBrush(clrTrack);
-    RECT rcTrack = { 28, SPLASH_H - 26, SPLASH_W - 28, SPLASH_H - 24 };
+    RECT rcTrack = { S(28), g_h - S(26), g_w - S(28), g_h - S(24) };
     FillRect(hdc, &rcTrack, hbrTrack);
     DeleteObject(hbrTrack);
 
     // Progress pulse (clipped to track bounds)
     HBRUSH hbrPulse = CreateSolidBrush(clrAccent);
-    RECT rcPulse = { g_pulse, SPLASH_H - 26, g_pulse + 40, SPLASH_H - 24 };
+    RECT rcPulse = { g_pulse, g_h - S(26), g_pulse + S(40), g_h - S(24) };
     if (rcPulse.right > rcTrack.left && rcPulse.left < rcTrack.right) {
         if (rcPulse.left < rcTrack.left) rcPulse.left = rcTrack.left;
         if (rcPulse.right > rcTrack.right) rcPulse.right = rcTrack.right;
@@ -306,6 +335,7 @@ static void Launch(void)
 
 static BOOL CALLBACK EnumWindowProc(HWND hwnd, LPARAM lParam)
 {
+    (void)lParam;
     DWORD pid = 0;
     GetWindowThreadProcessId(hwnd, &pid);
     if (pid == (DWORD)lParam && IsWindowVisible(hwnd)) {
