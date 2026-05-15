@@ -359,12 +359,14 @@
                             </Border>
                             <TextBlock Grid.Column="1" x:Name="StartTitleText"
                                        Text="开始处理"
-                                       Style="{StaticResource SectionTitle}"/>
+                                       Style="{StaticResource SectionTitle}"
+                                       VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="2"
                                        x:Name="ProgressPercentText"
                                        Text="0%"
                                        Foreground="{DynamicResource MutedForegroundBrush}"
-                                       FontWeight="SemiBold"/>
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
                         </Grid>
 
                         <Grid Grid.Row="1"
