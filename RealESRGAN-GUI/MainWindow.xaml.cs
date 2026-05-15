@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -49,6 +50,8 @@ namespace RealESRGAN_GUI
         private int _totalFiles;
         private int _completedFiles;
         private double _currentFilePercent;
+        private int _currentOutputFile = -1;
+        private readonly Dictionary<int, double> _fileProgress = new();
         private DateTime _runStartedUtc;
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
         private readonly StringBuilder _logBuilder = new();
@@ -668,6 +671,7 @@ namespace RealESRGAN_GUI
             if (threads != "0")                 { parts.Add("-t"); parts.Add(threads); }
             if (!string.IsNullOrEmpty(gpu))     { parts.Add("-g"); parts.Add(gpu); }
             if (tta)                            parts.Add("-x");
+            parts.Add("-v");
             return string.Join(" ", parts);
         }
 
@@ -939,6 +943,8 @@ namespace RealESRGAN_GUI
             {
                 _logBuilder.Clear();
                 LogText.Text = "";
+                _currentOutputFile = -1;
+                _fileProgress.Clear();
                 SetStatus("StatusProcessingFiles", 0, _totalFiles);
                 CurrentFileProgressBar.IsIndeterminate = false;
                 CompletedProgressBar.IsIndeterminate = false;
@@ -949,12 +955,40 @@ namespace RealESRGAN_GUI
 
         private bool ParseProgress(string line)
         {
+            // Match "[N] processing input/xxx.jpg -> output/xxx.jpg ..." lines
+            var fileMatch = Regex.Match(line, @"^\[(\d+)\]\s+processing\s");
+            if (fileMatch.Success)
+            {
+                _currentOutputFile = int.Parse(fileMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+                _completedFiles = _currentOutputFile; // files before the current one are done
+                _fileProgress[_currentOutputFile] = 0;
+                _currentFilePercent = 0;
+                UpdateProgressBars();
+                RenderProgressText();
+                return true;
+            }
+
+            // Match percentage lines
             if (line.EndsWith("%", StringComparison.Ordinal) &&
                 double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
             {
                 double newPct = Math.Clamp(pct, 0, 100);
-                if (newPct >= _currentFilePercent || _currentFilePercent >= 99)
-                    _currentFilePercent = newPct;
+                if (_currentOutputFile >= 0)
+                {
+                    // Per-file monotonic guard
+                    _fileProgress.TryGetValue(_currentOutputFile, out double oldPct);
+                    if (newPct >= oldPct)
+                    {
+                        _fileProgress[_currentOutputFile] = newPct;
+                        _currentFilePercent = newPct;
+                    }
+                }
+                else
+                {
+                    // Fallback: no file marker seen yet
+                    if (newPct >= _currentFilePercent || _currentFilePercent >= 99)
+                        _currentFilePercent = newPct;
+                }
                 UpdateProgressBars();
                 SetProgressPercent(_currentFilePercent);
                 return true;
