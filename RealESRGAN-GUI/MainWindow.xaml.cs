@@ -863,9 +863,8 @@ namespace RealESRGAN_GUI
 
             if (completed <= _completedFiles) return;
 
-            _completedFiles = Math.Min(completed, _totalFiles);
-            int remaining = Math.Max(0, _totalFiles - _completedFiles);
-            SetStatus("StatusProcessingFiles", _completedFiles, remaining);
+            int remaining = Math.Max(0, _totalFiles - Math.Max(completed, _completedFiles));
+            SetStatus("StatusProcessingFiles", Math.Max(completed, _completedFiles), remaining);
             UpdateProgressBars();
             SetProgressPercent(GetDisplayPercent());
         }
