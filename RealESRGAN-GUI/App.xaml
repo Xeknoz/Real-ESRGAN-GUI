@@ -363,9 +363,13 @@
                                 <ContentPresenter VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
-                                <Trigger Property="IsHighlighted" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
-                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="False"/>
+                                        <Condition Property="IsHighlighted" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleHoverBrush}"/>
+                                </MultiTrigger>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
                                     <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
