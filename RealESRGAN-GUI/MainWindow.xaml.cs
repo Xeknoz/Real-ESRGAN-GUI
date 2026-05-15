@@ -946,7 +946,6 @@ namespace RealESRGAN_GUI
                 _currentOutputFile = -1;
                 _fileProgress.Clear();
                 SetStatus("StatusProcessingFiles", 0, _totalFiles);
-                CurrentFileProgressBar.IsIndeterminate = false;
                 CompletedProgressBar.IsIndeterminate = false;
                 UpdateProgressBars();
                 SetProgressPercent(0);
@@ -964,7 +963,7 @@ namespace RealESRGAN_GUI
                 _fileProgress[_currentOutputFile] = 0;
                 _currentFilePercent = 0;
                 UpdateProgressBars();
-                RenderProgressText();
+                SetProgressPercent(GetDisplayPercent());
                 return true;
             }
 
@@ -990,7 +989,7 @@ namespace RealESRGAN_GUI
                         _currentFilePercent = newPct;
                 }
                 UpdateProgressBars();
-                SetProgressPercent(_currentFilePercent);
+                SetProgressPercent(GetDisplayPercent());
                 return true;
             }
             return false;
@@ -998,16 +997,7 @@ namespace RealESRGAN_GUI
 
         private void UpdateProgressBars()
         {
-            bool multipleFiles = _totalFiles > 1;
-            double completedPercent = _totalFiles > 0
-                ? 100d * _completedFiles / _totalFiles
-                : 0;
-
-            CurrentFileProgressBar.Visibility = multipleFiles ? Visibility.Visible : Visibility.Collapsed;
-            CurrentFileProgressBar.Value = Math.Clamp(_currentFilePercent, 0, 100);
-            CompletedProgressBar.Value = multipleFiles
-                ? completedPercent
-                : Math.Clamp(_currentFilePercent, 0, 100);
+            CompletedProgressBar.Value = GetDisplayPercent();
         }
 
         private double GetOverallProgressPercent()
@@ -1017,6 +1007,12 @@ namespace RealESRGAN_GUI
 
             double completedUnits = _completedFiles + _currentFilePercent / 100d;
             return 100d * Math.Clamp(completedUnits, 0, _totalFiles) / _totalFiles;
+        }
+
+        private double GetDisplayPercent()
+        {
+            if (_totalFiles <= 0) return 0;
+            return Math.Clamp((_completedFiles * 100d + _currentFilePercent) / _totalFiles, 0, 100);
         }
 
         private void SetStatus(string key, params object[] args)

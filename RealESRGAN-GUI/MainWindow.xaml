@@ -405,12 +405,6 @@
                         <Grid Grid.Row="1"
                               x:Name="ProgressTrack"
                               Margin="0,14,0,10">
-                            <ProgressBar x:Name="CurrentFileProgressBar"
-                                         Minimum="0"
-                                         Maximum="100"
-                                         Value="0"
-                                         Foreground="{DynamicResource ProgressCurrentBrush}"
-                                         Visibility="Collapsed"/>
                             <ProgressBar x:Name="CompletedProgressBar"
                                          Minimum="0"
                                          Maximum="100"
