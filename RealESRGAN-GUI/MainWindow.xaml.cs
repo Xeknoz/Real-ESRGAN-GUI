@@ -48,7 +48,6 @@ namespace RealESRGAN_GUI
 
         private int _totalFiles;
         private int _completedFiles;
-        private double _currentFilePercent;
         private DateTime _runStartedUtc;
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
         private readonly StringBuilder _logBuilder = new();
@@ -586,7 +585,6 @@ namespace RealESRGAN_GUI
 
             _totalFiles = files.Count;
             _completedFiles = 0;
-            _currentFilePercent = 0;
             _runStartedUtc = DateTime.UtcNow;
             string outputFormat = ((ComboItem)FormatCombo.SelectedItem).Tag;
 
@@ -602,8 +600,8 @@ namespace RealESRGAN_GUI
                 {
                     if (_cts.IsCancellationRequested) { stopped = true; break; }
 
-                    _currentFilePercent = 0;
                     SetStatus("StatusProcessingFiles", i, _totalFiles - i);
+                    CompletedProgressBar.IsIndeterminate = true;
                     string file = files[i];
                     string outputFile = Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(file)}.{outputFormat}");
 
@@ -614,13 +612,13 @@ namespace RealESRGAN_GUI
                     if (exitCode == 0)
                     {
                         _completedFiles = i + 1;
-                        _currentFilePercent = 100;
                     }
                     else
                     {
                         failed++;
                     }
 
+                    CompletedProgressBar.IsIndeterminate = false;
                     UpdateProgressBars();
                     SetProgressPercent(GetDisplayPercent());
                 }
@@ -638,7 +636,6 @@ namespace RealESRGAN_GUI
                 else
                 {
                     _completedFiles = _totalFiles;
-                    _currentFilePercent = 100;
                     SetStatus("StatusDone", _completedFiles);
                     UpdateProgressBars();
                     SetProgressPercent(100);
@@ -714,11 +711,7 @@ namespace RealESRGAN_GUI
             proc.ErrorDataReceived += (_, e) =>
             {
                 if (string.IsNullOrEmpty(e.Data)) return;
-                Dispatcher.Invoke(() =>
-                {
-                    ParseProgress(e.Data);
-                    AppendLog(e.Data);
-                });
+                Dispatcher.Invoke(() => AppendLog(e.Data));
             };
             proc.OutputDataReceived += (_, e) =>
             {
@@ -740,6 +733,8 @@ namespace RealESRGAN_GUI
             }
             finally
             {
+                proc.CancelErrorRead();
+                proc.CancelOutputRead();
                 _runningProcess = null;
             }
             return proc.ExitCode;
@@ -969,39 +964,15 @@ namespace RealESRGAN_GUI
             }
         }
 
-        private bool ParseProgress(string line)
-        {
-            if (line.EndsWith("%", StringComparison.Ordinal) &&
-                double.TryParse(line.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double pct))
-            {
-                double newPct = Math.Clamp(pct, 0, 100);
-                if (newPct >= _currentFilePercent)
-                    _currentFilePercent = newPct;
-                UpdateProgressBars();
-                SetProgressPercent(GetDisplayPercent());
-                return true;
-            }
-            return false;
-        }
-
         private void UpdateProgressBars()
         {
             CompletedProgressBar.Value = GetDisplayPercent();
         }
 
-        private double GetOverallProgressPercent()
-        {
-            if (_totalFiles <= 1)
-                return Math.Clamp(_currentFilePercent, 0, 100);
-
-            double completedUnits = _completedFiles + _currentFilePercent / 100d;
-            return 100d * Math.Clamp(completedUnits, 0, _totalFiles) / _totalFiles;
-        }
-
         private double GetDisplayPercent()
         {
             if (_totalFiles <= 0) return 0;
-            return Math.Clamp((_completedFiles * 100d + _currentFilePercent) / _totalFiles, 0, 100);
+            return 100d * _completedFiles / _totalFiles;
         }
 
         private void SetStatus(string key, params object[] args)
