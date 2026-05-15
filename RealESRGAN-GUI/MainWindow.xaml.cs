@@ -692,8 +692,8 @@ namespace RealESRGAN_GUI
                 if (string.IsNullOrEmpty(e.Data)) return;
                 Dispatcher.Invoke(() =>
                 {
-                    if (!ParseProgress(e.Data))
-                        AppendLog(e.Data);
+                    ParseProgress(e.Data);
+                    AppendLog(e.Data);
                 });
             };
             proc.OutputDataReceived += (_, e) =>
