@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -50,6 +51,7 @@ namespace RealESRGAN_GUI
         private double _currentFilePercent;
         private DateTime _runStartedUtc;
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
+        private readonly StringBuilder _logBuilder = new();
 
         public MainWindow()
         {
@@ -438,6 +440,7 @@ namespace RealESRGAN_GUI
             ScaleLabelText.Text = T("ScaleLabel");
             FormatLabelText.Text = T("FormatLabel");
             UpdateAdvancedToggleText();
+            UpdateLogToggleText();
             ThreadsLabelText.Text = T("ThreadsLabel");
             GpuLabelText.Text = T("GpuLabel");
             TtaCheck.Content = T("Tta");
@@ -495,6 +498,29 @@ namespace RealESRGAN_GUI
         {
             string arrow = AdvancedToggle.IsChecked == true ? "▲" : "▼";
             AdvancedToggle.Content = $"{T("Advanced")} {arrow}";
+        }
+
+        private void OnLogToggleClick(object sender, RoutedEventArgs e)
+        {
+            LogPanel.Visibility = LogToggle.IsChecked == true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            UpdateLogToggleText();
+        }
+
+        private void UpdateLogToggleText()
+        {
+            string arrow = LogToggle.IsChecked == true ? "▲" : "▼";
+            LogToggle.Content = $"{T("Log")} {arrow}";
+        }
+
+        private void AppendLog(string line)
+        {
+            if (_logBuilder.Length > 50000)
+                _logBuilder.Remove(0, _logBuilder.Length - 40000);
+            _logBuilder.AppendLine(line);
+            LogText.Text = _logBuilder.ToString();
+            LogScrollViewer.ScrollToEnd();
         }
 
         private void OpenInExplorer(string path)
@@ -664,6 +690,11 @@ namespace RealESRGAN_GUI
             {
                 if (!string.IsNullOrEmpty(e.Data))
                     Dispatcher.Invoke(() => ParseProgress(e.Data));
+            };
+            proc.OutputDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                    Dispatcher.Invoke(() => AppendLog(e.Data));
             };
             proc.Start();
             proc.BeginOutputReadLine();
@@ -892,8 +923,17 @@ namespace RealESRGAN_GUI
             GpuCombo.IsEnabled = !busy;
             TtaCheck.IsEnabled = !busy;
             ProgressTrack.Visibility = Visibility.Visible;
+            LogToggle.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+            if (!busy)
+            {
+                LogPanel.Visibility = Visibility.Collapsed;
+                LogToggle.IsChecked = false;
+                UpdateLogToggleText();
+            }
             if (busy)
             {
+                _logBuilder.Clear();
+                LogText.Text = "";
                 SetStatus("StatusProcessingFiles", 0, _totalFiles);
                 CurrentFileProgressBar.IsIndeterminate = false;
                 CompletedProgressBar.IsIndeterminate = false;
@@ -1018,6 +1058,7 @@ namespace RealESRGAN_GUI
             "ScaleLabel" => "放大倍数",
             "FormatLabel" => "保存格式",
             "Advanced" => "高级设置",
+            "Log" => "日志",
             "ThreadsLabel" => "线程数",
             "GpuLabel" => "GPU 设备",
             "Tta" => "质量增强（较慢）",
@@ -1087,6 +1128,7 @@ namespace RealESRGAN_GUI
             "ScaleLabel" => "Scale",
             "FormatLabel" => "Format",
             "Advanced" => "Advanced settings",
+            "Log" => "Log",
             "ThreadsLabel" => "Threads",
             "GpuLabel" => "GPU device",
             "Tta" => "Enhanced quality (slower)",

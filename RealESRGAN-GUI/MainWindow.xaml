@@ -346,12 +346,15 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <Grid Grid.Row="0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" Style="{StaticResource StepBadge}" Margin="0,0,14,0">
@@ -361,7 +364,37 @@
                                        Text="开始处理"
                                        Style="{StaticResource SectionTitle}"
                                        VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="2"
+                            <ToggleButton Grid.Column="2" x:Name="LogToggle"
+                                          Click="OnLogToggleClick"
+                                          Cursor="Hand"
+                                          Background="Transparent"
+                                          BorderBrush="Transparent"
+                                          Foreground="{DynamicResource AccentBrush}"
+                                          FontSize="13"
+                                          Padding="4,2"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,10,0"
+                                          Visibility="Collapsed">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                            <TextBlock Grid.Column="3"
                                        x:Name="ProgressPercentText"
                                        Text="0%"
                                        Foreground="{DynamicResource MutedForegroundBrush}"
@@ -391,7 +424,26 @@
                                    Style="{StaticResource HelperText}"
                                    Margin="0,0,0,14"/>
 
-                        <StackPanel Grid.Row="3" Orientation="Horizontal">
+                        <Border Grid.Row="4"
+                                x:Name="LogPanel"
+                                Visibility="Collapsed"
+                                Margin="0,14,0,0"
+                                Background="{DynamicResource PanelBrush}"
+                                CornerRadius="8"
+                                Padding="10"
+                                MaxHeight="200">
+                            <ScrollViewer x:Name="LogScrollViewer"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <TextBlock x:Name="LogText"
+                                           FontFamily="Consolas, Microsoft YaHei Mono, monospace"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource MutedForegroundBrush}"/>
+                            </ScrollViewer>
+                        </Border>
+
+                        <StackPanel Grid.Row="5" Orientation="Horizontal">
                             <Button x:Name="StartButton"
                                     Content="开始清晰化"
                                     Style="{StaticResource AccentButton}"
