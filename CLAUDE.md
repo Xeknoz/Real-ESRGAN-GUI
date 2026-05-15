@@ -31,6 +31,25 @@ There is **no automated test suite**. Manual validation: launch the published ex
 
 ## Architecture: the big picture
 
+### Launcher (Win32 native)
+
+Because the app is shipped via Enigma Virtual Box as a single executable, the extraction phase happens before the CLR/WPF runtime even loads — the WPF `SplashWindow` cannot cover it. A native Win32 launcher ([`Launcher.c`](Launcher.c)) sits in front:
+
+1. Acquire a named mutex (`Global\RealESRGAN_Launcher`) → if already held, activate the existing main window and exit.
+2. Detect system dark/light theme + locale (zh vs en).
+3. Create a 400×130 layered GDI splash window (themed, rounded corners via DWM, fade-in).
+4. `CreateProcess` the WPF executable (`Real-ESRGAN GUI.exe`).
+5. Poll `EnumWindows` + `GetWindowThreadProcessId` until the main window appears.
+6. Fade out and exit. The WPF process continues independently.
+
+**Build:**
+```powershell
+# MSVC (requires Windows SDK + VC++ tools)
+cl.exe Launcher.c /O2 /W3 /Fe:Launcher.exe /link user32.lib gdi32.lib dwmapi.lib advapi32.lib
+```
+
+**Enigma packing flow:** `dotnet publish -o dist` → copy `Launcher.exe` into `dist/` → set Enigma entry point to `Launcher.exe` (not `Real-ESRGAN GUI.exe`). `Launcher.exe` is a ~130 KB x64 PE with zero external dependencies.
+
 ### Boot flow
 
 [App.OnStartup](RealESRGAN-GUI/App.xaml.cs) drives startup in this order: apply theme to match the OS at launch → acquire a named single-instance mutex (`Global\RealESRGAN_GUI_SingleInstance`); if already held, message-box + `Current.Shutdown()` → show [SplashWindow](RealESRGAN-GUI/SplashWindow.xaml.cs) → construct `MainWindow` in parallel with a minimum 650 ms splash display → swap `Application.MainWindow` to the real window and close the splash. Hang new startup work on this sequence so the splash stays visible while it runs.

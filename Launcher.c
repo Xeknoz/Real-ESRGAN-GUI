@@ -1,0 +1,328 @@
+// Launcher.c
+// Win32 native splash launcher for Real-ESRGAN GUI.
+// Displays a themed splash screen while starting the WPF application.
+//
+// Build (MSVC):    cl.exe Launcher.c /O2 /W3 /Fe:Launcher.exe /link user32.lib gdi32.lib dwmapi.lib advapi32.lib
+// Build (MinGW):   gcc -O2 -o Launcher.exe Launcher.c -municode -luser32 -lgdi32 -ldwmapi -ladvapi32
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <dwmapi.h>
+#include <strsafe.h>
+
+#define SPLASH_W      400
+#define SPLASH_H      130
+#define TIMER_ID      1
+#define TIMER_MS      40
+#define FADE_STEPS    12
+#define TIMEOUT_MS    15000
+
+static HWND   g_hwnd   = NULL;
+static HANDLE g_hProc  = NULL;
+static DWORD  g_pid    = 0;
+static BOOL   g_dark   = TRUE;
+static BOOL   g_zh     = TRUE;
+static BOOL   g_found  = FALSE;
+static int    g_pulse  = -40;
+
+static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+static void    Paint(HWND hWnd);
+static void    Launch(void);
+static BOOL    FindMainWindow(void);
+
+int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
+{
+    // ---- Single instance mutex ----
+    HANDLE mutex = CreateMutexW(NULL, TRUE, L"Global\\RealESRGAN_Launcher");
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        HWND existing = FindWindowW(L"HwndWrapper[RealESRGAN_GUI*", NULL);
+        if (!existing) {
+            existing = FindWindowW(NULL, L"Real-ESRGAN GUI");
+        }
+        if (existing) {
+            if (IsIconic(existing)) ShowWindow(existing, SW_RESTORE);
+            SetForegroundWindow(existing);
+        }
+        if (mutex) { ReleaseMutex(mutex); CloseHandle(mutex); }
+        return 0;
+    }
+
+    // ---- Detect locale & system theme ----
+    WCHAR locale[16] = {0};
+    GetUserDefaultLocaleName(locale, 16);
+    g_zh = (locale[0] == L'z' && locale[1] == L'h');
+
+    HKEY hKey;
+    DWORD value = 1, size = sizeof(value);
+    if (RegOpenKeyExW(HKEY_CURRENT_USER,
+            L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        RegQueryValueExW(hKey, L"AppsUseLightTheme", NULL, NULL, (LPBYTE)&value, &size);
+        RegCloseKey(hKey);
+    }
+    g_dark = (value == 0);
+
+    // ---- Register window class ----
+    WNDCLASSEXW wc = { sizeof(wc) };
+    wc.lpfnWndProc   = WndProc;
+    wc.hInstance     = hInst;
+    wc.lpszClassName = L"RESG_Splash";
+    wc.hCursor       = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
+    RegisterClassExW(&wc);
+
+    int cx = GetSystemMetrics(SM_CXSCREEN);
+    int cy = GetSystemMetrics(SM_CYSCREEN);
+
+    g_hwnd = CreateWindowExW(
+        WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+        L"RESG_Splash", L"", WS_POPUP,
+        (cx - SPLASH_W) / 2, (cy - SPLASH_H) / 2,
+        SPLASH_W, SPLASH_H,
+        NULL, NULL, hInst, NULL);
+
+    if (!g_hwnd) {
+        if (mutex) { ReleaseMutex(mutex); CloseHandle(mutex); }
+        return 1;
+    }
+
+    // ---- DWM: dark title bar + rounded corners (Win11) ----
+    int useDark = g_dark ? 1 : 0;
+    DwmSetWindowAttribute(g_hwnd, 20, &useDark, sizeof(int));
+    DWM_WINDOW_CORNER_PREFERENCE corner = 2; // DWMWCP_ROUND
+    DwmSetWindowAttribute(g_hwnd, 33, &corner, sizeof(corner));
+
+    // ---- Fade in ----
+    SetLayeredWindowAttributes(g_hwnd, 0, 0, LWA_ALPHA);
+    ShowWindow(g_hwnd, SW_SHOW);
+    UpdateWindow(g_hwnd);
+    for (int i = 1; i <= FADE_STEPS; i++) {
+        SetLayeredWindowAttributes(g_hwnd, 0, (BYTE)(i * 255 / FADE_STEPS), LWA_ALPHA);
+        UpdateWindow(g_hwnd);
+        Sleep(10);
+    }
+
+    // ---- Launch main WPF application ----
+    Launch();
+    if (!g_pid) {
+        DestroyWindow(g_hwnd);
+        if (mutex) { ReleaseMutex(mutex); CloseHandle(mutex); }
+        return 1;
+    }
+
+    SetTimer(g_hwnd, TIMER_ID, TIMER_MS, NULL);
+
+    // ---- Message loop: animate + poll for main window ----
+    MSG msg;
+    DWORD t0 = GetTickCount();
+    while (!g_found) {
+        while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) { g_found = TRUE; break; }
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        if (g_found) break;
+
+        if (FindMainWindow()) {
+            Sleep(150); // Let main window finish rendering
+            g_found = TRUE;
+            break;
+        }
+        if (GetTickCount() - t0 > TIMEOUT_MS) break;
+        Sleep(5);
+    }
+
+    // ---- Fade out ----
+    for (int i = FADE_STEPS - 1; i >= 0; i--) {
+        SetLayeredWindowAttributes(g_hwnd, 0, (BYTE)(i * 255 / FADE_STEPS), LWA_ALPHA);
+        UpdateWindow(g_hwnd);
+        Sleep(6);
+    }
+    DestroyWindow(g_hwnd);
+
+    if (g_hProc) CloseHandle(g_hProc);
+    if (mutex) { ReleaseMutex(mutex); CloseHandle(mutex); }
+    return 0;
+}
+
+static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch (msg) {
+    case WM_PAINT:
+        Paint(hWnd);
+        return 0;
+
+    case WM_TIMER:
+        if (wParam == TIMER_ID) {
+            g_pulse += 5;
+            if (g_pulse > SPLASH_W + 40) g_pulse = -40;
+            InvalidateRect(hWnd, NULL, FALSE);
+        }
+        return 0;
+
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    }
+    return DefWindowProcW(hWnd, msg, wParam, lParam);
+}
+
+static void Paint(HWND hWnd)
+{
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hWnd, &ps);
+
+    RECT rc;
+    GetClientRect(hWnd, &rc);
+
+    // Background fill
+    COLORREF bg = g_dark ? RGB(27, 31, 28) : RGB(247, 244, 238);
+    HBRUSH hbrBg = CreateSolidBrush(bg);
+    FillRect(hdc, &rc, hbrBg);
+    DeleteObject(hbrBg);
+
+    // 1px border
+    HPEN hPen = CreatePen(PS_SOLID, 1, g_dark ? RGB(61, 70, 61) : RGB(217, 209, 196));
+    HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
+    HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
+    Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
+    SelectObject(hdc, hOldPen);
+    SelectObject(hdc, hOldBrush);
+    DeleteObject(hPen);
+
+    // Text colours
+    COLORREF clrText  = g_dark ? RGB(244, 240, 232) : RGB(34, 32, 28);
+    COLORREF clrMuted = g_dark ? RGB(192, 184, 171) : RGB(109, 103, 94);
+    COLORREF clrSubtle= g_dark ? RGB(142, 150, 142) : RGB(148, 141, 130);
+    COLORREF clrAccent= g_dark ? RGB(102, 194, 178) : RGB(40, 108, 103);
+    COLORREF clrTrack = g_dark ? RGB(43, 51, 45)  : RGB(232, 224, 213);
+
+    SetBkMode(hdc, TRANSPARENT);
+
+    // Title: "Real-ESRGAN"
+    HFONT hFontTitle = CreateFontW(22, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
+    HFONT hOldFont = (HFONT)SelectObject(hdc, hFontTitle);
+    SetTextColor(hdc, clrText);
+    RECT rcTitle = { 28, 20, 280, 46 };
+    DrawTextW(hdc, L"Real-ESRGAN", -1, &rcTitle, DT_LEFT | DT_SINGLELINE);
+
+    // Version
+    HFONT hFontVer = CreateFontW(11, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
+    SelectObject(hdc, hFontVer);
+    SetTextColor(hdc, clrSubtle);
+    RECT rcVer = { SPLASH_W - 70, 24, SPLASH_W - 28, 42 };
+    DrawTextW(hdc, L"v1.0", -1, &rcVer, DT_RIGHT | DT_SINGLELINE);
+
+    // Subtitle
+    HFONT hFontSub = CreateFontW(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
+    SelectObject(hdc, hFontSub);
+    SetTextColor(hdc, clrMuted);
+    RECT rcSub = { 28, 48, 220, 66 };
+    DrawTextW(hdc, g_zh ? L"图像超分辨率工具" : L"Image Super-Resolution", -1, &rcSub, DT_LEFT | DT_SINGLELINE);
+
+    // Status
+    HFONT hFontStatus = CreateFontW(11, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
+    SelectObject(hdc, hFontStatus);
+    SetTextColor(hdc, clrMuted);
+    RECT rcStatus = { SPLASH_W - 130, 48, SPLASH_W - 28, 66 };
+    DrawTextW(hdc, g_zh ? L"正在启动..." : L"Starting...", -1, &rcStatus, DT_RIGHT | DT_SINGLELINE);
+
+    // Progress track
+    HBRUSH hbrTrack = CreateSolidBrush(clrTrack);
+    RECT rcTrack = { 28, SPLASH_H - 26, SPLASH_W - 28, SPLASH_H - 24 };
+    FillRect(hdc, &rcTrack, hbrTrack);
+    DeleteObject(hbrTrack);
+
+    // Progress pulse (clipped to track bounds)
+    HBRUSH hbrPulse = CreateSolidBrush(clrAccent);
+    RECT rcPulse = { g_pulse, SPLASH_H - 26, g_pulse + 40, SPLASH_H - 24 };
+    if (rcPulse.right > rcTrack.left && rcPulse.left < rcTrack.right) {
+        if (rcPulse.left < rcTrack.left) rcPulse.left = rcTrack.left;
+        if (rcPulse.right > rcTrack.right) rcPulse.right = rcTrack.right;
+        FillRect(hdc, &rcPulse, hbrPulse);
+    }
+    DeleteObject(hbrPulse);
+
+    SelectObject(hdc, hOldFont);
+    DeleteObject(hFontTitle);
+    DeleteObject(hFontVer);
+    DeleteObject(hFontSub);
+    DeleteObject(hFontStatus);
+
+    EndPaint(hWnd, &ps);
+}
+
+static void Launch(void)
+{
+    WCHAR launcherPath[MAX_PATH];
+    GetModuleFileNameW(NULL, launcherPath, MAX_PATH);
+
+    WCHAR* pSlash = wcsrchr(launcherPath, L'\\');
+    if (pSlash) *(pSlash + 1) = L'\0';
+
+    WCHAR appPath[MAX_PATH];
+    StringCchCopyW(appPath, MAX_PATH, launcherPath);
+    StringCchCatW(appPath, MAX_PATH, L"Real-ESRGAN GUI.exe");
+
+    if (GetFileAttributesW(appPath) == INVALID_FILE_ATTRIBUTES) {
+        // Fallback: try without hyphen
+        StringCchCopyW(appPath, MAX_PATH, launcherPath);
+        StringCchCatW(appPath, MAX_PATH, L"RealESRGAN GUI.exe");
+        if (GetFileAttributesW(appPath) == INVALID_FILE_ATTRIBUTES) {
+            MessageBoxW(g_hwnd,
+                g_zh ? L"找不到主程序文件。" : L"Main application not found.",
+                g_zh ? L"启动错误" : L"Launch Error",
+                MB_OK | MB_ICONERROR);
+            return;
+        }
+    }
+
+    STARTUPINFOW si = { sizeof(si) };
+    PROCESS_INFORMATION pi;
+
+    if (CreateProcessW(appPath, GetCommandLineW(), NULL, NULL, FALSE,
+                       CREATE_NEW_PROCESS_GROUP, NULL, launcherPath, &si, &pi)) {
+        g_hProc = pi.hProcess;
+        g_pid   = pi.dwProcessId;
+        CloseHandle(pi.hThread);
+    } else {
+        DWORD err = GetLastError();
+        WCHAR msg[256];
+        StringCchPrintfW(msg, 256,
+            g_zh ? L"无法启动主程序。\n错误代码: %lu" : L"Failed to launch.\nError: %lu",
+            err);
+        MessageBoxW(g_hwnd, msg,
+            g_zh ? L"启动错误" : L"Launch Error",
+            MB_OK | MB_ICONERROR);
+    }
+}
+
+static BOOL CALLBACK EnumWindowProc(HWND hwnd, LPARAM lParam)
+{
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid == (DWORD)lParam && IsWindowVisible(hwnd)) {
+        WCHAR title[256] = {0};
+        GetWindowTextW(hwnd, title, 256);
+        if (title[0] != L'\0') {
+            g_found = TRUE;
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+static BOOL FindMainWindow(void)
+{
+    if (!g_pid) return FALSE;
+    g_found = FALSE;
+    EnumWindows(EnumWindowProc, (LPARAM)g_pid);
+    return g_found;
+}
