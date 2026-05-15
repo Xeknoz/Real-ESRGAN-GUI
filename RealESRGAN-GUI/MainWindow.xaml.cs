@@ -867,7 +867,7 @@ namespace RealESRGAN_GUI
             int remaining = Math.Max(0, _totalFiles - _completedFiles);
             SetStatus("StatusProcessingFiles", _completedFiles, remaining);
             UpdateProgressBars();
-            RenderProgressText();
+            SetProgressPercent(GetDisplayPercent());
         }
 
         private string DescribeInputFolder(string dir)
