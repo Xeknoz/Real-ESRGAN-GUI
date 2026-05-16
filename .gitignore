@@ -15,6 +15,7 @@ output/
 
 # Documentation
 README_windows.md
+CLAUDE.md
 
 # Tooling state
 .serena/
