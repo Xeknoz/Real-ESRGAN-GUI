@@ -53,6 +53,7 @@ namespace RealESRGAN_GUI
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
         private readonly StringBuilder _logBuilder = new();
         private double _currentFileProgress;
+        private readonly Dictionary<int, double> _taskProgress = new();
         private static readonly Regex _progressRegex = new(@"(?:\[(\d+)\]\s*)?(\d+(\.\d+)?)%", RegexOptions.Compiled);
 
         public MainWindow()
@@ -591,6 +592,12 @@ namespace RealESRGAN_GUI
             _runStartedUtc = DateTime.UtcNow;
             string outputFormat = ((ComboItem)FormatCombo.SelectedItem).Tag;
 
+            _expectedRunOutputs.Clear();
+            foreach (var f in files)
+            {
+                _expectedRunOutputs.Add(Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(f)}.{outputFormat}"));
+            }
+
             SetUIBusy(true);
             _cts = new CancellationTokenSource();
 
@@ -599,33 +606,25 @@ namespace RealESRGAN_GUI
 
             try
             {
-                for (int i = 0; i < files.Count; i++)
-                {
-                    if (_cts.IsCancellationRequested) { stopped = true; break; }
+                _taskProgress.Clear();
+                _currentFileProgress = 0;
+                SetStatus("StatusProcessingFiles", 0, _totalFiles);
+                CompletedProgressBar.IsIndeterminate = false;
 
-                    _currentFileProgress = 0;
-                    SetStatus("StatusProcessingFiles", i, _totalFiles - i);
-                    CompletedProgressBar.IsIndeterminate = false;
-                    string file = files[i];
-                    string outputFile = Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(file)}.{outputFormat}");
+                int exitCode = await RunBackendAsync(BuildArgs(_inputDir, _outputDir), _cts.Token);
 
-                    int exitCode = await RunBackendAsync(BuildArgs(file, outputFile), _cts.Token);
-
-                    if (_cts.IsCancellationRequested) { stopped = true; break; }
-
-                    if (exitCode == 0)
-                    {
-                        _completedFiles = i + 1;
-                    }
-                    else
-                    {
-                        failed++;
-                    }
-
-                    _currentFileProgress = 0;
-                    UpdateProgressBars();
-                    SetProgressPercent(GetDisplayPercent());
+                if (_cts.IsCancellationRequested) 
+                { 
+                    stopped = true; 
                 }
+                else if (exitCode != 0)
+                {
+                    failed = 1;
+                }
+
+                _currentFileProgress = 0;
+                UpdateProgressBars();
+                SetProgressPercent(GetDisplayPercent());
 
                 if (stopped)
                 {
@@ -722,7 +721,15 @@ namespace RealESRGAN_GUI
                     var lastMatch = matches[matches.Count - 1];
                     if (double.TryParse(lastMatch.Groups[2].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double percent))
                     {
-                        _currentFileProgress = percent;
+                        if (lastMatch.Groups[1].Success && int.TryParse(lastMatch.Groups[1].Value, out int taskId))
+                        {
+                            _taskProgress[taskId] = percent;
+                        }
+                        else
+                        {
+                            _currentFileProgress = percent;
+                        }
+
                         Dispatcher.InvokeAsync(() => 
                         {
                             UpdateProgressBars();
@@ -992,8 +999,27 @@ namespace RealESRGAN_GUI
         private double GetDisplayPercent()
         {
             if (_totalFiles <= 0) return 0;
-            double currentProgress = Math.Clamp(_currentFileProgress, 0, 100);
-            return 100d * (_completedFiles + currentProgress / 100d) / _totalFiles;
+            
+            double sum = 0;
+            int completedCount = 0;
+            
+            if (_taskProgress.Count > 0)
+            {
+                foreach (var p in _taskProgress.Values)
+                {
+                    sum += Math.Clamp(p, 0, 100);
+                    if (p >= 100.0) completedCount++;
+                }
+                _completedFiles = Math.Max(_completedFiles, completedCount);
+            }
+            else
+            {
+                double currentProgress = Math.Clamp(_currentFileProgress, 0, 100);
+                sum = _completedFiles * 100d + currentProgress;
+            }
+            
+            SetStatus("StatusProcessingFiles", _completedFiles, _totalFiles - _completedFiles);
+            return Math.Clamp(sum / _totalFiles, 0, 100);
         }
 
         private void SetStatus(string key, params object[] args)
