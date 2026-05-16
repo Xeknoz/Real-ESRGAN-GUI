@@ -1,8 +1,8 @@
-// Launcher/Launcher.c
+// src/Launcher/Launcher.c
 // Win32 native splash launcher for Real-ESRGAN GUI.
 // Displays a HiDPI-aware themed splash screen while starting the WPF application.
 //
-// Build: run .\Launcher\build.ps1 from the repository root.
+// Build: run .\src\Launcher\build.ps1 from the repository root.
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

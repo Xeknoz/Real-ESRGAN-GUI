@@ -4,14 +4,20 @@
 *.dll
 *.mp4
 
-# Sample inputs
-input.jpg
-input2.jpg
-
-# Directories
-models/
+# Sample inputs copied into local runs
 input/
 output/
+
+# Runtime payload copied into published builds.
+# Keep the distributable payload versioned so CI can build from a clean checkout.
+!runtime/
+!runtime/engine/
+!runtime/engine/realesrgan-ncnn-vulkan.exe
+!runtime/engine/vcomp140.dll
+!runtime/engine/vcomp140d.dll
+!runtime/engine/models/
+!runtime/engine/models/*.bin
+!runtime/engine/models/*.param
 
 # Documentation
 README_windows.md
@@ -20,11 +26,12 @@ CLAUDE.md
 # Tooling state
 .serena/
 .claude/
+.vscode/
 AGENTS.md
 
-# WPF GUI: build artifacts and published output (source under RealESRGAN-GUI/ stays tracked)
-RealESRGAN-GUI/bin/
-RealESRGAN-GUI/obj/
+# WPF GUI: build artifacts and published output
+src/RealESRGAN-GUI/bin/
+src/RealESRGAN-GUI/obj/
 RealESRGAN-GUI-App/
 dist/
 
@@ -33,6 +40,8 @@ dist/
 
 # Native compilation artifacts
 *.obj
+src/Launcher/bin/
+src/Launcher/obj/
 
 # IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
 *.sln

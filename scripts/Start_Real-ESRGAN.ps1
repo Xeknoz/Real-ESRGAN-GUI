@@ -39,14 +39,14 @@
     Skip pre-start pause and run immediately.
 
 .EXAMPLE
-    .\Start_Real-ESRGAN.ps1
+    .\scripts\Start_Real-ESRGAN.ps1
     Run with defaults, interactive model selection
 
 .EXAMPLE
-    .\Start_Real-ESRGAN.ps1 -InputDir "D:\Photos\Raw" -OutputDir "D:\Photos\Upscaled" -Model "realesrgan-x4plus"
+    .\scripts\Start_Real-ESRGAN.ps1 -InputDir "D:\Photos\Raw" -OutputDir "D:\Photos\Upscaled" -Model "realesrgan-x4plus"
 
 .EXAMPLE
-    .\Start_Real-ESRGAN.ps1 -Model "realesr-animevideov3-x4" -Scale 4 -Threads 4 -NoWait
+    .\scripts\Start_Real-ESRGAN.ps1 -Model "realesr-animevideov3-x4" -Scale 4 -Threads 4 -NoWait
 #>
 
 [CmdletBinding()]
@@ -83,6 +83,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 if ([string]::IsNullOrWhiteSpace($scriptDir)) {
     $scriptDir = Get-Location
 }
+$repoRoot = Split-Path -Parent $scriptDir
 
 # Default paths (using %USERPROFILE% for cross-machine compatibility)
 if ([string]::IsNullOrWhiteSpace($InputDir)) {
@@ -97,7 +98,7 @@ $InputDir = [System.IO.Path]::GetFullPath($InputDir)
 $OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 
 # --- Check executable ---
-$exePath = Join-Path $scriptDir "engine\realesrgan-ncnn-vulkan.exe"
+$exePath = Join-Path $repoRoot "runtime\engine\realesrgan-ncnn-vulkan.exe"
 if (-not (Test-Path $exePath)) {
     Write-Host "[ERROR] realesrgan-ncnn-vulkan.exe not found. Please make sure the engine folder exists." -ForegroundColor Red
     exit 1
@@ -160,7 +161,7 @@ if ($inputFiles.Count -eq 0) {
     Write-Host ""
     $createSample = Read-Host "Copy sample image (input.jpg) for testing? [Y/n]"
     if ($createSample -eq "" -or $createSample -match "^[Yy]") {
-        $samplePath = Join-Path $scriptDir "input.jpg"
+        $samplePath = Join-Path $repoRoot "runtime\input.jpg"
         if (Test-Path $samplePath) {
             Copy-Item $samplePath $InputDir -Force
             Write-Host "[INFO] Copied sample image to input directory." -ForegroundColor Green

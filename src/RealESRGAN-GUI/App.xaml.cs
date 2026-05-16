@@ -2,8 +2,10 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using Microsoft.Win32;
 
@@ -12,6 +14,13 @@ namespace RealESRGAN_GUI
     public partial class App : Application
     {
         private static Mutex? _mutex;
+        private const int DwmwaUseImmersiveDarkModeLegacy = 19;
+        private const int DwmwaUseImmersiveDarkMode = 20;
+        private const int DwmwaBorderColor = 34;
+        private const int DwmwaCaptionColor = 35;
+        private const int DwmwaTextColor = 36;
+
+        public static bool CurrentThemeIsDark { get; private set; }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -97,6 +106,7 @@ namespace RealESRGAN_GUI
         public static void ApplyTheme(bool dark)
         {
             var resources = Current.Resources;
+            CurrentThemeIsDark = dark;
 
             if (dark)
             {
@@ -174,6 +184,27 @@ namespace RealESRGAN_GUI
             SetBrush(resources, SystemColors.GrayTextBrushKey, dark ? "#FF87949F" : "#FF7B8791");
         }
 
+        public static void ApplyWindowTitleBarTheme(Window window)
+        {
+            try
+            {
+                IntPtr hwnd = new WindowInteropHelper(window).Handle;
+                if (hwnd == IntPtr.Zero) return;
+
+                int useDark = CurrentThemeIsDark ? 1 : 0;
+                if (DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref useDark, sizeof(int)) != 0)
+                    DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkModeLegacy, ref useDark, sizeof(int));
+
+                SetTitleBarColor(hwnd, DwmwaCaptionColor, "RailBrush");
+                SetTitleBarColor(hwnd, DwmwaTextColor, "HeaderForegroundBrush");
+                SetTitleBarColor(hwnd, DwmwaBorderColor, "RailBrush");
+            }
+            catch
+            {
+                // DWM calls are best-effort and unsupported on older systems.
+            }
+        }
+
         private static void SetBrush(ResourceDictionary resources, object key, string color)
         {
             var parsed = (Color)ColorConverter.ConvertFromString(color);
@@ -186,6 +217,19 @@ namespace RealESRGAN_GUI
 
             resources[key] = new SolidColorBrush(parsed);
         }
+
+        private static void SetTitleBarColor(IntPtr hwnd, int attribute, string resourceKey)
+        {
+            if (Current.Resources[resourceKey] is not SolidColorBrush brush) return;
+
+            int colorRef = brush.Color.R |
+                           brush.Color.G << 8 |
+                           brush.Color.B << 16;
+            DwmSetWindowAttribute(hwnd, attribute, ref colorRef, sizeof(int));
+        }
+
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
         protected override void OnExit(ExitEventArgs e)
         {

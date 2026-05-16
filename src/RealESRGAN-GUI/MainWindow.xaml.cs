@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -56,6 +57,7 @@ namespace RealESRGAN_GUI
         private static readonly Regex _batchProgressRegex = new(
             @"^@batch\s+total=(\d+)\s+completed=(\d+)\s+percent=(\d+(?:\.\d+)?)\s+current=(-?\d+)\s+current_percent=(\d+(?:\.\d+)?)$",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private const string RepositoryUrl = "https://github.com/Xeknoz/realesrgan-gui";
 
         public MainWindow()
         {
@@ -103,43 +105,6 @@ namespace RealESRGAN_GUI
             ApplyThemePreference();
         }
 
-        // Tell DWM to render the non-client area (title bar, border) in the active app theme.
-        private static void SetTitleBarTheme(Window window, bool dark)
-        {
-            try
-            {
-                IntPtr hwnd = new WindowInteropHelper(window).Handle;
-                if (hwnd == IntPtr.Zero) return;
-
-                int useDark = dark ? 1 : 0;
-                if (DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref useDark, sizeof(int)) != 0)
-                    DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkModeLegacy, ref useDark, sizeof(int));
-
-                SetTitleBarColor(hwnd, DwmwaCaptionColor, "RailBrush");
-                SetTitleBarColor(hwnd, DwmwaTextColor, "HeaderForegroundBrush");
-                SetTitleBarColor(hwnd, DwmwaBorderColor, "RailBrush");
-            }
-            catch { /* DWM call is best-effort; ignore on unsupported OS */ }
-        }
-
-        private static void SetTitleBarColor(IntPtr hwnd, int attribute, string resourceKey)
-        {
-            if (Application.Current.Resources[resourceKey] is not SolidColorBrush brush) return;
-
-            int colorRef = brush.Color.R |
-                           brush.Color.G << 8 |
-                           brush.Color.B << 16;
-            DwmSetWindowAttribute(hwnd, attribute, ref colorRef, sizeof(int));
-        }
-
-        [DllImport("dwmapi.dll", PreserveSig = true)]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-        private const int DwmwaUseImmersiveDarkModeLegacy = 19;
-        private const int DwmwaUseImmersiveDarkMode = 20;
-        private const int DwmwaBorderColor = 34;
-        private const int DwmwaCaptionColor = 35;
-        private const int DwmwaTextColor = 36;
         private const uint MonitorDefaultToNearest = 2;
 
         [DllImport("user32.dll")]
@@ -406,7 +371,7 @@ namespace RealESRGAN_GUI
             };
 
             App.ApplyTheme(dark);
-            SetTitleBarTheme(this, dark);
+            App.ApplyWindowTitleBarTheme(this);
         }
 
         private string ResolveLanguage()
@@ -429,6 +394,7 @@ namespace RealESRGAN_GUI
             HeaderSubtitleText.Text = T("HeaderSubtitle");
             ThemeLabelText.Text = T("ThemeLabel");
             LanguageLabelText.Text = T("LanguageLabel");
+            AboutButton.Content = T("About");
             ReadySectionTitleText.Text = T("ReadySection");
             InputTitleText.Text = T("InputTitle");
             OpenInputButton.Content = T("OpenFolder");
@@ -490,6 +456,38 @@ namespace RealESRGAN_GUI
 
         private void OnOpenInputClick(object sender, RoutedEventArgs e)  => OpenInExplorer(_inputDir);
         private void OnOpenOutputClick(object sender, RoutedEventArgs e) => OpenInExplorer(_outputDir);
+
+        private void OnAboutClick(object sender, RoutedEventArgs e)
+        {
+            var aboutWindow = new AboutWindow(
+                GetAppVersion(),
+                RepositoryUrl,
+                T("AboutTitle"),
+                T("AboutDescription"),
+                T("VersionLabel"),
+                T("RepositoryLabel"),
+                T("OpenRepository"),
+                T("Close"),
+                T("OpenRepositoryFailed"))
+            {
+                Owner = this,
+            };
+
+            aboutWindow.ShowDialog();
+        }
+
+        private static string GetAppVersion()
+        {
+            string? informationalVersion = Assembly
+                .GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+
+            if (!string.IsNullOrWhiteSpace(informationalVersion))
+                return informationalVersion.Split('+', 2)[0];
+
+            return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
+        }
 
         private void OnAdvancedToggleClick(object sender, RoutedEventArgs e)
         {
@@ -1053,6 +1051,14 @@ namespace RealESRGAN_GUI
             "LanguageAuto" => "自动识别",
             "LanguageZh" => "简体中文",
             "LanguageEn" => "English",
+            "About" => "关于",
+            "AboutTitle" => "关于 Real-ESRGAN GUI",
+            "AboutDescription" => "用于本地图片清晰化的桌面工具。",
+            "VersionLabel" => "当前版本",
+            "RepositoryLabel" => "GitHub 仓库",
+            "OpenRepository" => "打开 GitHub 仓库",
+            "OpenRepositoryFailed" => "无法打开 GitHub 仓库链接。",
+            "Close" => "关闭",
             "ReadySection" => "准备处理",
             "InputTitle" => "图片来源",
             "OutputTitle" => "保存位置",
@@ -1128,6 +1134,14 @@ namespace RealESRGAN_GUI
             "LanguageAuto" => "Auto",
             "LanguageZh" => "简体中文",
             "LanguageEn" => "English",
+            "About" => "About",
+            "AboutTitle" => "About Real-ESRGAN GUI",
+            "AboutDescription" => "A desktop tool for local image upscaling.",
+            "VersionLabel" => "Version",
+            "RepositoryLabel" => "GitHub repository",
+            "OpenRepository" => "Open GitHub repository",
+            "OpenRepositoryFailed" => "Could not open the GitHub repository link.",
+            "Close" => "Close",
             "ReadySection" => "Prepare",
             "InputTitle" => "Image source",
             "OutputTitle" => "Save to",
