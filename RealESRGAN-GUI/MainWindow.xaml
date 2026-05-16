@@ -248,6 +248,18 @@
                                         </Setter>
                                     </Style>
                                 </ToggleButton.Style>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AdvancedToggleLabelText"
+                                               VerticalAlignment="Center"/>
+                                    <Path x:Name="AdvancedToggleIndicator"
+                                          Data="M 0 0 L 8 0 L 4 4 Z"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                          Width="8"
+                                          Height="4"
+                                          Stretch="Fill"
+                                          VerticalAlignment="Center"
+                                          Margin="6,1,0,0"/>
+                                </StackPanel>
                             </ToggleButton>
                         </Grid>
 
@@ -347,7 +359,6 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <Grid Grid.Row="0">
@@ -393,6 +404,18 @@
                                         </Setter>
                                     </Style>
                                 </ToggleButton.Style>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LogToggleLabelText"
+                                               VerticalAlignment="Center"/>
+                                    <Path x:Name="LogToggleIndicator"
+                                          Data="M 0 0 L 8 0 L 4 4 Z"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                          Width="8"
+                                          Height="4"
+                                          Stretch="Fill"
+                                          VerticalAlignment="Center"
+                                          Margin="6,1,0,0"/>
+                                </StackPanel>
                             </ToggleButton>
                             <TextBlock Grid.Column="3"
                                        x:Name="ProgressPercentText"
@@ -409,7 +432,16 @@
                                          Minimum="0"
                                          Maximum="100"
                                          Value="0"
-                                         Foreground="{DynamicResource ProgressCompleteBrush}"/>
+                                         Foreground="{DynamicResource ProgressCurrentBrush}"/>
+                            <ProgressBar x:Name="CurrentFileProgressBar"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Value="0"
+                                         Background="Transparent"
+                                         Foreground="{DynamicResource ProgressCompleteBrush}"
+                                         Opacity="0.78"
+                                         Panel.ZIndex="1"
+                                         Visibility="Collapsed"/>
                         </Grid>
 
                         <TextBlock Grid.Row="2"
@@ -418,7 +450,7 @@
                                    Style="{StaticResource HelperText}"
                                    Margin="0,0,0,14"/>
 
-                        <Border Grid.Row="4"
+                        <Border Grid.Row="3"
                                 x:Name="LogPanel"
                                 Visibility="Collapsed"
                                 Margin="0"
@@ -456,7 +488,7 @@
                             </Grid>
                         </Border>
 
-                        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,12,0,0">
+                        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,12,0,0">
                             <Button x:Name="StartButton"
                                     Content="开始清晰化"
                                     Style="{StaticResource AccentButton}"

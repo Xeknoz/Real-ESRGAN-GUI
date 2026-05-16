@@ -4,18 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo actually is
 
-Despite the legacy [README_windows.md](README_windows.md) describing this as a pure "binary distribution", the repo now contains **first-party source** around the upstream `realesrgan-ncnn-vulkan.exe` backend. Four components coexist:
+Despite the legacy [README_windows.md](README_windows.md) describing this as a pure "binary distribution", the repo now contains both GUI source and backend source. Five relevant areas coexist:
 
-1. **`realesrgan-ncnn-vulkan.exe`** — opaque NCNN/Vulkan inference binary from upstream (xinntao/Real-ESRGAN, via nihui/realsr-ncnn-vulkan). Treat as an external CLI; do not try to rebuild it.
-2. **[`Start_Real-ESRGAN.ps1`](Start_Real-ESRGAN.ps1)** — PowerShell wrapper (interactive menu / scripted use).
-3. **[`Launcher/`](Launcher/)** — native Win32 splash launcher that starts the GUI before the WPF runtime is ready.
-4. **[`RealESRGAN-GUI/`](RealESRGAN-GUI/)** — WPF GUI (net9.0-windows, x64, self-contained). This is where most code work happens.
+1. **[`engine/`](engine/)** — runtime payload copied into releases: `realesrgan-ncnn-vulkan.exe`, the `vcomp140*.dll` files, and `engine/models/`.
+2. **[`ncnn_src/`](ncnn_src/)** — backend source submodule (`Real-ESRGAN-ncnn-vulkan-Enhanced`), including the modified NCNN/Vulkan CLI implementation used for GUI-facing progress work.
+3. **[`Start_Real-ESRGAN.ps1`](Start_Real-ESRGAN.ps1)** — PowerShell wrapper (interactive menu / scripted use).
+4. **[`Launcher/`](Launcher/)** — native Win32 splash launcher that starts the GUI before the WPF runtime is ready.
+5. **[`RealESRGAN-GUI/`](RealESRGAN-GUI/)** — WPF GUI (net9.0-windows, x64, self-contained). This is where most UI work happens.
 
-Both `Start_Real-ESRGAN.ps1` and the WPF GUI are **frontends to the same CLI**. If you change the backend contract (model list, default scales, supported formats), update *both* — they are kept in sync by hand.
+Both `Start_Real-ESRGAN.ps1` and the WPF GUI are **frontends to the same CLI**. If you change the backend contract (model list, default scales, supported formats, or progress output), update the frontends and this document together — they are kept in sync by hand.
 
 ## Build / Run / Publish
 
 ```powershell
+# Rebuild backend after editing ncnn_src/
+cmake --build ncnn_src/src/build --config Release
+Copy-Item ncnn_src/src/build/Release/realesrgan-ncnn-vulkan.exe engine/realesrgan-ncnn-vulkan.exe -Force
+
 # Build (debug)
 dotnet build RealESRGAN-GUI/RealESRGAN-GUI.csproj
 
@@ -25,6 +30,10 @@ dotnet run --project RealESRGAN-GUI/RealESRGAN-GUI.csproj -- --from-launcher
 # Publish portable folder (this is what ships) → dist/
 dotnet publish RealESRGAN-GUI/RealESRGAN-GUI.csproj -c Release -r win-x64 --self-contained true -o dist
 ```
+
+**Before publishing:** a running `Real-ESRGAN GUI.exe` holds file locks on `dist/`, which makes `dotnet publish` fail with MSB3026/MSB3027. Kill any running instance first (`taskkill /F /IM "Real-ESRGAN GUI.exe"`) before re-publishing.
+
+If `cmake` is not on `PATH`, use the Visual Studio-bundled `cmake.exe` against the existing `ncnn_src/src/build` tree.
 
 The `.sln` file is **gitignored** (Visual Studio auto-recreates it). Don't commit it.
 
@@ -48,6 +57,8 @@ Because the app is shipped via Enigma Virtual Box as a single executable, the ex
 .\Launcher\build.ps1
 ```
 
+Requires MSVC x64 build tools (Visual Studio or the standalone Build Tools with the C++ workload); the script discovers them via `vswhere.exe` and invokes `cl.exe` / `rc.exe` through `vcvars64.bat`.
+
 **Enigma packing flow:** `dotnet publish -o dist` → copy `Launcher\bin\Launcher.exe` into `dist/` → set Enigma entry point to `Launcher.exe` (not `Real-ESRGAN GUI.exe`). `Launcher.exe` is a small x64 PE with zero external dependencies.
 
 ### Boot flow
@@ -56,21 +67,21 @@ Because the app is shipped via Enigma Virtual Box as a single executable, the ex
 
 ### Process-orchestration model
 
-The GUI does **not** call NCNN directly. [MainWindow.xaml.cs](RealESRGAN-GUI/MainWindow.xaml.cs) builds a per-file CLI flag string in `BuildArgs(string input, string output)` and spawns `realesrgan-ncnn-vulkan.exe` for **each input file** in a for-loop (`RunBackendAsync`), with stdout/stderr redirected line-by-line into the in-window log box. The `CancellationTokenSource` is wired to a kill-tree on Stop. After the process exits, `CancelErrorRead`/`CancelOutputRead` are called in `finally` to prevent async read callbacks from firing post-exit. Cross-thread log writes go through `Dispatcher.Invoke`. The contract between GUI and backend is purely the CLI flags (`-i/-o/-n/-s/-f/-t/-g/-x`), with `-i`/`-o` now pointing to individual files, not directories.
+The GUI does **not** call NCNN directly. [MainWindow.xaml.cs](RealESRGAN-GUI/MainWindow.xaml.cs) builds one directory-mode CLI invocation in `BuildArgs(string input, string output)` and spawns `engine/realesrgan-ncnn-vulkan.exe` once per run via `RunBackendAsync`. stdout/stderr are redirected line-by-line into the in-window log panel, and `CancellationTokenSource` is wired to a kill-tree on Stop. Cross-thread UI/log writes go through the Dispatcher. The contract between GUI and backend is the CLI flags (`-i/-o/-n/-s/-f/-t/-g/-x`) plus stderr batch-progress records.
 
-The log panel auto-expands during a run (LogToggle visibility tied to `_busy`) and uses a rolling buffer that trims to the last ~40 KB once it exceeds 50 KB.
+The backend owns the task queue and aggregate progress. It emits machine-readable stderr lines in the form `@batch total=<n> completed=<n> percent=<n.nn> current=<id> current_percent=<n.nn>`, where `current` is the first backend-ordered unfinished task. The GUI only renders that state. Do **not** reintroduce front-end task aggregation, output-file polling, or per-task progress reconstruction in `MainWindow.xaml.cs`. The log panel is shown during a run and uses a rolling buffer that trims old text once it grows past its cap. If you change the stderr protocol, update the GUI parser and this document in the same change.
 
-Implication: nearly every "feature" is a question of *what CLI flag to add and how to expose it in XAML*. Don't introduce NCNN bindings or P/Invoke into model code.
+Implication: most GUI features are still questions of *which CLI flag or output signal to expose*. Keep the backend boundary textual and explicit; do not introduce NCNN bindings or P/Invoke into model code.
 
 ### Live folder state & progress
 
-Input and output folders are watched via `FileSystemWatcher` (`ReplaceWatcher` wires them up; recreated on folder change or window activation). Bursts of file events are coalesced through `_folderSummaryTimer` (a `DispatcherTimer`) so the UI refreshes once per quiet period instead of per event.
+Input and output folders are watched via `FileSystemWatcher` (`ReplaceWatcher` wires them up; recreated on folder change or window activation). Bursts of file events are coalesced through `_folderSummaryTimer` (a `DispatcherTimer`) so the UI refreshes once per quiet period instead of per event. Those watchers are for folder summaries only, not execution progress.
 
-Progress is purely file-count based: `GetDisplayPercent()` computes `100 * _completedFiles / _totalFiles`, and `SetProgressPercent` renders it with a `(N/M)` suffix for multi-file batches. Since the backend is called per-file in a for-loop and `_completedFiles` is incremented directly after each successful exit, there is no stderr percentage parsing and no fallback file-system progress scan. The `_expectedRunOutputs` field and `RefreshRunProgressFromOutputs` are leftover dead code — `_expectedRunOutputs` is never populated, so `RefreshRunProgressFromOutputs` always returns immediately at the `Count == 0` guard. If you re-enable directory-mode or add a side-channel output path, clean up or repopulate that path.
+Backend progress IDs are the `Task.id` values assigned in `ncnn_src/src/main.cpp::load` and passed into `RealESRGAN::process`. They are stable for one run because they are derived from the backend's sorted input-file list index. Tile progress from `ncnn_src/src/realesrgan.cpp` is capped below `100%`; `BatchProgress::complete_task()` advances a task to `100%` only after `save()` has persisted the encoded output. Keep that distinction intact so neither the backend nor GUI confuses "GPU processing finished" with "file fully saved".
 
 ### Portable-folder layout (enforced by the csproj)
 
-[RealESRGAN-GUI.csproj](RealESRGAN-GUI/RealESRGAN-GUI.csproj) declares `<Content Include="..\realesrgan-ncnn-vulkan.exe">`, the two `vcomp140*.dll`s, `input.jpg`, and `..\models\*.bin`/`*.param` with `CopyToOutputDirectory="PreserveNewest"`. This is why `_appDir = AppContext.BaseDirectory` "just works" — the backend, OpenMP runtime, sample image, and models are all colocated next to the published GUI exe. If you add new model files or DLL dependencies, mirror the `<Content Include>` pattern; otherwise they won't reach `dist/`.
+[RealESRGAN-GUI.csproj](RealESRGAN-GUI/RealESRGAN-GUI.csproj) declares `<Content Include="..\engine\realesrgan-ncnn-vulkan.exe">`, the two `engine\vcomp140*.dll`s, `input.jpg`, and `..\engine\models\*.bin`/`*.param` with `CopyToOutputDirectory="PreserveNewest"`. Published builds therefore preserve an `engine/` subdirectory beside the GUI exe, and `_exePath` points to `engine/realesrgan-ncnn-vulkan.exe`. If you rebuild the backend or add model/DLL assets, replace the runtime file in `engine/` and mirror the `<Content Include>` pattern so the files reach `dist/`.
 
 ### Theming (runtime-switchable)
 
@@ -97,12 +108,16 @@ The scale dropdown is rebuilt on model change in `OnModelChanged` because defaul
 - **File encoding:** UTF-8 without BOM. The codebase explicitly relies on this for stdout decoding (`StandardOutputEncoding = UTF8`).
 - **UI language:** all user-facing strings are Simplified Chinese. Keep new UI text in Chinese; log/diagnostic prefixes (e.g. `[stderr]`) stay English.
 - **Target:** `net9.0-windows`, x64 only. Don't add AnyCPU configurations.
-- **Models folder is gitignored** (`models/`, `*.bin`, `*.exe`, `*.dll` in [.gitignore](.gitignore)) — the binary assets live outside source control but are referenced by the csproj. Don't try to commit them.
+- **Runtime assets live under `engine/`.** Binary files remain gitignored (`*.bin`, `*.exe`, `*.dll` in [.gitignore](.gitignore)); `engine/models/` is the shipped model location referenced by the csproj.
 - **Adding a model:** update *both* `Start_Real-ESRGAN.ps1` (`$modelOptions` hashtable + `[ValidateSet]` attribute) *and* [MainWindow.xaml.cs](RealESRGAN-GUI/MainWindow.xaml.cs) (`PopulateComboBoxes` model list + `DefaultScaleFor`).
-- **Don't** add CMake/Cargo/npm/pip configs or try to rebuild the NCNN backend — it comes from upstream as a binary.
+- **Backend source now exists in `ncnn_src/`.** Keep local GUI-facing backend changes focused in that submodule, and copy the rebuilt executable into `engine/` when you want the GUI/published app to use it.
 - **Publish to `dist/` after every change.** `dotnet build` alone is insufficient — the GUI ships as the published portable folder. End every edit session with `dotnet publish RealESRGAN-GUI/RealESRGAN-GUI.csproj -c Release -r win-x64 --self-contained true -o dist` so the shipped artifact matches the source.
 - **Window sizing:** `MainWindow` adapts to the current monitor's work area in `ConfigureWindowSizing` (`MonitorFromWindow` / `GetMonitorInfo` P/Invoke), and `FreezeAdaptiveHeight` locks the height after `ContentRendered`. Don't hard-code `Width` / `Height` in XAML — go through that path so multi-monitor / scaled-DPI setups don't clip.
 
 ## Serena onboarding
 
 Per the global instructions, activate Serena for this project path before non-trivial work. The existing Serena memories (`project_overview`, etc.) predate the WPF GUI and still describe the repo as a binary distribution only — prefer this file and the actual source over those memories when they conflict.
+
+## Sibling doc
+
+[`AGENTS.md`](AGENTS.md) is a Codex-targeted near-duplicate of this file (gitignored but present on disk). When you edit one, mirror the change to the other so the two agents stay in sync.

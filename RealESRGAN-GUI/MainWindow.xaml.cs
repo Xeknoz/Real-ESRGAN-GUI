@@ -49,12 +49,13 @@ namespace RealESRGAN_GUI
 
         private int _totalFiles;
         private int _completedFiles;
-        private DateTime _runStartedUtc;
-        private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
+        private int _currentFileIndex = -1;
+        private double _currentFilePercent;
+        private double _batchPercent;
         private readonly StringBuilder _logBuilder = new();
-        private double _currentFileProgress;
-        private readonly Dictionary<int, double> _taskProgress = new();
-        private static readonly Regex _progressRegex = new(@"(?:\[(\d+)\]\s*)?(\d+(\.\d+)?)%", RegexOptions.Compiled);
+        private static readonly Regex _batchProgressRegex = new(
+            @"^@batch\s+total=(\d+)\s+completed=(\d+)\s+percent=(\d+(?:\.\d+)?)\s+current=(-?\d+)\s+current_percent=(\d+(?:\.\d+)?)$",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public MainWindow()
         {
@@ -500,8 +501,10 @@ namespace RealESRGAN_GUI
 
         private void UpdateAdvancedToggleText()
         {
-            string arrow = AdvancedToggle.IsChecked == true ? "▲" : "▼";
-            AdvancedToggle.Content = $"{T("Advanced")} {arrow}";
+            AdvancedToggleLabelText.Text = T("Advanced");
+            AdvancedToggleIndicator.RenderTransformOrigin = new Point(0.5, 0.5);
+            AdvancedToggleIndicator.RenderTransform = new RotateTransform(
+                AdvancedToggle.IsChecked == true ? 180 : 0);
         }
 
         private void OnLogToggleClick(object sender, RoutedEventArgs e)
@@ -514,8 +517,10 @@ namespace RealESRGAN_GUI
 
         private void UpdateLogToggleText()
         {
-            string arrow = LogToggle.IsChecked == true ? "▲" : "▼";
-            LogToggle.Content = $"{T("Log")} {arrow}";
+            LogToggleLabelText.Text = T("Log");
+            LogToggleIndicator.RenderTransformOrigin = new Point(0.5, 0.5);
+            LogToggleIndicator.RenderTransform = new RotateTransform(
+                LogToggle.IsChecked == true ? 180 : 0);
         }
 
         private void AppendLog(string line)
@@ -587,16 +592,11 @@ namespace RealESRGAN_GUI
                 if (files.Count == 0) return;
             }
 
-            _totalFiles = files.Count;
+            _totalFiles = 0;
             _completedFiles = 0;
-            _runStartedUtc = DateTime.UtcNow;
-            string outputFormat = ((ComboItem)FormatCombo.SelectedItem).Tag;
-
-            _expectedRunOutputs.Clear();
-            foreach (var f in files)
-            {
-                _expectedRunOutputs.Add(Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(f)}.{outputFormat}"));
-            }
+            _currentFileIndex = -1;
+            _currentFilePercent = 0;
+            _batchPercent = 0;
 
             SetUIBusy(true);
             _cts = new CancellationTokenSource();
@@ -606,9 +606,7 @@ namespace RealESRGAN_GUI
 
             try
             {
-                _taskProgress.Clear();
-                _currentFileProgress = 0;
-                SetStatus("StatusProcessingFiles", 0, _totalFiles);
+                SetStatus("StatusStarting");
                 CompletedProgressBar.IsIndeterminate = false;
 
                 int exitCode = await RunBackendAsync(BuildArgs(_inputDir, _outputDir), _cts.Token);
@@ -622,23 +620,25 @@ namespace RealESRGAN_GUI
                     failed = 1;
                 }
 
-                _currentFileProgress = 0;
                 UpdateProgressBars();
-                SetProgressPercent(GetDisplayPercent());
+                SetProgressPercent(_batchPercent);
 
                 if (stopped)
                 {
-                    SetStatus("StatusStopped");
-                    SetProgressText("ProgressStopped");
+                    FinalizeStoppedRun();
                 }
                 else if (failed > 0)
                 {
-                    SetStatus("StatusPartial", _completedFiles, _totalFiles - _completedFiles);
+                    SetStatus("StatusPartial", _completedFiles, _totalFiles);
+                    SetProgressText("ProgressIncomplete");
+                }
+                else if (_completedFiles < _totalFiles)
+                {
+                    SetStatus("StatusPartial", _completedFiles, _totalFiles);
                     SetProgressText("ProgressIncomplete");
                 }
                 else
                 {
-                    _completedFiles = _totalFiles;
                     SetStatus("StatusDone", _completedFiles);
                     UpdateProgressBars();
                     SetProgressPercent(100);
@@ -715,27 +715,18 @@ namespace RealESRGAN_GUI
             {
                 if (string.IsNullOrEmpty(e.Data)) return;
 
-                var matches = _progressRegex.Matches(e.Data);
-                if (matches.Count > 0)
+                var match = _batchProgressRegex.Match(e.Data);
+                if (match.Success &&
+                    int.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int totalFiles) &&
+                    int.TryParse(match.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int completedFiles) &&
+                    double.TryParse(match.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+                    int.TryParse(match.Groups[4].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int currentFileIndex) &&
+                    double.TryParse(match.Groups[5].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double currentFilePercent))
                 {
-                    var lastMatch = matches[matches.Count - 1];
-                    if (double.TryParse(lastMatch.Groups[2].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double percent))
+                    Dispatcher.InvokeAsync(() =>
                     {
-                        if (lastMatch.Groups[1].Success && int.TryParse(lastMatch.Groups[1].Value, out int taskId))
-                        {
-                            _taskProgress[taskId] = percent;
-                        }
-                        else
-                        {
-                            _currentFileProgress = percent;
-                        }
-
-                        Dispatcher.InvokeAsync(() => 
-                        {
-                            UpdateProgressBars();
-                            SetProgressPercent(GetDisplayPercent());
-                        });
-                    }
+                        ApplyBackendProgress(totalFiles, completedFiles, percent, currentFileIndex, currentFilePercent);
+                    });
                 }
 
                 Dispatcher.InvokeAsync(() => AppendLog(e.Data));
@@ -882,33 +873,6 @@ namespace RealESRGAN_GUI
         {
             _folderSummaryTimer.Stop();
             RefreshFolderSummaries();
-            RefreshRunProgressFromOutputs();
-        }
-
-        private void RefreshRunProgressFromOutputs()
-        {
-            if (!_busy || _totalFiles <= 0 || _expectedRunOutputs.Count == 0) return;
-
-            int completed = _expectedRunOutputs.Count(path =>
-            {
-                if (!File.Exists(path)) return false;
-
-                try
-                {
-                    return File.GetLastWriteTimeUtc(path) >= _runStartedUtc.AddSeconds(-2);
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-
-            if (completed <= _completedFiles) return;
-
-            int remaining = Math.Max(0, _totalFiles - Math.Max(completed, _completedFiles));
-            SetStatus("StatusProcessingFiles", Math.Max(completed, _completedFiles), remaining);
-            UpdateProgressBars();
-            SetProgressPercent(GetDisplayPercent());
         }
 
         private string DescribeInputFolder(string dir)
@@ -973,19 +937,14 @@ namespace RealESRGAN_GUI
             GpuCombo.IsEnabled = !busy;
             TtaCheck.IsEnabled = !busy;
             ProgressTrack.Visibility = Visibility.Visible;
-            LogToggle.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
-            if (!busy)
-            {
-                LogPanel.Visibility = Visibility.Collapsed;
-                LogToggle.IsChecked = false;
-                UpdateLogToggleText();
-            }
             if (busy)
             {
+                LogToggle.Visibility = Visibility.Visible;
                 _logBuilder.Clear();
                 LogText.Text = "";
-                SetStatus("StatusProcessingFiles", 0, _totalFiles);
+                SetStatus("StatusStarting");
                 CompletedProgressBar.IsIndeterminate = false;
+                CurrentFileProgressBar.IsIndeterminate = false;
                 UpdateProgressBars();
                 SetProgressPercent(0);
             }
@@ -993,33 +952,32 @@ namespace RealESRGAN_GUI
 
         private void UpdateProgressBars()
         {
-            CompletedProgressBar.Value = GetDisplayPercent();
+            bool multipleFiles = _totalFiles > 1;
+
+            CurrentFileProgressBar.Visibility = multipleFiles ? Visibility.Visible : Visibility.Collapsed;
+            CurrentFileProgressBar.Value = Math.Clamp(_currentFilePercent, 0, 100);
+            CompletedProgressBar.Value = Math.Clamp(_batchPercent, 0, 100);
         }
 
-        private double GetDisplayPercent()
+        private void FinalizeStoppedRun()
         {
-            if (_totalFiles <= 0) return 0;
-            
-            double sum = 0;
-            int completedCount = 0;
-            
-            if (_taskProgress.Count > 0)
-            {
-                foreach (var p in _taskProgress.Values)
-                {
-                    sum += Math.Clamp(p, 0, 100);
-                    if (p >= 100.0) completedCount++;
-                }
-                _completedFiles = Math.Max(_completedFiles, completedCount);
-            }
-            else
-            {
-                double currentProgress = Math.Clamp(_currentFileProgress, 0, 100);
-                sum = _completedFiles * 100d + currentProgress;
-            }
-            
+            _currentFileIndex = -1;
+            _currentFilePercent = 0;
+            UpdateProgressBars();
+            SetStatus("StatusStoppedFinal", _completedFiles, _totalFiles);
+            SetProgressText("ProgressStopped");
+        }
+
+        private void ApplyBackendProgress(int totalFiles, int completedFiles, double percent, int currentFileIndex, double currentFilePercent)
+        {
+            _totalFiles = Math.Max(0, totalFiles);
+            _completedFiles = Math.Clamp(completedFiles, 0, _totalFiles);
+            _batchPercent = Math.Clamp(percent, 0, 100);
+            _currentFileIndex = currentFileIndex;
+            _currentFilePercent = Math.Clamp(currentFilePercent, 0, 100);
+            UpdateProgressBars();
             SetStatus("StatusProcessingFiles", _completedFiles, _totalFiles - _completedFiles);
-            return Math.Clamp(sum / _totalFiles, 0, 100);
+            SetProgressPercent(_batchPercent);
         }
 
         private void SetStatus(string key, params object[] args)
@@ -1056,13 +1014,20 @@ namespace RealESRGAN_GUI
                 return;
             }
 
+            if (_totalFiles > 1 && _currentFileIndex >= 0)
+            {
+                ProgressPercentText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    T("CurrentFileProgress"),
+                    _currentFileIndex + 1,
+                    _totalFiles,
+                    _currentFilePercent);
+                return;
+            }
+
             if (_progressPercent.HasValue)
             {
                 string text = string.Format(CultureInfo.InvariantCulture, "{0:0}%", _progressPercent.Value);
-                if (_totalFiles > 1)
-                {
-                    text += $" ({_completedFiles}/{_totalFiles})";
-                }
                 ProgressPercentText.Text = text;
             }
             else
@@ -1134,13 +1099,16 @@ namespace RealESRGAN_GUI
             "InputCount" => "发现 {0} 张可处理图片",
             "OutputCount" => "已有 {0} 个结果文件",
             "StatusReady" => "就绪",
+            "StatusStarting" => "正在准备处理",
             "StatusProcessing" => "正在处理...",
             "StatusProcessingFiles" => "未完成 {1} 个，已完成 {0} 个",
             "StatusStopped" => "已停止",
+            "StatusStoppedFinal" => "已停止，已完成 {0}/{1} 个文件",
             "StatusDone" => "完成，输出 {0} 个文件",
             "StatusFailed" => "失败 (代码 {0})",
             "StatusPartial" => "部分完成，已处理 {0}/{1} 个文件",
             "StatusError" => "错误: {0}",
+            "CurrentFileProgress" => "当前文件 {0}/{1}：{2:0.00}%",
             "ProgressZero" => "0%",
             "ProgressPreparing" => "准备中",
             "ProgressStopped" => "已停止",
@@ -1206,13 +1174,16 @@ namespace RealESRGAN_GUI
             "InputCount" => "{0} supported images found",
             "OutputCount" => "{0} result files already here",
             "StatusReady" => "Ready",
+            "StatusStarting" => "Preparing to process",
             "StatusProcessing" => "Processing...",
             "StatusProcessingFiles" => "Remaining {1}, completed {0}",
             "StatusStopped" => "Stopped",
+            "StatusStoppedFinal" => "Stopped, {0}/{1} files completed",
             "StatusDone" => "Done, exported {0} files",
             "StatusFailed" => "Failed (code {0})",
             "StatusPartial" => "Partial, {0}/{1} files completed",
             "StatusError" => "Error: {0}",
+            "CurrentFileProgress" => "Current file {0}/{1}: {2:0.00}%",
             "ProgressZero" => "0%",
             "ProgressPreparing" => "Preparing",
             "ProgressStopped" => "Stopped",

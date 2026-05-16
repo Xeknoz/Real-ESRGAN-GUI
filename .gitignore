@@ -36,5 +36,10 @@ dist/
 # IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
 *.sln
 
+# Visual Studio temporary directory and per-user state
+.vs/
+*.user
+*.suo
+
 # Local shortcuts (machine-specific absolute paths)
 *.lnk
