@@ -1,0 +1,3 @@
+[submodule "ncnn_src"]
+	path = ncnn_src
+	url = https://github.com/Xeknoz/Real-ESRGAN-ncnn-vulkan-Enhanced.git
