@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -51,6 +52,8 @@ namespace RealESRGAN_GUI
         private DateTime _runStartedUtc;
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
         private readonly StringBuilder _logBuilder = new();
+        private double _currentFileProgress;
+        private static readonly Regex _progressRegex = new(@"(\d+(\.\d+)?)%", RegexOptions.Compiled);
 
         public MainWindow()
         {
@@ -600,8 +603,9 @@ namespace RealESRGAN_GUI
                 {
                     if (_cts.IsCancellationRequested) { stopped = true; break; }
 
+                    _currentFileProgress = 0;
                     SetStatus("StatusProcessingFiles", i, _totalFiles - i);
-                    CompletedProgressBar.IsIndeterminate = true;
+                    CompletedProgressBar.IsIndeterminate = false;
                     string file = files[i];
                     string outputFile = Path.Combine(_outputDir, $"{Path.GetFileNameWithoutExtension(file)}.{outputFormat}");
 
@@ -618,7 +622,7 @@ namespace RealESRGAN_GUI
                         failed++;
                     }
 
-                    CompletedProgressBar.IsIndeterminate = false;
+                    _currentFileProgress = 0;
                     UpdateProgressBars();
                     SetProgressPercent(GetDisplayPercent());
                 }
@@ -711,12 +715,28 @@ namespace RealESRGAN_GUI
             proc.ErrorDataReceived += (_, e) =>
             {
                 if (string.IsNullOrEmpty(e.Data)) return;
-                Dispatcher.Invoke(() => AppendLog(e.Data));
+
+                var matches = _progressRegex.Matches(e.Data);
+                if (matches.Count > 0)
+                {
+                    var lastMatch = matches[matches.Count - 1];
+                    if (double.TryParse(lastMatch.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double percent))
+                    {
+                        _currentFileProgress = percent;
+                        Dispatcher.InvokeAsync(() => 
+                        {
+                            UpdateProgressBars();
+                            SetProgressPercent(GetDisplayPercent());
+                        });
+                    }
+                }
+
+                Dispatcher.InvokeAsync(() => AppendLog(e.Data));
             };
             proc.OutputDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
-                    Dispatcher.Invoke(() => AppendLog(e.Data));
+                    Dispatcher.InvokeAsync(() => AppendLog(e.Data));
             };
             proc.Start();
             proc.BeginOutputReadLine();
@@ -972,7 +992,8 @@ namespace RealESRGAN_GUI
         private double GetDisplayPercent()
         {
             if (_totalFiles <= 0) return 0;
-            return 100d * _completedFiles / _totalFiles;
+            double currentProgress = Math.Clamp(_currentFileProgress, 0, 100);
+            return 100d * (_completedFiles + currentProgress / 100d) / _totalFiles;
         }
 
         private void SetStatus(string key, params object[] args)
