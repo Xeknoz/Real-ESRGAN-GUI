@@ -1,4 +1,4 @@
-﻿#requires -Version 5.1
+#requires -Version 5.1
 <#
 .SYNOPSIS
     Real-ESRGAN batch image upscaling script
@@ -97,9 +97,9 @@ $InputDir = [System.IO.Path]::GetFullPath($InputDir)
 $OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 
 # --- Check executable ---
-$exePath = Join-Path $scriptDir "realesrgan-ncnn-vulkan.exe"
+$exePath = Join-Path $scriptDir "engine\realesrgan-ncnn-vulkan.exe"
 if (-not (Test-Path $exePath)) {
-    Write-Host "[ERROR] realesrgan-ncnn-vulkan.exe not found. Please place this script in the same folder as the executable." -ForegroundColor Red
+    Write-Host "[ERROR] realesrgan-ncnn-vulkan.exe not found. Please make sure the engine folder exists." -ForegroundColor Red
     exit 1
 }
 

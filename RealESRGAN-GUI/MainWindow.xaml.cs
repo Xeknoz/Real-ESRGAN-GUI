@@ -53,17 +53,17 @@ namespace RealESRGAN_GUI
         private HashSet<string> _expectedRunOutputs = new(StringComparer.OrdinalIgnoreCase);
         private readonly StringBuilder _logBuilder = new();
         private double _currentFileProgress;
-        private static readonly Regex _progressRegex = new(@"(\d+(\.\d+)?)%", RegexOptions.Compiled);
+        private static readonly Regex _progressRegex = new(@"(?:\[(\d+)\]\s*)?(\d+(\.\d+)?)%", RegexOptions.Compiled);
 
         public MainWindow()
         {
             InitializeComponent();
             ConfigureWindowSizing();
 
-            // Portable folder layout: realesrgan-ncnn-vulkan.exe, vcomp140*.dll,
-            // models\, input.jpg all sit next to this GUI exe.
-            _appDir  = AppContext.BaseDirectory;
-            _exePath = Path.Combine(_appDir, "realesrgan-ncnn-vulkan.exe");
+            // Portable folder layout: engine/realesrgan-ncnn-vulkan.exe, engine/vcomp140*.dll,
+            // engine/models/
+            _appDir = AppContext.BaseDirectory;
+            _exePath = Path.Combine(_appDir, "engine", "realesrgan-ncnn-vulkan.exe");
 
             _currentLanguage = ResolveLanguage();
             PopulatePreferenceCombos();
@@ -720,7 +720,7 @@ namespace RealESRGAN_GUI
                 if (matches.Count > 0)
                 {
                     var lastMatch = matches[matches.Count - 1];
-                    if (double.TryParse(lastMatch.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double percent))
+                    if (double.TryParse(lastMatch.Groups[2].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double percent))
                     {
                         _currentFileProgress = percent;
                         Dispatcher.InvokeAsync(() => 
@@ -1093,7 +1093,7 @@ namespace RealESRGAN_GUI
             "FormatWebp" => "WebP（网页友好）",
             "AutoRecommended" => "自动（推荐）",
             "PickFolderTitle" => "选择文件夹",
-            "MissingExe" => "找不到主程序：\n{0}\n\n请确认 realesrgan-ncnn-vulkan.exe 与 GUI 安装目录相邻。",
+            "MissingExe" => "找不到主程序：\n{0}\n\n请确保 realesrgan-ncnn-vulkan.exe 在 engine 目录内。",
             "InputAccessError" => "无法创建/访问输入文件夹。",
             "OutputAccessError" => "无法创建/访问输出文件夹。",
             "NoImagesAsk" => "输入文件夹中没有支持的图片 (png/jpg/jpeg/bmp/webp/tif)。\n是否复制示例 input.jpg 进去？",
@@ -1165,7 +1165,7 @@ namespace RealESRGAN_GUI
             "FormatWebp" => "WebP (web friendly)",
             "AutoRecommended" => "Auto (recommended)",
             "PickFolderTitle" => "Choose a folder",
-            "MissingExe" => "Main program not found:\n{0}\n\nPlease make sure realesrgan-ncnn-vulkan.exe is next to the GUI.",
+            "MissingExe" => "Main program not found:\n{0}\n\nPlease make sure realesrgan-ncnn-vulkan.exe is in the engine directory.",
             "InputAccessError" => "Cannot create or access the input folder.",
             "OutputAccessError" => "Cannot create or access the output folder.",
             "NoImagesAsk" => "No supported images were found in the input folder (png/jpg/jpeg/bmp/webp/tif).\nCopy the sample input.jpg into it?",

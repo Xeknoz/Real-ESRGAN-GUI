@@ -25,19 +25,19 @@
     </Resource>
   </ItemGroup>
 
-  <!-- Real-ESRGAN backend, OpenMP runtime, sample image: copied next to the GUI EXE
+  <!-- Real-ESRGAN backend, OpenMP runtime, sample image: copied to the engine/ directory next to the GUI EXE
        so the published folder is a self-contained "portable" distribution. -->
   <ItemGroup>
-    <Content Include="..\realesrgan-ncnn-vulkan.exe" CopyToOutputDirectory="PreserveNewest">
-      <Link>realesrgan-ncnn-vulkan.exe</Link>
+    <Content Include="..\engine\realesrgan-ncnn-vulkan.exe" CopyToOutputDirectory="PreserveNewest">
+      <Link>engine\realesrgan-ncnn-vulkan.exe</Link>
       <Visible>false</Visible>
     </Content>
-    <Content Include="..\vcomp140.dll" CopyToOutputDirectory="PreserveNewest">
-      <Link>vcomp140.dll</Link>
+    <Content Include="..\engine\vcomp140.dll" CopyToOutputDirectory="PreserveNewest">
+      <Link>engine\vcomp140.dll</Link>
       <Visible>false</Visible>
     </Content>
-    <Content Include="..\vcomp140d.dll" CopyToOutputDirectory="PreserveNewest">
-      <Link>vcomp140d.dll</Link>
+    <Content Include="..\engine\vcomp140d.dll" CopyToOutputDirectory="PreserveNewest">
+      <Link>engine\vcomp140d.dll</Link>
       <Visible>false</Visible>
     </Content>
     <Content Include="..\input.jpg" CopyToOutputDirectory="PreserveNewest">
@@ -46,14 +46,14 @@
     </Content>
   </ItemGroup>
 
-  <!-- NCNN models — preserve the models/ subdirectory layout the backend expects. -->
+  <!-- NCNN models — preserve the engine/models/ subdirectory layout the backend expects. -->
   <ItemGroup>
-    <Content Include="..\models\*.bin" CopyToOutputDirectory="PreserveNewest">
-      <Link>models\%(Filename)%(Extension)</Link>
+    <Content Include="..\engine\models\*.bin" CopyToOutputDirectory="PreserveNewest">
+      <Link>engine\models\%(Filename)%(Extension)</Link>
       <Visible>false</Visible>
     </Content>
-    <Content Include="..\models\*.param" CopyToOutputDirectory="PreserveNewest">
-      <Link>models\%(Filename)%(Extension)</Link>
+    <Content Include="..\engine\models\*.param" CopyToOutputDirectory="PreserveNewest">
+      <Link>engine\models\%(Filename)%(Extension)</Link>
       <Visible>false</Visible>
     </Content>
   </ItemGroup>

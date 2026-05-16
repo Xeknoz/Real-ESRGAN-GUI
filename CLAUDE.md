@@ -56,7 +56,9 @@ Because the app is shipped via Enigma Virtual Box as a single executable, the ex
 
 ### Process-orchestration model
 
-The GUI does **not** call NCNN directly. [MainWindow.xaml.cs](RealESRGAN-GUI/MainWindow.xaml.cs) builds a CLI flag string in `BuildArgs()` and spawns `realesrgan-ncnn-vulkan.exe` as a child process (`RunBackendAsync`), with stdout/stderr redirected line-by-line into the in-window log box and `CancellationTokenSource` wired to a kill-tree on Stop. Cross-thread log writes go through `Dispatcher.Invoke`. The contract between GUI and backend is purely the CLI flags (`-i/-o/-n/-s/-f/-t/-g/-x`).
+The GUI does **not** call NCNN directly. [MainWindow.xaml.cs](RealESRGAN-GUI/MainWindow.xaml.cs) builds a per-file CLI flag string in `BuildArgs(string input, string output)` and spawns `realesrgan-ncnn-vulkan.exe` for **each input file** in a for-loop (`RunBackendAsync`), with stdout/stderr redirected line-by-line into the in-window log box. The `CancellationTokenSource` is wired to a kill-tree on Stop. After the process exits, `CancelErrorRead`/`CancelOutputRead` are called in `finally` to prevent async read callbacks from firing post-exit. Cross-thread log writes go through `Dispatcher.Invoke`. The contract between GUI and backend is purely the CLI flags (`-i/-o/-n/-s/-f/-t/-g/-x`), with `-i`/`-o` now pointing to individual files, not directories.
+
+The log panel auto-expands during a run (LogToggle visibility tied to `_busy`) and uses a rolling buffer that trims to the last ~40 KB once it exceeds 50 KB.
 
 Implication: nearly every "feature" is a question of *what CLI flag to add and how to expose it in XAML*. Don't introduce NCNN bindings or P/Invoke into model code.
 
@@ -64,7 +66,7 @@ Implication: nearly every "feature" is a question of *what CLI flag to add and h
 
 Input and output folders are watched via `FileSystemWatcher` (`ReplaceWatcher` wires them up; recreated on folder change or window activation). Bursts of file events are coalesced through `_folderSummaryTimer` (a `DispatcherTimer`) so the UI refreshes once per quiet period instead of per event.
 
-During a run, `RefreshRunProgressFromOutputs` counts files in `_outputDir` created since `_runStartedUtc` against the total snapshotted by `EnumerateInputs` — this is the fallback when the backend's stderr is silent, so the progress bar keeps moving. If you add a feature that bypasses the output folder, add an explicit progress signal; don't assume stderr will carry it.
+Progress is purely file-count based: `GetDisplayPercent()` computes `100 * _completedFiles / _totalFiles`, and `SetProgressPercent` renders it with a `(N/M)` suffix for multi-file batches. Since the backend is called per-file in a for-loop and `_completedFiles` is incremented directly after each successful exit, there is no stderr percentage parsing and no fallback file-system progress scan. The `_expectedRunOutputs` field and `RefreshRunProgressFromOutputs` are leftover dead code — `_expectedRunOutputs` is never populated, so `RefreshRunProgressFromOutputs` always returns immediately at the `Count == 0` guard. If you re-enable directory-mode or add a side-channel output path, clean up or repopulate that path.
 
 ### Portable-folder layout (enforced by the csproj)
 
