@@ -30,10 +30,12 @@ Notes:
 Build a complete distributable folder with:
 
 ```powershell
-.\scripts\build-dist.ps1 -Clean
+.\scripts\build-all.ps1 -Clean
 ```
 
-This script builds the native launcher, publishes the WPF app, and assembles a ready-to-ship `dist/` folder.
+This script builds the backend when needed, builds the native launcher, publishes the WPF app, and assembles a ready-to-ship `dist/` folder.
+The backend is skipped automatically when the current `runtime/engine/realesrgan-ncnn-vulkan.exe` already matches the backend source. Use `.\scripts\build-all.ps1 -Clean -ForceBackend` when you intentionally need a full backend rebuild.
+The app version is resolved from a release tag such as `v1.0.1`, an explicit `-Version 1.0.1`, or the root `VERSION` file for development builds.
 
 Repository layout:
 
@@ -42,17 +44,23 @@ src/
   Launcher/             Native Win32 splash launcher
   RealESRGAN-GUI/       WPF desktop application
 scripts/
+  build-all.ps1         Build backend, launcher, GUI, and dist
+  build-backend.ps1     Rebuild backend and copy it into runtime/engine
+  backend-state.ps1     Backend build fingerprint helpers
   build-dist.ps1        One-click build script
+  version.ps1           Resolve app versions for builds and releases
   Start_Real-ESRGAN.ps1 PowerShell CLI wrapper
 runtime/
   engine/               Backend executable, runtime DLLs, and models
   input.jpg             Sample image copied into published builds
 third_party/
   ncnn_src/             Backend source submodule
+VERSION                  Base development version
 ```
 
 Release automation:
-- Run `.github/workflows/release.yml` manually, or push a tag such as `v1.0.0`.
+- Run `.github/workflows/release.yml` manually with an optional version input, or push a tag such as `v1.0.1`.
+- Tag releases use the tag as the displayed app version. Non-tag builds use `VERSION` plus commit metadata, for example `1.0.0-dev.58.g26d6948`.
 - The workflow builds `dist/`, uploads a workflow artifact, and attaches `Real-ESRGAN-GUI-win-x64.zip` to the matching GitHub Release.
 
 ## License

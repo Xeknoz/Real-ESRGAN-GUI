@@ -13,9 +13,6 @@
     <SelfContained>true</SelfContained>
     <PublishReadyToRun>false</PublishReadyToRun>
     <DebugType>embedded</DebugType>
-    <Version>1.0.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <!-- Runtime window/taskbar icon only. Keep PE application icon ownership with Launcher.exe. -->

@@ -3,7 +3,9 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
 
-    [switch]$Clean
+    [switch]$Clean,
+
+    [string]$Version
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,11 +13,17 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $projectPath = Join-Path $repoRoot "src\RealESRGAN-GUI\RealESRGAN-GUI.csproj"
+$manifestTemplatePath = Join-Path $repoRoot "src\RealESRGAN-GUI\app.manifest"
+$generatedManifestPath = Join-Path $repoRoot "src\RealESRGAN-GUI\obj\generated\app.manifest"
 $launcherBuildScript = Join-Path $repoRoot "src\Launcher\build.ps1"
 $launcherExe = Join-Path $repoRoot "src\Launcher\bin\Launcher.exe"
 $distDir = Join-Path $repoRoot "dist"
 $runtimeRoot = Join-Path $repoRoot "runtime"
 $licenseRoot = Join-Path $distDir "licenses"
+$versionScript = Join-Path $scriptRoot "version.ps1"
+. $versionScript
+
+$appVersion = Resolve-AppVersion -RepoRoot $repoRoot -VersionOverride $Version
 
 $requiredPayload = @(
     "input.jpg",
@@ -49,14 +57,41 @@ Write-Host "[1/4] Building native launcher..."
 & $launcherBuildScript
 
 Write-Host "[2/4] Publishing WPF application..."
-dotnet publish $projectPath `
-    -c $Configuration `
-    -r win-x64 `
-    --self-contained true `
-    -o $distDir
+Write-Host "App version: $($appVersion.InformationalVersion) ($($appVersion.Source))"
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $generatedManifestPath) | Out-Null
+$manifestContent = Get-Content -LiteralPath $manifestTemplatePath -Raw
+$manifestContent = $manifestContent -replace '(<assemblyIdentity version=")[^"]+(" name="Real-ESRGAN\.GUI"/>)', "`${1}$($appVersion.AssemblyVersion)`${2}"
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($generatedManifestPath, $manifestContent, $utf8NoBom)
+
+$publishArgs = @(
+    "publish",
+    $projectPath,
+    "-c", $Configuration,
+    "-r", "win-x64",
+    "--self-contained", "true",
+    "-o", $distDir,
+    "-p:Version=$($appVersion.PackageVersion)",
+    "-p:AssemblyVersion=$($appVersion.AssemblyVersion)",
+    "-p:FileVersion=$($appVersion.FileVersion)",
+    "-p:InformationalVersion=$($appVersion.InformationalVersion)",
+    "-p:IncludeSourceRevisionInInformationalVersion=false",
+    "-p:SourceRevisionId=",
+    "-p:ApplicationManifest=$generatedManifestPath"
+)
+
+& dotnet @publishArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed."
+}
 
 Write-Host "[3/4] Copying launcher into dist..."
 Copy-Item -LiteralPath $launcherExe -Destination (Join-Path $distDir "Launcher.exe") -Force
+
+[System.IO.File]::WriteAllText(
+    (Join-Path $distDir "VERSION.txt"),
+    $appVersion.InformationalVersion + [Environment]::NewLine,
+    $utf8NoBom)
 
 Write-Host "[4/4] Copying license notices into dist..."
 New-Item -ItemType Directory -Force -Path $licenseRoot | Out-Null

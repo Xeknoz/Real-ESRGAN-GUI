@@ -12,8 +12,21 @@ $outputPath = Join-Path $binDir "Launcher.exe"
 $objectPath = Join-Path $objDir "Launcher.obj"
 $compiledResourcePath = Join-Path $objDir "Launcher.res"
 
-$vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-if (-not (Test-Path -LiteralPath $vswhere)) {
+# Locate vswhere.exe: try PATH first, then known install locations
+$vswhere = Get-Command vswhere -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+if (-not $vswhere) {
+    $candidates = @(
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe")
+        (Join-Path $env:ProgramFiles "Microsoft Visual Studio\Installer\vswhere.exe")
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            $vswhere = $candidate
+            break
+        }
+    }
+}
+if (-not $vswhere) {
     throw "vswhere.exe not found. Install Visual Studio Build Tools or Visual Studio with C++ tools."
 }
 
@@ -29,7 +42,9 @@ if (-not (Test-Path -LiteralPath $vcvarsPath)) {
 
 New-Item -ItemType Directory -Force -Path $binDir, $objDir | Out-Null
 
+$vswhereDir = Split-Path -Parent $vswhere
 $command = @(
+    "set `"PATH=%PATH%;$vswhereDir`""
     "call `"$vcvarsPath`" >nul"
     "rc.exe /nologo /fo `"$compiledResourcePath`" `"$resourcePath`""
     "cl.exe /nologo /utf-8 /O2 /W4 `"$sourcePath`" `"$compiledResourcePath`" /Fo`"$objectPath`" /Fe`"$outputPath`" /link user32.lib gdi32.lib dwmapi.lib advapi32.lib"

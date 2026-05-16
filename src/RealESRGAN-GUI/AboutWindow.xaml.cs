@@ -15,7 +15,6 @@ namespace RealESRGAN_GUI
             string title,
             string description,
             string versionLabel,
-            string repositoryLabel,
             string openRepositoryLabel,
             string closeLabel,
             string openRepositoryFailedMessage)
@@ -29,8 +28,6 @@ namespace RealESRGAN_GUI
             DescriptionText.Text = description;
             VersionLabelText.Text = versionLabel;
             VersionValueText.Text = version;
-            RepositoryLabelText.Text = repositoryLabel;
-            RepositoryUrlText.Text = repositoryUrl;
             RepositoryButton.Content = openRepositoryLabel;
             CloseButton.Content = closeLabel;
         }

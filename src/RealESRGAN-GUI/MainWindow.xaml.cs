@@ -465,7 +465,6 @@ namespace RealESRGAN_GUI
                 T("AboutTitle"),
                 T("AboutDescription"),
                 T("VersionLabel"),
-                T("RepositoryLabel"),
                 T("OpenRepository"),
                 T("Close"),
                 T("OpenRepositoryFailed"))
@@ -478,6 +477,25 @@ namespace RealESRGAN_GUI
 
         private static string GetAppVersion()
         {
+            string versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION.txt");
+            try
+            {
+                if (File.Exists(versionFilePath))
+                {
+                    string? versionFromFile = File
+                        .ReadLines(versionFilePath)
+                        .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))
+                        ?.Trim();
+
+                    if (!string.IsNullOrWhiteSpace(versionFromFile))
+                        return versionFromFile;
+                }
+            }
+            catch
+            {
+                // Fall back to assembly metadata if the portable version file cannot be read.
+            }
+
             string? informationalVersion = Assembly
                 .GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
@@ -1055,7 +1073,6 @@ namespace RealESRGAN_GUI
             "AboutTitle" => "关于 Real-ESRGAN GUI",
             "AboutDescription" => "用于本地图片清晰化的桌面工具。",
             "VersionLabel" => "当前版本",
-            "RepositoryLabel" => "GitHub 仓库",
             "OpenRepository" => "打开 GitHub 仓库",
             "OpenRepositoryFailed" => "无法打开 GitHub 仓库链接。",
             "Close" => "关闭",
@@ -1138,7 +1155,6 @@ namespace RealESRGAN_GUI
             "AboutTitle" => "About Real-ESRGAN GUI",
             "AboutDescription" => "A desktop tool for local image upscaling.",
             "VersionLabel" => "Version",
-            "RepositoryLabel" => "GitHub repository",
             "OpenRepository" => "Open GitHub repository",
             "OpenRepositoryFailed" => "Could not open the GitHub repository link.",
             "Close" => "Close",

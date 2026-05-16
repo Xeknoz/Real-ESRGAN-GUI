@@ -2,6 +2,11 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional app version override, for example 1.0.1"
+        required: false
+        type: string
   push:
     tags:
       - "v*"
@@ -17,6 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           submodules: recursive
 
       - name: Setup .NET
@@ -24,9 +30,26 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Build dist
+      - name: Check backend build fingerprint
+        id: backend
         shell: pwsh
-        run: ./scripts/build-dist.ps1 -Clean
+        run: |
+          . ./scripts/backend-state.ps1
+          $status = Get-BackendBuildStatus -RepoRoot (Get-Location).Path -Configuration Release
+          $current = if ($status.IsCurrent) { "true" } else { "false" }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "current=$current"
+          Write-Host "Backend current: $current ($($status.Reason))"
+
+      - name: Setup Vulkan SDK
+        if: steps.backend.outputs.current != 'true'
+        shell: pwsh
+        run: ./scripts/setup-vulkan-sdk.ps1
+
+      - name: Build all outputs
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ github.event.inputs.version }}
+        run: ./scripts/build-all.ps1 -Clean -Version "$env:APP_VERSION"
 
       - name: Create release archive
         shell: pwsh
