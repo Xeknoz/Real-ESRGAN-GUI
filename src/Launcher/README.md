@@ -15,6 +15,8 @@ The script locates Visual Studio C++ build tools with `vswhere.exe` and writes b
 - `src\Launcher\obj\Launcher.obj`
 - `src\Launcher\obj\Launcher.res`
 
+When run from the repository, it resolves the same app version metadata as the WPF build and embeds it into the native PE version resource. Release builds normally call it through `scripts\build-dist.ps1`, which passes the already-resolved app version.
+
 ## Publish integration
 
 `scripts\build-dist.ps1` and `scripts\build-all.ps1` copy `src\Launcher\bin\Launcher.exe` into `dist\Launcher.exe` automatically.

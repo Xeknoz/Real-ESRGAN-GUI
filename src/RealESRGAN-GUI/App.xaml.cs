@@ -54,6 +54,18 @@ namespace RealESRGAN_GUI
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();
+            ActivateMainWindow(mainWindow);
+        }
+
+        private static void ActivateMainWindow(Window window)
+        {
+            window.Activate();
+            window.Focus();
+            window.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                window.Activate();
+                window.Focus();
+            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
 
         private static void StartLauncherOrNotify()

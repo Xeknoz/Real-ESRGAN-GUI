@@ -10,6 +10,16 @@
 #include <strsafe.h>
 #include "resource.h"
 
+#if defined(__has_include)
+#if __has_include("Launcher.version.h")
+#include "Launcher.version.h"
+#endif
+#endif
+
+#ifndef LAUNCHER_DISPLAY_VERSION
+#define LAUNCHER_DISPLAY_VERSION L"v0.0.0"
+#endif
+
 // ---- Design values (96 DPI baseline) ----
 #define DESIGN_W      400
 #define DESIGN_H      130
@@ -19,6 +29,7 @@
 #define TIMEOUT_MS    15000
 
 static HWND   g_hwnd   = NULL;
+static HWND   g_mainHwnd = NULL;
 static HANDLE g_hProc  = NULL;
 static DWORD  g_pid    = 0;
 static BOOL   g_dark   = TRUE;
@@ -36,6 +47,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 static void    Paint(HWND hWnd);
 static void    Launch(void);
 static BOOL    FindMainWindow(void);
+static void    ActivateAppWindow(HWND hwnd);
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
 {
@@ -68,8 +80,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
             existing = FindWindowW(NULL, L"Real-ESRGAN GUI");
         }
         if (existing) {
-            if (IsIconic(existing)) ShowWindow(existing, SW_RESTORE);
-            SetForegroundWindow(existing);
+            ActivateAppWindow(existing);
         }
         if (mutex) { ReleaseMutex(mutex); CloseHandle(mutex); }
         return 0;
@@ -160,7 +171,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
 
     if (foundWindow) {
         // Main window is ready — dismiss splash immediately, no fade-out
+        HWND mainWindow = g_mainHwnd;
         DestroyWindow(g_hwnd);
+        ActivateAppWindow(mainWindow);
     } else {
         // Timeout or early exit — graceful fade-out
         for (int i = FADE_STEPS - 1; i >= 0; i--) {
@@ -255,8 +268,8 @@ static void Paint(HWND hWnd)
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
     SelectObject(dc, hFontVer);
     SetTextColor(dc, clrSubtle);
-    RECT rcVer = { g_w - S(70), S(24), g_w - S(28), S(42) };
-    DrawTextW(dc, L"v1.0", -1, &rcVer, DT_RIGHT | DT_SINGLELINE);
+    RECT rcVer = { S(170), S(24), g_w - S(28), S(42) };
+    DrawTextW(dc, LAUNCHER_DISPLAY_VERSION, -1, &rcVer, DT_RIGHT | DT_SINGLELINE | DT_END_ELLIPSIS);
 
     // Subtitle
     HFONT hFontSub = CreateFontW(-S(12), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
@@ -342,6 +355,7 @@ static void Launch(void)
                        CREATE_NEW_PROCESS_GROUP, NULL, launcherPath, &si, &pi)) {
         g_hProc = pi.hProcess;
         g_pid   = pi.dwProcessId;
+        AllowSetForegroundWindow(g_pid);
         CloseHandle(pi.hThread);
     } else {
         DWORD err = GetLastError();
@@ -364,6 +378,7 @@ static BOOL CALLBACK EnumWindowProc(HWND hwnd, LPARAM lParam)
         WCHAR title[256] = {0};
         GetWindowTextW(hwnd, title, 256);
         if (title[0] != L'\0') {
+            g_mainHwnd = hwnd;
             g_found = TRUE;
             return FALSE;
         }
@@ -375,6 +390,54 @@ static BOOL FindMainWindow(void)
 {
     if (!g_pid) return FALSE;
     g_found = FALSE;
+    g_mainHwnd = NULL;
     EnumWindows(EnumWindowProc, (LPARAM)g_pid);
     return g_found;
+}
+
+static void ActivateAppWindow(HWND hwnd)
+{
+    if (!hwnd || !IsWindow(hwnd)) return;
+
+    if (IsIconic(hwnd)) {
+        ShowWindow(hwnd, SW_RESTORE);
+    } else {
+        ShowWindow(hwnd, SW_SHOWNORMAL);
+    }
+
+    const UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW;
+    SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, flags);
+
+    DWORD currentThread = GetCurrentThreadId();
+    DWORD targetThread = GetWindowThreadProcessId(hwnd, NULL);
+    HWND foreground = GetForegroundWindow();
+    DWORD foregroundThread = foreground ? GetWindowThreadProcessId(foreground, NULL) : 0;
+
+    BOOL attachedTarget = FALSE;
+    BOOL attachedForeground = FALSE;
+    if (targetThread && targetThread != currentThread) {
+        attachedTarget = AttachThreadInput(currentThread, targetThread, TRUE);
+    }
+    if (foregroundThread &&
+        foregroundThread != currentThread &&
+        foregroundThread != targetThread) {
+        attachedForeground = AttachThreadInput(currentThread, foregroundThread, TRUE);
+    }
+
+    BringWindowToTop(hwnd);
+    SetForegroundWindow(hwnd);
+    SetFocus(hwnd);
+
+    if (attachedForeground) {
+        AttachThreadInput(currentThread, foregroundThread, FALSE);
+    }
+    if (attachedTarget) {
+        AttachThreadInput(currentThread, targetThread, FALSE);
+    }
+
+    // If Windows still declines foreground activation, briefly pulse topmost so
+    // the newly launched UI does not remain hidden behind another application.
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags);
+    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags);
+    SetForegroundWindow(hwnd);
 }

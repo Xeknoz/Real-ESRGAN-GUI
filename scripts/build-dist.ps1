@@ -54,7 +54,9 @@ if ($Clean -and (Test-Path -LiteralPath $distDir)) {
 }
 
 Write-Host "[1/4] Building native launcher..."
-& $launcherBuildScript
+& $launcherBuildScript `
+    -FileVersion $appVersion.FileVersion `
+    -ProductVersion $appVersion.InformationalVersion
 
 Write-Host "[2/4] Publishing WPF application..."
 Write-Host "App version: $($appVersion.InformationalVersion) ($($appVersion.Source))"

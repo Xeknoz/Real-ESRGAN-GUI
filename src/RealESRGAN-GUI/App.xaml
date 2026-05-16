@@ -484,8 +484,9 @@
                                        AllowsTransparency="True"
                                        Focusable="False"
                                        IsOpen="{TemplateBinding IsDropDownOpen}"
-                                       Placement="Bottom">
-                                    <Border Margin="0,6,0,0">
+                                       Placement="Bottom"
+                                       VerticalOffset="3">
+                                    <Border Margin="0">
                                         <Border Background="{DynamicResource SurfaceBrush}"
                                                 BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1"
