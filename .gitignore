@@ -1,12 +1,12 @@
-# Real-ESRGAN binaries and models
+# Binary payloads and generated media
 *.bin
 *.exe
 *.dll
 *.mp4
-
-# Sample inputs copied into local runs
-input/
-output/
+*.zip
+*.7z
+*.tar
+*.tar.gz
 
 # Runtime payload copied into published builds.
 # Keep the distributable payload versioned so CI can build from a clean checkout.
@@ -19,37 +19,48 @@ output/
 !runtime/engine/models/*.bin
 !runtime/engine/models/*.param
 
-# Documentation
-README_windows.md
-CLAUDE.md
+# Local sample/input/output folders created during manual runs
+input/
+output/
 
-# Tooling state
-.serena/
-.claude/
-.vscode/
-AGENTS.md
-
-# WPF GUI: build artifacts and published output
+# Build and publish output
+dist/
+RealESRGAN-GUI-App/
 src/RealESRGAN-GUI/bin/
 src/RealESRGAN-GUI/obj/
-RealESRGAN-GUI-App/
-dist/
-
-# IDE / language-service cache
-*.lscache
-
-# Native compilation artifacts
-*.obj
 src/Launcher/bin/
 src/Launcher/obj/
+third_party/ncnn_src/src/build/
 
-# IDE-generated solution files (auto-recreated by Visual Studio; CLI doesn't need them)
-*.sln
-
-# Visual Studio temporary directory and per-user state
+# Native / .NET / Visual Studio transient files
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.cache
+*.lscache
 .vs/
 *.user
 *.suo
+*.rsuser
 
-# Local shortcuts (machine-specific absolute paths)
+# IDE-generated solution files (auto-recreated by Visual Studio; CLI does not need them)
+*.sln
+
+# Local shortcuts and machine-specific launchers
 *.lnk
+
+# Local IDE and agent state
+.serena/
+.claude/
+.codex/
+.agents/
+.vscode/
+docs/
+AGENTS.md
+CLAUDE.md
+CLUADE.md
+
+# Legacy/local documentation not used by this repository.
+README_windows.md
