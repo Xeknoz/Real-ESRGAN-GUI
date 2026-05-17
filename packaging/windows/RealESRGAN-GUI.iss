@@ -19,7 +19,7 @@
 #endif
 
 #ifndef AppSourceDir
-#define AppSourceDir "..\artifacts\portable\x64"
+#define AppSourceDir "..\..\artifacts\portable\x64"
 #endif
 
 [Setup]
@@ -34,10 +34,11 @@ AppUpdatesURL={#AppUrl}/releases
 DefaultDirName={localappdata}\Programs\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-LicenseFile=..\LICENSE
-OutputDir=..\artifacts\installers
+LicenseFile=..\..\LICENSE
+InfoBeforeFile=..\..\THIRD_PARTY_NOTICES.md
+OutputDir=..\..\artifacts\installers
 OutputBaseFilename=Real-ESRGAN-GUI-Setup-{#AppArchitecture}
-SetupIconFile=..\src\Launcher\app.ico
+SetupIconFile=..\..\src\Launcher\app.ico
 UninstallDisplayIcon={app}\Launcher.exe
 Compression=lzma2/ultra64
 SolidCompression=yes

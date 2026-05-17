@@ -1,6 +1,7 @@
 <Application x:Class="RealESRGAN_GUI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:RealESRGAN_GUI"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <ResourceDictionary>
@@ -48,6 +49,9 @@
             <SolidColorBrush x:Key="DangerBorderBrush"     Color="#FFF3C4CC"/>
             <SolidColorBrush x:Key="DangerHoverBrush"      Color="#FFFFE7EC"/>
             <SolidColorBrush x:Key="SubtleHoverBrush"       Color="#12000000"/>
+            <SolidColorBrush x:Key="ContextMenuBorderBrush" Color="#FFE2EAF0"/>
+            <SolidColorBrush x:Key="ContextMenuDividerBrush" Color="#FFECF2F5"/>
+            <SolidColorBrush x:Key="ContextMenuHoverBrush"  Color="#140F766E"/>
             <SolidColorBrush x:Key="ComboBoxSelectedBgBrush" Color="#FF0F766E"/>
             <SolidColorBrush x:Key="ComboBoxSelectedFgBrush" Color="#FFFFFFFF"/>
             <SolidColorBrush x:Key="OnAccentBrush"          Color="#FFFFFFFF"/>
@@ -112,6 +116,98 @@
                 <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
             </Style>
 
+            <!-- Context menus, including the WPF ScrollBar right-click menu. -->
+            <Style TargetType="{x:Type ContextMenu}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ContextMenuBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="6"/>
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI, DengXian, Segoe UI"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ContextMenu}">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="9"
+                                    Padding="{TemplateBinding Padding}">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="18"
+                                                      Direction="270"
+                                                      Opacity="0.18"
+                                                      ShadowDepth="2"
+                                                      Color="#000000"/>
+                                </Border.Effect>
+                                <StackPanel IsItemsHost="True"
+                                            KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="{x:Type MenuItem}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                <Setter Property="Padding" Value="14,8"/>
+                <Setter Property="MinHeight" Value="32"/>
+                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type MenuItem}">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="7"
+                                    Margin="1"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      ContentSource="Header"
+                                                      RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{TemplateBinding InputGestureText}"
+                                               Margin="18,0,0,0"
+                                               Foreground="{DynamicResource SubtleForegroundBrush}"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ContextMenuHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.55"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="{x:Type Separator}">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="Height" Value="0"/>
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type Separator}">
+                            <Border/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ScrollBar -->
             <Style x:Key="ModernScrollBarThumb" TargetType="Thumb">
                 <Setter Property="Background" Value="{DynamicResource ScrollThumbBrush}"/>
@@ -132,6 +228,7 @@
             <Style TargetType="ScrollBar">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Width" Value="10"/>
+                <Setter Property="local:ScrollBarContextMenuBehavior.UseLocalizedContextMenu" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
@@ -459,6 +556,7 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
                 <Setter Property="Padding" Value="12,8"/>
                 <Setter Property="MaxDropDownHeight" Value="260"/>
+                <Setter Property="local:ComboBoxMouseWheelBehavior.RouteClosedWheelToParent" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">

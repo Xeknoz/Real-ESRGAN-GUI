@@ -23,7 +23,6 @@ namespace RealESRGAN_GUI
         {
             Interval = TimeSpan.FromMilliseconds(250),
         };
-        private bool _windowHeightFrozen;
 
         private string _languagePreference = "auto";
         private string _currentLanguage = "zh";
@@ -64,9 +63,10 @@ namespace RealESRGAN_GUI
 
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
             SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
-            LocationChanged += (_, _) => ConfigureWindowSizing();
+            // Do not clamp position while the user drags; the work-area bottom edge would trap the window at the taskbar.
+            LocationChanged += (_, _) => ConfigureWindowSizing(keepInsideWorkArea: false);
+            SizeChanged += (_, _) => ApplyResponsiveLayout();
             StateChanged += (_, _) => ConfigureWindowSizing();
-            ContentRendered += (_, _) => FreezeAdaptiveHeight();
             Activated += (_, _) =>
             {
                 ConfigureFolderWatchers();
@@ -85,6 +85,7 @@ namespace RealESRGAN_GUI
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
+            ConfigureWindowChromeForVerticalResize();
             ConfigureWindowSizing();
             ApplyThemePreference();
         }

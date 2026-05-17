@@ -9,6 +9,8 @@ param(
 
     [switch]$ForceModels,
 
+    [switch]$ForceRestore,
+
     [switch]$PruneBackendBuildDirectory,
 
     [string]$BackendGenerator,
@@ -109,6 +111,9 @@ $distArgs = @{
 }
 if (-not [string]::IsNullOrWhiteSpace($Version)) {
     $distArgs["Version"] = $Version
+}
+if ($ForceRestore) {
+    $distArgs["ForceRestore"] = $true
 }
 
 & $distScript @distArgs

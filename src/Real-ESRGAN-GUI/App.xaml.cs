@@ -43,8 +43,7 @@ namespace RealESRGAN_GUI
                 bool zh = CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
                 string message = zh ? "Real-ESRGAN GUI 已经在运行中。" : "Real-ESRGAN GUI is already running.";
                 string caption = zh ? "提示" : "Notice";
-                MessageBox.Show(message, caption,
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                ShowThemedNotice(caption, message, zh);
                 Current.Shutdown();
                 return;
             }
@@ -96,7 +95,13 @@ namespace RealESRGAN_GUI
                 ? "无法找到 Launcher.exe。"
                 : "Launcher.exe could not be found.";
             string caption = zh ? "启动失败" : "Launch Failed";
-            MessageBox.Show(message, caption, MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowThemedNotice(caption, message, zh);
+        }
+
+        private static void ShowThemedNotice(string caption, string message, bool zh)
+        {
+            var notice = new NoticeWindow(caption, message, zh ? "确定" : "OK");
+            notice.ShowDialog();
         }
 
         public static bool IsSystemDarkTheme()
@@ -149,6 +154,9 @@ namespace RealESRGAN_GUI
                 SetBrush(resources, "DangerBorderBrush", "#FF68404A");
                 SetBrush(resources, "DangerHoverBrush", "#FF3D252E");
                 SetBrush(resources, "SubtleHoverBrush", "#1AFFFFFF");
+                SetBrush(resources, "ContextMenuBorderBrush", "#FF263A43");
+                SetBrush(resources, "ContextMenuDividerBrush", "#FF213038");
+                SetBrush(resources, "ContextMenuHoverBrush", "#1F2DD4BF");
                 SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF2DD4BF");
                 SetBrush(resources, "ComboBoxSelectedFgBrush", "#FF06312D");
                 SetBrush(resources, "OnAccentBrush", "#FF06312D");
@@ -182,6 +190,9 @@ namespace RealESRGAN_GUI
                 SetBrush(resources, "DangerBorderBrush", "#FFF3C4CC");
                 SetBrush(resources, "DangerHoverBrush", "#FFFFE7EC");
                 SetBrush(resources, "SubtleHoverBrush", "#12000000");
+                SetBrush(resources, "ContextMenuBorderBrush", "#FFE2EAF0");
+                SetBrush(resources, "ContextMenuDividerBrush", "#FFECF2F5");
+                SetBrush(resources, "ContextMenuHoverBrush", "#140F766E");
                 SetBrush(resources, "ComboBoxSelectedBgBrush", "#FF0F766E");
                 SetBrush(resources, "ComboBoxSelectedFgBrush", "#FFFFFFFF");
                 SetBrush(resources, "OnAccentBrush", "#FFFFFFFF");

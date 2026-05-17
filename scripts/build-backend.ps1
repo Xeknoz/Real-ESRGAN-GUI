@@ -264,7 +264,7 @@ function Find-VisualStudioRedistFile {
                         $normalized = $_.FullName.Replace('/', '\')
                         $normalized -match "\\$TargetArchitecture\\" -and
                         $normalized -notmatch "\\onecore\\" -and
-                        ($FileName -ne "vcomp140d.dll" -or $normalized -match "\\debug_nonredist\\")
+                        $normalized -notmatch "\\debug_nonredist\\"
                     } |
                     Sort-Object FullName -Descending |
                     Select-Object -First 1
@@ -279,7 +279,7 @@ function Find-VisualStudioRedistFile {
     return $null
 }
 
-foreach ($runtimeFileName in @("vcomp140.dll", "vcomp140d.dll")) {
+foreach ($runtimeFileName in @("vcomp140.dll")) {
     $runtimeSource = Find-VisualStudioRedistFile -FileName $runtimeFileName -TargetArchitecture $Architecture
     if ($runtimeSource) {
         $runtimeTarget = Join-Path $runtimeEngineDir $runtimeFileName
@@ -289,6 +289,12 @@ foreach ($runtimeFileName in @("vcomp140.dll", "vcomp140d.dll")) {
     elseif (-not (Test-Path -LiteralPath (Join-Path $runtimeEngineDir $runtimeFileName) -PathType Leaf)) {
         throw "$runtimeFileName for $Architecture was not found. Install Visual Studio C++ build tools with OpenMP runtime or copy the matching runtime DLL into $runtimeEngineDir."
     }
+}
+
+$nonRedistributableRuntime = Join-Path $runtimeEngineDir "vcomp140d.dll"
+if (Test-Path -LiteralPath $nonRedistributableRuntime -PathType Leaf) {
+    Write-Host "Removing non-redistributable debug runtime from backend artifacts: $nonRedistributableRuntime"
+    Remove-Item -LiteralPath $nonRedistributableRuntime -Force
 }
 
 $fingerprint = Write-BackendBuildFingerprint -RepoRoot $repoRoot -Configuration $Configuration -Architecture $Architecture

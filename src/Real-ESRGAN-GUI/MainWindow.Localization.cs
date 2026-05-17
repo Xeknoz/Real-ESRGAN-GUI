@@ -2,14 +2,62 @@ namespace RealESRGAN_GUI
 {
     public partial class MainWindow
     {
+        private static readonly string[] ApplicationResourceTextKeys =
+        {
+            "ScrollBarMenuScrollHere",
+            "ScrollBarMenuTop",
+            "ScrollBarMenuBottom",
+            "ScrollBarMenuPageUp",
+            "ScrollBarMenuPageDown",
+            "ScrollBarMenuScrollUp",
+            "ScrollBarMenuScrollDown",
+            "ScrollBarMenuLeftEdge",
+            "ScrollBarMenuRightEdge",
+            "ScrollBarMenuPageLeft",
+            "ScrollBarMenuPageRight",
+            "ScrollBarMenuScrollLeft",
+            "ScrollBarMenuScrollRight",
+        };
+
         private string T(string key)
         {
-            bool en = _currentLanguage == "en";
+            return TextForLanguage(_currentLanguage, key);
+        }
+
+        private static void ApplyApplicationLanguageResources(string language)
+        {
+            if (System.Windows.Application.Current is not { } application)
+            {
+                return;
+            }
+
+            foreach (string key in ApplicationResourceTextKeys)
+            {
+                application.Resources[key] = TextForLanguage(language, key);
+            }
+        }
+
+        private static string TextForLanguage(string language, string key)
+        {
+            bool en = language == "en";
             return en ? EnglishText(key) : ChineseText(key);
         }
 
         private static string ChineseText(string key) => key switch
         {
+            "ScrollBarMenuScrollHere" => "滚动到此处",
+            "ScrollBarMenuTop" => "顶部",
+            "ScrollBarMenuBottom" => "底部",
+            "ScrollBarMenuPageUp" => "向上翻页",
+            "ScrollBarMenuPageDown" => "向下翻页",
+            "ScrollBarMenuScrollUp" => "向上滚动",
+            "ScrollBarMenuScrollDown" => "向下滚动",
+            "ScrollBarMenuLeftEdge" => "最左侧",
+            "ScrollBarMenuRightEdge" => "最右侧",
+            "ScrollBarMenuPageLeft" => "向左翻页",
+            "ScrollBarMenuPageRight" => "向右翻页",
+            "ScrollBarMenuScrollLeft" => "向左滚动",
+            "ScrollBarMenuScrollRight" => "向右滚动",
             "HeaderSubtitle" => "图片清晰化工作台",
             "ThemeLabel" => "主题",
             "ThemeSystem" => "跟随系统",
@@ -23,10 +71,11 @@ namespace RealESRGAN_GUI
             "AboutTitle" => "关于 Real-ESRGAN GUI",
             "AboutDescription" => "用于本地图片清晰化的桌面工具。",
             "VersionLabel" => "当前版本",
+            "LicenseSection" => "许可证",
+            "LicenseMissing" => "未找到许可证文件。",
             "OpenRepository" => "打开 GitHub 仓库",
             "OpenRepositoryFailed" => "无法打开 GitHub 仓库链接。",
             "Close" => "关闭",
-            "ReadySection" => "准备处理",
             "InputTitle" => "图片来源",
             "OutputTitle" => "保存位置",
             "OpenFolder" => "打开文件夹",
@@ -90,6 +139,19 @@ namespace RealESRGAN_GUI
 
         private static string EnglishText(string key) => key switch
         {
+            "ScrollBarMenuScrollHere" => "Scroll here",
+            "ScrollBarMenuTop" => "Top",
+            "ScrollBarMenuBottom" => "Bottom",
+            "ScrollBarMenuPageUp" => "Page up",
+            "ScrollBarMenuPageDown" => "Page down",
+            "ScrollBarMenuScrollUp" => "Scroll up",
+            "ScrollBarMenuScrollDown" => "Scroll down",
+            "ScrollBarMenuLeftEdge" => "Left edge",
+            "ScrollBarMenuRightEdge" => "Right edge",
+            "ScrollBarMenuPageLeft" => "Page left",
+            "ScrollBarMenuPageRight" => "Page right",
+            "ScrollBarMenuScrollLeft" => "Scroll left",
+            "ScrollBarMenuScrollRight" => "Scroll right",
             "HeaderSubtitle" => "Image upscaling workspace",
             "ThemeLabel" => "Theme",
             "ThemeSystem" => "System",
@@ -103,10 +165,11 @@ namespace RealESRGAN_GUI
             "AboutTitle" => "About Real-ESRGAN GUI",
             "AboutDescription" => "A desktop tool for local image upscaling.",
             "VersionLabel" => "Version",
+            "LicenseSection" => "Licenses",
+            "LicenseMissing" => "No license files were found.",
             "OpenRepository" => "Open GitHub repository",
             "OpenRepositoryFailed" => "Could not open the GitHub repository link.",
             "Close" => "Close",
-            "ReadySection" => "Prepare",
             "InputTitle" => "Image source",
             "OutputTitle" => "Save to",
             "OpenFolder" => "Open folder",

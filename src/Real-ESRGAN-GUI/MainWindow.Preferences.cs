@@ -200,6 +200,8 @@ namespace RealESRGAN_GUI
 
         private void ApplyLanguage(bool rebuildCombos = true)
         {
+            ApplyApplicationLanguageResources(_currentLanguage);
+
             if (rebuildCombos)
             {
                 PopulatePreferenceCombos();
@@ -210,7 +212,6 @@ namespace RealESRGAN_GUI
             ThemeLabelText.Text = T("ThemeLabel");
             LanguageLabelText.Text = T("LanguageLabel");
             AboutButton.Content = T("About");
-            ReadySectionTitleText.Text = T("ReadySection");
             InputTitleText.Text = T("InputTitle");
             OpenInputButton.Content = T("OpenFolder");
             BrowseInputButton.Content = T("BrowseInput");

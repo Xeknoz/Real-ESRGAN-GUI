@@ -11,6 +11,8 @@ param(
 
     [switch]$ForceModels,
 
+    [switch]$ForceRestore,
+
     [switch]$PruneBackendBuildDirectory,
 
     [string]$BackendGenerator,
@@ -39,7 +41,7 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $buildAllScript = Join-Path $scriptRoot "build-all.ps1"
 $versionScript = Join-Path $scriptRoot "version.ps1"
-$installerScript = Join-Path $repoRoot "installer\RealESRGAN-GUI.iss"
+$installerScript = Join-Path $repoRoot "packaging\windows\RealESRGAN-GUI.iss"
 . $versionScript
 
 function Resolve-FullPath {
@@ -143,6 +145,9 @@ if (-not $SkipDistBuild) {
     }
     if ($ForceModels) {
         $buildArgs["ForceModels"] = $true
+    }
+    if ($ForceRestore) {
+        $buildArgs["ForceRestore"] = $true
     }
     if ($PruneBackendBuildDirectory) {
         $buildArgs["PruneBackendBuildDirectory"] = $true

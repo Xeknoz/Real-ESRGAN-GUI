@@ -3,9 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Real-ESRGAN GUI"
         Icon="/window-icon.ico"
-        Width="980"
-        MinWidth="860" MinHeight="520"
-        SizeToContent="Height"
+        Width="860"
+        MinWidth="560"
+        MaxWidth="860"
+        MinHeight="520"
+        SizeToContent="Manual"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgBrush}"
         Foreground="{DynamicResource ForegroundBrush}"
@@ -26,13 +29,18 @@
                 BorderBrush="{DynamicResource HeaderDividerBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="28,22">
-            <Grid>
+            <Grid x:Name="HeaderGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition x:Name="HeaderCompactGap" Height="0"/>
+                    <RowDefinition x:Name="HeaderActionsRow" Height="0"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition x:Name="HeaderContentColumn" Width="*"/>
+                    <ColumnDefinition x:Name="HeaderActionsColumn" Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel>
+                <StackPanel x:Name="HeaderTitlePanel" Grid.Row="0" Grid.Column="0">
                     <TextBlock Text="Real-ESRGAN" Style="{StaticResource AppTitle}"/>
                     <TextBlock x:Name="HeaderSubtitleText"
                                Text="图片清晰化工作台"
@@ -40,7 +48,9 @@
                                Margin="1,4,0,0"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1"
+                <StackPanel x:Name="HeaderActionsPanel"
+                            Grid.Row="0"
+                            Grid.Column="1"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <StackPanel Width="132" Margin="0,0,12,0">
@@ -82,19 +92,19 @@
                       HorizontalScrollBarVisibility="Disabled"
                       CanContentScroll="False">
             <StackPanel Margin="28">
-                <TextBlock x:Name="ReadySectionTitleText"
-                           Text="准备处理"
-                           Style="{StaticResource SectionTitle}"
-                           Margin="0,0,0,12"/>
-
-                <Grid Margin="0,0,0,18">
+                <Grid x:Name="FoldersGrid" Margin="0,0,0,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="FoldersFirstRow" Height="Auto" />
+                        <RowDefinition x:Name="FoldersRowGap" Height="0" />
+                        <RowDefinition x:Name="FoldersSecondRow" Height="0" />
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="18"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition x:Name="FoldersFirstColumn" Width="*"/>
+                        <ColumnDefinition x:Name="FoldersColumnGap" Width="18"/>
+                        <ColumnDefinition x:Name="FoldersSecondColumn" Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                    <Border x:Name="InputCard" Grid.Row="0" Grid.Column="0" Style="{StaticResource Card}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -148,7 +158,7 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                    <Border x:Name="OutputCard" Grid.Row="0" Grid.Column="2" Style="{StaticResource Card}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -274,31 +284,35 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0">
+                            <Grid x:Name="BasicSettingsGrid" Grid.Row="0">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition x:Name="BasicSettingsFirstRow" Height="Auto"/>
+                                    <RowDefinition x:Name="BasicSettingsSecondRowGap" Height="0"/>
+                                    <RowDefinition x:Name="BasicSettingsSecondRow" Height="0"/>
+                                    <RowDefinition x:Name="BasicSettingsThirdRowGap" Height="0"/>
+                                    <RowDefinition x:Name="BasicSettingsThirdRow" Height="0"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1.15*"/>
-                                    <ColumnDefinition Width="16"/>
-                                    <ColumnDefinition Width="0.8*"/>
-                                    <ColumnDefinition Width="16"/>
-                                    <ColumnDefinition Width="1.2*"/>
+                                    <ColumnDefinition x:Name="BasicSettingsFirstColumn" Width="1.15*"/>
+                                    <ColumnDefinition x:Name="BasicSettingsFirstColumnGap" Width="16"/>
+                                    <ColumnDefinition x:Name="BasicSettingsSecondColumn" Width="0.8*"/>
+                                    <ColumnDefinition x:Name="BasicSettingsSecondColumnGap" Width="16"/>
+                                    <ColumnDefinition x:Name="BasicSettingsThirdColumn" Width="1.2*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Row="0" Grid.Column="0">
+                                <StackPanel x:Name="ModelField" Grid.Row="0" Grid.Column="0">
                                     <TextBlock x:Name="ModelLabelText"
                                                Text="图片类型"
                                                Style="{StaticResource FieldLabel}"/>
                                     <ComboBox x:Name="ModelCombo"/>
                                 </StackPanel>
-                                <StackPanel Grid.Row="0" Grid.Column="2">
+                                <StackPanel x:Name="ScaleField" Grid.Row="0" Grid.Column="2">
                                     <TextBlock x:Name="ScaleLabelText"
                                                Text="放大倍数"
                                                Style="{StaticResource FieldLabel}"/>
                                     <ComboBox x:Name="ScaleCombo"/>
                                 </StackPanel>
-                                <StackPanel Grid.Row="0" Grid.Column="4">
+                                <StackPanel x:Name="FormatField" Grid.Row="0" Grid.Column="4">
                                     <TextBlock x:Name="FormatLabelText"
                                                Text="保存格式"
                                                Style="{StaticResource FieldLabel}"/>
@@ -310,30 +324,32 @@
                                     x:Name="AdvancedPanel"
                                     Visibility="Collapsed"
                                     Margin="0,18,0,0">
-                                <Grid>
+                                <Grid x:Name="AdvancedSettingsGrid">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition x:Name="AdvancedSettingsSecondRowGap" Height="0"/>
+                                        <RowDefinition x:Name="AdvancedSettingsSecondRow" Height="0"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="16"/>
-                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition x:Name="AdvancedSettingsFirstColumn" Width="*"/>
+                                        <ColumnDefinition x:Name="AdvancedSettingsColumnGap" Width="16"/>
+                                        <ColumnDefinition x:Name="AdvancedSettingsSecondColumn" Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Row="0" Grid.Column="0">
+                                    <StackPanel x:Name="ThreadsField" Grid.Row="0" Grid.Column="0">
                                         <TextBlock x:Name="ThreadsLabelText"
                                                    Text="线程数"
                                                    Style="{StaticResource FieldLabel}"/>
                                         <ComboBox x:Name="ThreadsCombo"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="2">
+                                    <StackPanel x:Name="GpuField" Grid.Row="0" Grid.Column="2">
                                         <TextBlock x:Name="GpuLabelText"
                                                    Text="GPU 设备"
                                                    Style="{StaticResource FieldLabel}"/>
                                         <ComboBox x:Name="GpuCombo"/>
                                     </StackPanel>
-                                    <CheckBox Grid.Row="1"
+                                    <CheckBox Grid.Row="3"
                                               Grid.ColumnSpan="3"
                                               x:Name="TtaCheck"
                                               Content="质量增强（较慢）"
@@ -492,7 +508,7 @@
                             </Grid>
                         </Border>
 
-                        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,12,0,0">
+                        <StackPanel x:Name="RunButtonsPanel" Grid.Row="4" Orientation="Horizontal" Margin="0,12,0,0">
                             <Button x:Name="StartButton"
                                     Content="开始清晰化"
                                     Style="{StaticResource AccentButton}"

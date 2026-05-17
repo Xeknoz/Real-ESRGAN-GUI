@@ -10,7 +10,9 @@ param(
     [ValidateSet("x64", "x86")]
     [string]$Architecture = "x64",
 
-    [string]$OutputDir
+    [string]$OutputDir,
+
+    [switch]$ForceRestore
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,8 +58,101 @@ function Test-PathUnderRoot {
         $normalizedPath.StartsWith($normalizedRoot + "\", [System.StringComparison]::OrdinalIgnoreCase)
 }
 
+function Copy-LicenseFile {
+    param(
+        [string]$SourcePath,
+        [string]$DestinationFileName
+    )
+
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+        throw "Missing license notice: $SourcePath"
+    }
+
+    Copy-Item -LiteralPath $SourcePath -Destination (Join-Path $licenseRoot $DestinationFileName) -Force
+}
+
+function Resolve-DotNetRoot {
+    $candidates = @()
+    $dotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($dotnetCommand -and -not [string]::IsNullOrWhiteSpace($dotnetCommand.Source)) {
+        $candidates += Split-Path -Parent $dotnetCommand.Source
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:DOTNET_ROOT)) {
+        $candidates += $env:DOTNET_ROOT
+    }
+    $candidates += @(
+        (Join-Path $env:ProgramFiles "dotnet"),
+        (Join-Path ${env:ProgramFiles(x86)} "dotnet")
+    )
+
+    foreach ($candidate in $candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique) {
+        if ((Test-Path -LiteralPath (Join-Path $candidate "LICENSE.txt") -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $candidate "ThirdPartyNotices.txt") -PathType Leaf)) {
+            return $candidate
+        }
+    }
+
+    throw "Unable to locate .NET LICENSE.txt and ThirdPartyNotices.txt. Install a full .NET SDK/runtime before building a self-contained distribution."
+}
+
+function Resolve-VisualStudioRedistNotice {
+    $vswhere = Get-Command vswhere -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    if (-not $vswhere) {
+        foreach ($candidate in @(
+            (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"),
+            (Join-Path $env:ProgramFiles "Microsoft Visual Studio\Installer\vswhere.exe")
+        )) {
+            if (Test-Path -LiteralPath $candidate) {
+                $vswhere = $candidate
+                break
+            }
+        }
+    }
+
+    if ($vswhere) {
+        $vsInstallPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($vsInstallPath)) {
+            $candidate = Join-Path $vsInstallPath "Licenses\1033\Redist.txt"
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                return $candidate
+            }
+        }
+    }
+
+    throw "Unable to locate Visual Studio Redist.txt. Install Visual Studio C++ build tools before packaging the OpenMP runtime."
+}
+
+function Test-DotNetRestoreAssets {
+    param(
+        [string]$AssetsPath,
+        [string]$ProjectPath,
+        [string]$RuntimeIdentifier
+    )
+
+    if (-not (Test-Path -LiteralPath $AssetsPath -PathType Leaf)) {
+        return $false
+    }
+
+    $assetsFile = Get-Item -LiteralPath $AssetsPath
+    $projectFile = Get-Item -LiteralPath $ProjectPath
+    if ($assetsFile.LastWriteTimeUtc -lt $projectFile.LastWriteTimeUtc) {
+        return $false
+    }
+
+    try {
+        $assets = Get-Content -LiteralPath $AssetsPath -Raw | ConvertFrom-Json
+        $targets = @($assets.targets.PSObject.Properties.Name)
+    }
+    catch {
+        return $false
+    }
+
+    return $targets -contains "net9.0-windows/$RuntimeIdentifier"
+}
+
 $appVersion = Resolve-AppVersion -RepoRoot $repoRoot -VersionOverride $Version
 $runtimeIdentifier = if ($Architecture -eq "x64") { "win-x64" } else { "win-x86" }
+$restoreAssetsPath = Join-Path (Split-Path -Parent $projectPath) "obj\project.assets.json"
 $backendRuntimeDir = Get-BackendRuntimeDir -RepoRoot $repoRoot -Architecture $Architecture
 $modelArtifactDir = Join-Path (Join-Path $repoRoot "artifacts") "models"
 $defaultOutputDir = Join-Path (Join-Path "artifacts" "portable") $Architecture
@@ -68,7 +163,6 @@ $architectureMarkerPath = Join-Path $distDir "ARCHITECTURE.txt"
 $requiredPayload = @(
     @{ Root = $backendRuntimeDir; RelativePath = "realesrgan-ncnn-vulkan.exe" },
     @{ Root = $backendRuntimeDir; RelativePath = "vcomp140.dll" },
-    @{ Root = $backendRuntimeDir; RelativePath = "vcomp140d.dll" },
     @{ Root = $modelArtifactDir; RelativePath = "realesr-animevideov3-x2.bin" },
     @{ Root = $modelArtifactDir; RelativePath = "realesr-animevideov3-x2.param" },
     @{ Root = $modelArtifactDir; RelativePath = "realesr-animevideov3-x3.bin" },
@@ -115,12 +209,24 @@ $manifestContent = $manifestContent -replace '(<assemblyIdentity version=")[^"]+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($generatedManifestPath, $manifestContent, $utf8NoBom)
 
+if ($ForceRestore -or -not (Test-DotNetRestoreAssets -AssetsPath $restoreAssetsPath -ProjectPath $projectPath -RuntimeIdentifier $runtimeIdentifier)) {
+    Write-Host "Restoring .NET assets..."
+    & dotnet restore $projectPath -r $runtimeIdentifier -p:Platform=$Architecture
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet restore failed."
+    }
+}
+else {
+    Write-Host "Using existing .NET restore assets; publishing without restore."
+}
+
 $publishArgs = @(
     "publish",
     $projectPath,
     "-c", $Configuration,
     "-r", $runtimeIdentifier,
     "--self-contained", "true",
+    "--no-restore",
     "-o", $distDir,
     "-p:Platform=$Architecture",
     "-p:Version=$($appVersion.PackageVersion)",
@@ -140,8 +246,12 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[3/4] Copying launcher into portable output..."
 Copy-Item -LiteralPath $launcherExe -Destination (Join-Path $distDir "Launcher.exe") -Force
 New-Item -ItemType Directory -Force -Path (Join-Path $distDir "engine") | Out-Null
-foreach ($runtimeFileName in @("realesrgan-ncnn-vulkan.exe", "vcomp140.dll", "vcomp140d.dll")) {
+foreach ($runtimeFileName in @("realesrgan-ncnn-vulkan.exe", "vcomp140.dll")) {
     Copy-Item -LiteralPath (Join-Path $backendRuntimeDir $runtimeFileName) -Destination (Join-Path $distDir "engine\$runtimeFileName") -Force
+}
+$nonRedistributableRuntime = Join-Path $distDir "engine\vcomp140d.dll"
+if (Test-Path -LiteralPath $nonRedistributableRuntime -PathType Leaf) {
+    Remove-Item -LiteralPath $nonRedistributableRuntime -Force
 }
 New-Item -ItemType Directory -Force -Path (Join-Path $distDir "engine\models") | Out-Null
 foreach ($modelFile in Get-ChildItem -LiteralPath $modelArtifactDir -File | Where-Object { $_.Extension -in ".bin", ".param" }) {
@@ -165,10 +275,17 @@ Write-Host "[4/4] Copying license notices into portable output..."
 New-Item -ItemType Directory -Force -Path $licenseRoot | Out-Null
 Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $distDir "LICENSE.txt") -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "THIRD_PARTY_NOTICES.md") -Destination (Join-Path $distDir "THIRD_PARTY_NOTICES.md") -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot "licenses\Real-ESRGAN-LICENSE.txt") -Destination (Join-Path $licenseRoot "Real-ESRGAN-LICENSE.txt") -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot "third_party\ncnn_src\LICENSE") -Destination (Join-Path $licenseRoot "Real-ESRGAN-ncnn-vulkan-Enhanced-LICENSE.txt") -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\LICENSE.txt") -Destination (Join-Path $licenseRoot "ncnn-LICENSE.txt") -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot "third_party\ncnn_src\src\libwebp\COPYING") -Destination (Join-Path $licenseRoot "libwebp-COPYING.txt") -Force
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "licenses\Real-ESRGAN-LICENSE.txt") -DestinationFileName "Real-ESRGAN-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\LICENSE") -DestinationFileName "Real-ESRGAN-ncnn-vulkan-Enhanced-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\LICENSE.txt") -DestinationFileName "ncnn-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\glslang\LICENSE.txt") -DestinationFileName "glslang-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\libwebp\COPYING") -DestinationFileName "libwebp-COPYING.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\python\pybind11\LICENSE") -DestinationFileName "pybind11-LICENSE.txt"
+
+$dotNetRoot = Resolve-DotNetRoot
+Copy-LicenseFile -SourcePath (Join-Path $dotNetRoot "LICENSE.txt") -DestinationFileName "Microsoft-dotnet-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $dotNetRoot "ThirdPartyNotices.txt") -DestinationFileName "Microsoft-dotnet-ThirdPartyNotices.txt"
+Copy-LicenseFile -SourcePath (Resolve-VisualStudioRedistNotice) -DestinationFileName "Microsoft-Visual-Cpp-Redistributable-Redist.txt"
 
 Write-Host ""
 Write-Host "Build complete: $distDir"

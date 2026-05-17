@@ -67,23 +67,19 @@ Useful upstream projects:
 <details>
 <summary>Build and repository notes</summary>
 
-Build a complete distributable folder with:
+Build release artifacts with one command:
 
 ```powershell
 git submodule update --init --recursive
-.\scripts\build-all.ps1 -Clean
+.\scripts\build-release.ps1
 ```
 
-This script builds the backend when needed, prepares the shared NCNN models, builds the native launcher, publishes the WPF app, and assembles a ready-to-ship folder under `artifacts/portable/<arch>/`.
+You can also double-click `scripts/build-release.cmd` on Windows. The release script builds x64 and x86 portable folders under `artifacts/portable/<arch>/`, then builds unsigned installers under `artifacts/installers/`, and prunes backend CMake build directories after successful backend builds.
+Use `.\scripts\build-release.ps1 -Architecture x64` for a single architecture, or `.\scripts\build-release.ps1 -SkipInstaller` when you only need portable folders.
+
+`build-all.ps1` builds one portable folder at a time. It builds the backend when needed, prepares the shared NCNN models, builds the native launcher, publishes the WPF app, and assembles a ready-to-ship folder under `artifacts/portable/<arch>/`.
 The backend is skipped automatically when the generated `artifacts/backend/<arch>/engine/realesrgan-ncnn-vulkan.exe` already matches the backend source. Use `.\scripts\build-all.ps1 -Clean -ForceBackend` when you intentionally need a full backend rebuild.
 Model preparation extracts only the required `*.bin` and `*.param` files from the official Real-ESRGAN NCNN release archive into `artifacts/models/`; it does not fully extract the archive and does not reuse bundled backend binaries, DLLs, videos, or sample inputs. Use `.\scripts\build-models.ps1 -Force` if you need to refresh the local model cache.
-
-Build a local installer with:
-
-```powershell
-.\scripts\build-installer.ps1 -Clean
-.\scripts\build-installer.ps1 -Clean -Architecture x86
-```
 
 Repository layout:
 
@@ -98,10 +94,13 @@ scripts/
   backend-state.ps1     Backend build fingerprint helpers
   build-dist.ps1        Publish the GUI into artifacts/portable/<arch>
   build-installer.ps1   Build a local Windows installer
+  build-release.ps1     Build x64/x86 portable folders and installers
+  build-release.cmd     Double-click entry for build-release.ps1
   version.ps1           Resolve app versions for builds and releases
   Start_Real-ESRGAN.ps1 PowerShell CLI wrapper
 artifacts/
   backend/<arch>/engine Generated backend executable and runtime DLLs
+  installers/           Unsigned Windows installers
   models/                Generated architecture-independent NCNN models
   portable/<arch>/      Ready-to-ship app folder
 third_party/
