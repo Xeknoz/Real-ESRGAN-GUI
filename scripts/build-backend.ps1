@@ -5,7 +5,12 @@ param(
 
     [switch]$Clean,
 
-    [string]$Generator
+    [string]$Generator,
+
+    [ValidateSet("x64", "x86")]
+    [string]$Architecture = "x64",
+
+    [switch]$PruneBuildDirectory
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,11 +19,15 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 
 $srcDir = Join-Path $repoRoot "third_party\ncnn_src\src"
-$buildDir = Join-Path $srcDir "build"
-$runtimeEngineDir = Join-Path $repoRoot "runtime\engine"
-$exeTarget = Join-Path $runtimeEngineDir "realesrgan-ncnn-vulkan.exe"
+$buildDir = if ($Architecture -eq "x64") {
+    Join-Path $srcDir "build"
+} else {
+    Join-Path $srcDir "build-$Architecture"
+}
 $backendStateScript = Join-Path $scriptRoot "backend-state.ps1"
 . $backendStateScript
+$runtimeEngineDir = Get-BackendRuntimeDir -RepoRoot $repoRoot -Architecture $Architecture
+$exeTarget = Join-Path $runtimeEngineDir "realesrgan-ncnn-vulkan.exe"
 
 # Verify cmake is available
 $cmake = Get-Command cmake -ErrorAction SilentlyContinue
@@ -81,13 +90,49 @@ function Clear-BuildDirectory([string]$Reason) {
         return
     }
 
+    Assert-SafeBuildDirectory
     Write-Host $Reason
     Remove-Item -LiteralPath $buildDir -Recurse -Force
 }
 
+function Assert-SafeBuildDirectory {
+    $resolvedSrcDir = [System.IO.Path]::GetFullPath($srcDir).TrimEnd('\')
+    $resolvedBuildDir = [System.IO.Path]::GetFullPath($buildDir).TrimEnd('\')
+    $expectedLeafName = if ($Architecture -eq "x64") { "build" } else { "build-$Architecture" }
+    $actualLeafName = Split-Path -Leaf $resolvedBuildDir
+
+    if ($actualLeafName -ne $expectedLeafName -or
+        -not $resolvedBuildDir.StartsWith($resolvedSrcDir + "\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to remove unexpected backend build directory: $resolvedBuildDir"
+    }
+}
+
 $generatorName = Resolve-VisualStudioGenerator
-$generatorPlatform = "x64"
+$generatorPlatform = if ($Architecture -eq "x64") { "x64" } else { "Win32" }
 Write-Host "Using CMake generator: $generatorName ($generatorPlatform)"
+
+function Resolve-VulkanLibraryPath {
+    param([ValidateSet("x64", "x86")] [string]$TargetArchitecture)
+
+    if ([string]::IsNullOrWhiteSpace($env:VULKAN_SDK)) {
+        throw "VULKAN_SDK is not set. Install Vulkan SDK or set VULKAN_SDK before building the backend."
+    }
+
+    $relativeLibraryPath = if ($TargetArchitecture -eq "x64") {
+        "Lib\vulkan-1.lib"
+    } else {
+        "Lib32\vulkan-1.lib"
+    }
+    $libraryPath = Join-Path $env:VULKAN_SDK $relativeLibraryPath
+
+    if (-not (Test-Path -LiteralPath $libraryPath -PathType Leaf)) {
+        throw "Vulkan import library for $TargetArchitecture was not found: $libraryPath. Install a Vulkan SDK that includes $relativeLibraryPath before building this architecture."
+    }
+
+    return $libraryPath
+}
+
+$vulkanLibraryPath = Resolve-VulkanLibraryPath -TargetArchitecture $Architecture
 
 if ($Clean) {
     Clear-BuildDirectory "Cleaning build directory..."
@@ -122,6 +167,14 @@ if (Test-Path -LiteralPath $cacheFile) {
         }
     }
 
+    if (-not $resetReason -and $cacheContent -match 'Vulkan_LIBRARY:FILEPATH=(.+)') {
+        $cachedVulkanLibrary = $Matches[1].Trim().Replace('/', '\')
+        $expectedVulkanLibrary = $vulkanLibraryPath.Replace('/', '\')
+        if (-not $cachedVulkanLibrary.Equals($expectedVulkanLibrary, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $resetReason = "CMake cache uses Vulkan library '$cachedVulkanLibrary', expected '$expectedVulkanLibrary'."
+        }
+    }
+
     if ($resetReason) {
         Clear-BuildDirectory $resetReason
         New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
@@ -130,12 +183,17 @@ if (Test-Path -LiteralPath $cacheFile) {
 
 if (-not (Test-Path -LiteralPath $cacheFile)) {
     Write-Host "Configuring CMake..."
+    $cmakeConfigureArgs = @(
+        "-S", $srcDir,
+        "-B", $buildDir,
+        "-G", $generatorName,
+        "-A", $generatorPlatform,
+        "-DCMAKE_POLICY_VERSION_MINIMUM=3.10"
+    )
+    $cmakeConfigureArgs += "-DVulkan_LIBRARY=$vulkanLibraryPath"
+
     & cmake `
-        -S $srcDir `
-        -B $buildDir `
-        -G $generatorName `
-        -A $generatorPlatform `
-        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+        @cmakeConfigureArgs
     if ($LASTEXITCODE -ne 0) {
         throw "CMake configuration failed."
     }
@@ -172,9 +230,71 @@ function Find-BackendExecutable {
 }
 
 $exeSource = Find-BackendExecutable
+New-Item -ItemType Directory -Force -Path $runtimeEngineDir | Out-Null
 Write-Host "Copying $exeSource -> $exeTarget"
 Copy-Item -LiteralPath $exeSource -Destination $exeTarget -Force
 
-$fingerprint = Write-BackendBuildFingerprint -RepoRoot $repoRoot -Configuration $Configuration
+function Find-VisualStudioRedistFile {
+    param(
+        [string]$FileName,
+        [ValidateSet("x64", "x86")]
+        [string]$TargetArchitecture
+    )
+
+    $vswhere = Get-Command vswhere -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    if (-not $vswhere) {
+        foreach ($candidate in @(
+            (Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"),
+            (Join-Path $env:ProgramFiles "Microsoft Visual Studio\Installer\vswhere.exe")
+        )) {
+            if (Test-Path -LiteralPath $candidate) {
+                $vswhere = $candidate
+                break
+            }
+        }
+    }
+
+    if ($vswhere) {
+        $vsInstallPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($vsInstallPath)) {
+            $redistRoot = Join-Path $vsInstallPath "VC\Redist\MSVC"
+            if (Test-Path -LiteralPath $redistRoot) {
+                $candidate = Get-ChildItem -LiteralPath $redistRoot -Recurse -File -Filter $FileName -ErrorAction SilentlyContinue |
+                    Where-Object {
+                        $normalized = $_.FullName.Replace('/', '\')
+                        $normalized -match "\\$TargetArchitecture\\" -and
+                        $normalized -notmatch "\\onecore\\" -and
+                        ($FileName -ne "vcomp140d.dll" -or $normalized -match "\\debug_nonredist\\")
+                    } |
+                    Sort-Object FullName -Descending |
+                    Select-Object -First 1
+
+                if ($candidate) {
+                    return $candidate.FullName
+                }
+            }
+        }
+    }
+
+    return $null
+}
+
+foreach ($runtimeFileName in @("vcomp140.dll", "vcomp140d.dll")) {
+    $runtimeSource = Find-VisualStudioRedistFile -FileName $runtimeFileName -TargetArchitecture $Architecture
+    if ($runtimeSource) {
+        $runtimeTarget = Join-Path $runtimeEngineDir $runtimeFileName
+        Write-Host "Copying $runtimeSource -> $runtimeTarget"
+        Copy-Item -LiteralPath $runtimeSource -Destination $runtimeTarget -Force
+    }
+    elseif (-not (Test-Path -LiteralPath (Join-Path $runtimeEngineDir $runtimeFileName) -PathType Leaf)) {
+        throw "$runtimeFileName for $Architecture was not found. Install Visual Studio C++ build tools with OpenMP runtime or copy the matching runtime DLL into $runtimeEngineDir."
+    }
+}
+
+$fingerprint = Write-BackendBuildFingerprint -RepoRoot $repoRoot -Configuration $Configuration -Architecture $Architecture
 Write-Host "Backend build fingerprint: $($fingerprint.sourceFingerprint)"
 Write-Host "Backend build complete: $exeTarget"
+
+if ($PruneBuildDirectory) {
+    Clear-BuildDirectory "Pruning backend build directory..."
+}

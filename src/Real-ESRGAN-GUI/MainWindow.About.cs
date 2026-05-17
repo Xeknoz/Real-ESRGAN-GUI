@@ -30,24 +30,15 @@ namespace RealESRGAN_GUI
 
         private static string GetAppVersion()
         {
-            string versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION.txt");
-            try
-            {
-                if (File.Exists(versionFilePath))
-                {
-                    string? versionFromFile = File
-                        .ReadLines(versionFilePath)
-                        .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))
-                        ?.Trim();
+            string version = GetVersionNumber();
+            return IsDevChannel() ? $"{version} dev" : version;
+        }
 
-                    if (!string.IsNullOrWhiteSpace(versionFromFile))
-                        return versionFromFile;
-                }
-            }
-            catch
-            {
-                // Fall back to assembly metadata if the portable version file cannot be read.
-            }
+        private static string GetVersionNumber()
+        {
+            string? versionFromFile = ReadFirstNonBlankAppFileLine("VERSION.txt");
+            if (!string.IsNullOrWhiteSpace(versionFromFile))
+                return versionFromFile;
 
             string? informationalVersion = Assembly
                 .GetExecutingAssembly()
@@ -58,6 +49,31 @@ namespace RealESRGAN_GUI
                 return informationalVersion.Split('+', 2)[0];
 
             return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
+        }
+
+        private static bool IsDevChannel()
+        {
+            string? channel = ReadFirstNonBlankAppFileLine("CHANNEL.txt");
+            return string.Equals(channel, "dev", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? ReadFirstNonBlankAppFileLine(string fileName)
+        {
+            string filePath = Path.Combine(AppContext.BaseDirectory, fileName);
+            try
+            {
+                if (!File.Exists(filePath))
+                    return null;
+
+                return File
+                    .ReadLines(filePath)
+                    .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))
+                    ?.Trim();
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

@@ -7,19 +7,7 @@ using System.Threading.Tasks;
 
 namespace RealESRGAN_GUI.Services
 {
-    internal enum SampleCopyFailureKind
-    {
-        None,
-        MissingSample,
-        CopyFailed,
-    }
-
     internal sealed record RunPreflightResult(bool InputExists, bool OutputExists, bool InputReadable, bool HasInputImages);
-
-    internal sealed record SampleCopyResult(bool Success, SampleCopyFailureKind FailureKind, string ErrorMessage)
-    {
-        public static SampleCopyResult Ok { get; } = new(true, SampleCopyFailureKind.None, string.Empty);
-    }
 
     internal static class FolderStateService
     {
@@ -77,23 +65,6 @@ namespace RealESRGAN_GUI.Services
             catch
             {
                 return -1;
-            }
-        }
-
-        public static SampleCopyResult CopySample(string appDir, string targetDir)
-        {
-            string src = Path.Combine(appDir, "input.jpg");
-            if (!File.Exists(src))
-                return new SampleCopyResult(false, SampleCopyFailureKind.MissingSample, string.Empty);
-
-            try
-            {
-                File.Copy(src, Path.Combine(targetDir, "input.jpg"), overwrite: true);
-                return SampleCopyResult.Ok;
-            }
-            catch (Exception ex)
-            {
-                return new SampleCopyResult(false, SampleCopyFailureKind.CopyFailed, ex.Message);
             }
         }
 

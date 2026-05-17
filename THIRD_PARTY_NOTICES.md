@@ -4,9 +4,18 @@ The original GUI, launcher, scripts, and repository-specific documentation in th
 
 This repository also includes or distributes third-party components under their own licenses. Their original notices remain in the source tree and are not replaced by this project's MIT License.
 
-## Bundled backend and model payload
+## Real-ESRGAN upstream source and model provenance
 
-- `third_party/ncnn_src/` and the runtime backend payload under `runtime/engine/`
+- Source: https://github.com/xinntao/Real-ESRGAN
+- Model package: `scripts/build-models.ps1` downloads the official Real-ESRGAN NCNN release archive and extracts only the required `models/*.bin` and `models/*.param` entries
+- Generated model payload: `artifacts/models/`, prepared from the official Real-ESRGAN NCNN release archive and copied into release portable builds
+- License: BSD 3-Clause
+- Copyright (c) 2021, Xintao Wang
+- Source notice: `licenses/Real-ESRGAN-LICENSE.txt`
+
+## Bundled NCNN/Vulkan backend payload
+
+- `third_party/ncnn_src/` and generated backend executable/DLL payloads under `artifacts/backend/<arch>/engine/`
 - License: MIT
 - Copyright (c) 2021 Xintao Wang
 - Portions based on `realsr-ncnn-vulkan`

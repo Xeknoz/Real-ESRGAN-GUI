@@ -38,6 +38,10 @@
 .PARAMETER NoWait
     Skip pre-start pause and run immediately.
 
+.PARAMETER Architecture
+    Backend artifact architecture to use from the generated artifacts folder.
+    Defaults to x64 on 64-bit Windows, otherwise x86.
+
 .EXAMPLE
     .\scripts\Start_Real-ESRGAN.ps1
     Run with defaults, interactive model selection
@@ -74,7 +78,10 @@ param(
 
     [switch]$OpenOutput = $true,
 
-    [switch]$NoWait
+    [switch]$NoWait,
+
+    [ValidateSet("x64", "x86")]
+    [string]$Architecture = $(if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" })
 )
 
 # --- Init ---
@@ -84,6 +91,8 @@ if ([string]::IsNullOrWhiteSpace($scriptDir)) {
     $scriptDir = Get-Location
 }
 $repoRoot = Split-Path -Parent $scriptDir
+$backendStateScript = Join-Path $scriptDir "backend-state.ps1"
+. $backendStateScript
 
 # Default paths (using %USERPROFILE% for cross-machine compatibility)
 if ([string]::IsNullOrWhiteSpace($InputDir)) {
@@ -98,9 +107,10 @@ $InputDir = [System.IO.Path]::GetFullPath($InputDir)
 $OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 
 # --- Check executable ---
-$exePath = Join-Path $repoRoot "runtime\engine\realesrgan-ncnn-vulkan.exe"
+$engineDir = Get-BackendRuntimeDir -RepoRoot $repoRoot -Architecture $Architecture
+$exePath = Join-Path $engineDir "realesrgan-ncnn-vulkan.exe"
 if (-not (Test-Path $exePath)) {
-    Write-Host "[ERROR] realesrgan-ncnn-vulkan.exe not found. Please make sure the engine folder exists." -ForegroundColor Red
+    Write-Host "[ERROR] realesrgan-ncnn-vulkan.exe not found for $Architecture. Run scripts\build-backend.ps1 -Architecture $Architecture first." -ForegroundColor Red
     exit 1
 }
 
@@ -158,21 +168,8 @@ if ($inputFiles.Count -eq 0) {
     Write-Host "[WARNING] No supported image files found in input directory." -ForegroundColor Yellow
     Write-Host "          Supported: png, jpg, jpeg, bmp, webp, tif, tiff" -ForegroundColor Yellow
     Write-Host "          Input dir: $InputDir" -ForegroundColor Yellow
-    Write-Host ""
-    $createSample = Read-Host "Copy sample image (input.jpg) for testing? [Y/n]"
-    if ($createSample -eq "" -or $createSample -match "^[Yy]") {
-        $samplePath = Join-Path $repoRoot "runtime\input.jpg"
-        if (Test-Path $samplePath) {
-            Copy-Item $samplePath $InputDir -Force
-            Write-Host "[INFO] Copied sample image to input directory." -ForegroundColor Green
-            [array]$inputFiles = Get-ChildItem -Path "$InputDir\*" -Include $supportedExt -File
-        } else {
-            Write-Host "[ERROR] Sample image input.jpg not found." -ForegroundColor Red
-            exit 1
-        }
-    } else {
-        exit 0
-    }
+    Write-Host "          Add images to the input directory and run again." -ForegroundColor Yellow
+    exit 1
 }
 
 Write-Host ""
@@ -181,6 +178,7 @@ Write-Host "  Input dir : $InputDir"
 Write-Host "  Output dir: $OutputDir"
 Write-Host "  Model     : $Model"
 Write-Host "  Scale     : $Scale"
+Write-Host "  Arch      : $Architecture"
 Write-Host "  Files     : $($inputFiles.Count)"
 Write-Host ""
 

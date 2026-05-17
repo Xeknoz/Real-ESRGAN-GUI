@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RootNamespace>RealESRGAN_GUI</RootNamespace>
+    <AssemblyName>Real-ESRGAN GUI</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64;x86</Platforms>
+    <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'x64')">win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- Runtime window/taskbar icon only. Keep PE application icon ownership with Launcher.exe. -->
+  <ItemGroup>
+    <Resource Include="..\Launcher\app.ico">
+      <Link>window-icon.ico</Link>
+    </Resource>
+  </ItemGroup>
+
+  <!-- Backend EXE, runtime DLLs, and models are generated artifacts copied by build-dist.ps1. -->
+</Project>

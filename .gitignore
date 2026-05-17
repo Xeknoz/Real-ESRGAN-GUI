@@ -8,29 +8,26 @@
 *.tar
 *.tar.gz
 
-# Runtime payload copied into published builds.
-# Keep the distributable payload versioned so CI can build from a clean checkout.
-!runtime/
-!runtime/engine/
-!runtime/engine/realesrgan-ncnn-vulkan.exe
-!runtime/engine/vcomp140.dll
-!runtime/engine/vcomp140d.dll
-!runtime/engine/models/
-!runtime/engine/models/*.bin
-!runtime/engine/models/*.param
+# Generated runtime payloads are build outputs, not repository inputs.
+runtime/
 
 # Local sample/input/output folders created during manual runs
 input/
 output/
 
 # Build and publish output
+# Current packaged outputs live under artifacts/.
+artifacts/
+.cache/
+# Legacy root publish output; kept ignored for old local runs.
 dist/
 RealESRGAN-GUI-App/
-src/RealESRGAN-GUI/bin/
-src/RealESRGAN-GUI/obj/
+src/Real-ESRGAN-GUI/bin/
+src/Real-ESRGAN-GUI/obj/
 src/Launcher/bin/
 src/Launcher/obj/
 third_party/ncnn_src/src/build/
+third_party/ncnn_src/src/build-*/
 
 # Native / .NET / Visual Studio transient files
 *.obj

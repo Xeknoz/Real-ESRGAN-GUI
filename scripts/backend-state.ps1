@@ -1,13 +1,31 @@
 function Get-BackendRuntimeExePath {
-    param([string]$RepoRoot)
+    param(
+        [string]$RepoRoot,
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
+    )
 
-    return (Join-Path $RepoRoot "runtime\engine\realesrgan-ncnn-vulkan.exe")
+    return (Join-Path (Get-BackendRuntimeDir -RepoRoot $RepoRoot -Architecture $Architecture) "realesrgan-ncnn-vulkan.exe")
+}
+
+function Get-BackendRuntimeDir {
+    param(
+        [string]$RepoRoot,
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
+    )
+
+    return (Join-Path (Join-Path (Join-Path $RepoRoot "artifacts\backend") $Architecture) "engine")
 }
 
 function Get-BackendFingerprintPath {
-    param([string]$RepoRoot)
+    param(
+        [string]$RepoRoot,
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
+    )
 
-    return (Join-Path $RepoRoot "runtime\engine\realesrgan-ncnn-vulkan.buildfingerprint.json")
+    return (Join-Path (Get-BackendRuntimeDir -RepoRoot $RepoRoot -Architecture $Architecture) "realesrgan-ncnn-vulkan.buildfingerprint.json")
 }
 
 function Get-Sha256ForText {
@@ -51,12 +69,13 @@ function Get-BackendSourceFingerprint {
     param(
         [string]$RepoRoot,
         [ValidateSet("Debug", "Release")]
-        [string]$Configuration = "Release"
+        [string]$Configuration = "Release",
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
     )
 
     $backendRoot = Join-Path $RepoRoot "third_party\ncnn_src"
     $srcRoot = Join-Path $backendRoot "src"
-    $buildRoot = Join-Path $srcRoot "build"
 
     if (-not (Test-Path -LiteralPath $srcRoot)) {
         throw "Backend source directory was not found: $srcRoot"
@@ -65,6 +84,7 @@ function Get-BackendSourceFingerprint {
     $parts = New-Object System.Collections.Generic.List[string]
     $parts.Add("schema=1")
     $parts.Add("configuration=$Configuration")
+    $parts.Add("architecture=$Architecture")
 
     $srcTree = Invoke-BackendGit -BackendRoot $backendRoot -Arguments @("rev-parse", "HEAD:src")
     if ($srcTree) {
@@ -80,7 +100,8 @@ function Get-BackendSourceFingerprint {
 
         foreach ($relativePath in @($untracked | Sort-Object)) {
             $normalized = $relativePath.Replace('\', '/')
-            if ($normalized.StartsWith("src/build/", [StringComparison]::OrdinalIgnoreCase)) {
+            if ($normalized.StartsWith("src/build/", [StringComparison]::OrdinalIgnoreCase) -or
+                $normalized -match '^src/build-[^/]+/') {
                 continue
             }
 
@@ -95,7 +116,11 @@ function Get-BackendSourceFingerprint {
 
     $parts.Add("mode=filesystem")
     $files = Get-ChildItem -LiteralPath $srcRoot -Recurse -File |
-        Where-Object { -not $_.FullName.StartsWith($buildRoot, [StringComparison]::OrdinalIgnoreCase) } |
+        Where-Object {
+            $relativePath = $_.FullName.Substring($srcRoot.Length).TrimStart('\', '/').Replace('\', '/')
+            -not ($relativePath.StartsWith("build/", [StringComparison]::OrdinalIgnoreCase) -or
+                $relativePath -match '^build-[^/]+/')
+        } |
         Sort-Object FullName
 
     foreach ($file in $files) {
@@ -110,10 +135,12 @@ function Get-BackendBuildState {
     param(
         [string]$RepoRoot,
         [ValidateSet("Debug", "Release")]
-        [string]$Configuration = "Release"
+        [string]$Configuration = "Release",
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
     )
 
-    $exePath = Get-BackendRuntimeExePath -RepoRoot $RepoRoot
+    $exePath = Get-BackendRuntimeExePath -RepoRoot $RepoRoot -Architecture $Architecture
     $exeHash = if (Test-Path -LiteralPath $exePath -PathType Leaf) {
         Get-Sha256ForFile $exePath
     } else {
@@ -123,7 +150,8 @@ function Get-BackendBuildState {
     return [ordered]@{
         schema = 1
         configuration = $Configuration
-        sourceFingerprint = Get-BackendSourceFingerprint -RepoRoot $RepoRoot -Configuration $Configuration
+        architecture = $Architecture
+        sourceFingerprint = Get-BackendSourceFingerprint -RepoRoot $RepoRoot -Configuration $Configuration -Architecture $Architecture
         executableSha256 = $exeHash
     }
 }
@@ -132,15 +160,17 @@ function Get-BackendBuildStatus {
     param(
         [string]$RepoRoot,
         [ValidateSet("Debug", "Release")]
-        [string]$Configuration = "Release"
+        [string]$Configuration = "Release",
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
     )
 
-    $exePath = Get-BackendRuntimeExePath -RepoRoot $RepoRoot
+    $exePath = Get-BackendRuntimeExePath -RepoRoot $RepoRoot -Architecture $Architecture
     if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) {
-        return [pscustomobject]@{ IsCurrent = $false; Reason = "runtime backend executable is missing" }
+        return [pscustomobject]@{ IsCurrent = $false; Reason = "$Architecture runtime backend executable is missing" }
     }
 
-    $fingerprintPath = Get-BackendFingerprintPath -RepoRoot $RepoRoot
+    $fingerprintPath = Get-BackendFingerprintPath -RepoRoot $RepoRoot -Architecture $Architecture
     if (-not (Test-Path -LiteralPath $fingerprintPath -PathType Leaf)) {
         return [pscustomobject]@{ IsCurrent = $false; Reason = "backend build fingerprint is missing" }
     }
@@ -156,7 +186,11 @@ function Get-BackendBuildStatus {
         return [pscustomobject]@{ IsCurrent = $false; Reason = "backend configuration changed" }
     }
 
-    $state = Get-BackendBuildState -RepoRoot $RepoRoot -Configuration $Configuration
+    if ($record.architecture -ne $Architecture) {
+        return [pscustomobject]@{ IsCurrent = $false; Reason = "backend architecture changed" }
+    }
+
+    $state = Get-BackendBuildState -RepoRoot $RepoRoot -Configuration $Configuration -Architecture $Architecture
     if ($record.sourceFingerprint -ne $state.sourceFingerprint) {
         return [pscustomobject]@{ IsCurrent = $false; Reason = "backend source changed" }
     }
@@ -172,14 +206,16 @@ function Write-BackendBuildFingerprint {
     param(
         [string]$RepoRoot,
         [ValidateSet("Debug", "Release")]
-        [string]$Configuration = "Release"
+        [string]$Configuration = "Release",
+        [ValidateSet("x64", "x86")]
+        [string]$Architecture = "x64"
     )
 
-    $fingerprintPath = Get-BackendFingerprintPath -RepoRoot $RepoRoot
+    $fingerprintPath = Get-BackendFingerprintPath -RepoRoot $RepoRoot -Architecture $Architecture
     $fingerprintDir = Split-Path -Parent $fingerprintPath
     New-Item -ItemType Directory -Force -Path $fingerprintDir | Out-Null
 
-    $state = Get-BackendBuildState -RepoRoot $RepoRoot -Configuration $Configuration
+    $state = Get-BackendBuildState -RepoRoot $RepoRoot -Configuration $Configuration -Architecture $Architecture
     $json = ($state | ConvertTo-Json -Depth 4) + [Environment]::NewLine
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($fingerprintPath, $json, $utf8NoBom)

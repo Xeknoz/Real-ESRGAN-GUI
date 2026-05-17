@@ -28,18 +28,9 @@ function ConvertTo-AppVersionParts {
         $normalized = $normalized.Substring(1)
     }
 
-    $pattern = '^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:\.(?<revision>\d+))?(?<suffix>-[0-9A-Za-z][0-9A-Za-z.-]*)?$'
+    $pattern = '^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:\.(?<revision>0|[1-9]\d*))?$'
     if ($normalized -notmatch $pattern) {
-        throw "Invalid version '$Value'. Use SemVer like 1.2.3 or v1.2.3."
-    }
-
-    $suffix = $Matches["suffix"]
-    if ($suffix) {
-        foreach ($part in $suffix.Substring(1).Split('.')) {
-            if ([string]::IsNullOrWhiteSpace($part)) {
-                throw "Invalid version '$Value'. Pre-release identifiers cannot be empty."
-            }
-        }
+        throw "Invalid version '$Value'. Use numeric versions like 1.2.3, 1.2.3.4, or v1.2.3."
     }
 
     $revision = $null
@@ -60,7 +51,8 @@ function ConvertTo-AppVersionParts {
     }
 
     return [pscustomobject]@{
-        SemVer = "$major.$minor.$patch$suffix"
+        BaseVersion = "$major.$minor.$patch"
+        InputVersion = if ($null -ne $revision) { "$major.$minor.$patch.$revision" } else { "$major.$minor.$patch" }
         Major = $major
         Minor = $minor
         Patch = $patch
@@ -125,20 +117,6 @@ function Get-ShortCommitSha {
     return "nogit"
 }
 
-function Join-DevVersion {
-    param(
-        [string]$BaseSemVer,
-        [int]$CommitCount,
-        [string]$ShortSha
-    )
-
-    if ($BaseSemVer.Contains("-")) {
-        return "$BaseSemVer.dev.$CommitCount.g$ShortSha"
-    }
-
-    return "$BaseSemVer-dev.$CommitCount.g$ShortSha"
-}
-
 function Resolve-AppVersion {
     param(
         [string]$RepoRoot,
@@ -165,6 +143,7 @@ function Resolve-AppVersion {
 
     $versionParts = ConvertTo-AppVersionParts -Value $rawVersion
     $isReleaseVersion = $source -eq "override" -or $source -eq "tag"
+    $channel = if ($isReleaseVersion) { "release" } else { "dev" }
     $commitCount = Get-CommitCount -RepoRoot $RepoRoot
     $shortSha = Get-ShortCommitSha -RepoRoot $RepoRoot
     $revision = if ($isReleaseVersion) {
@@ -175,17 +154,25 @@ function Resolve-AppVersion {
     }
 
     $numericVersion = "$($versionParts.Major).$($versionParts.Minor).$($versionParts.Patch).$revision"
-    $informationalVersion = if ($isReleaseVersion) {
-        $versionParts.SemVer
+    $versionNumber = if ($isReleaseVersion -and $null -eq $versionParts.Revision) {
+        $versionParts.BaseVersion
     }
     else {
-        Join-DevVersion -BaseSemVer $versionParts.SemVer -CommitCount $commitCount -ShortSha $shortSha
+        $numericVersion
     }
+    $displayVersion = if ($channel -eq "dev") { "$versionNumber dev" } else { $versionNumber }
 
     return [pscustomobject]@{
         Source = $source
-        PackageVersion = $informationalVersion
-        InformationalVersion = $informationalVersion
+        Channel = $channel
+        VersionNumber = $versionNumber
+        DisplayVersion = $displayVersion
+        NumericVersion = $numericVersion
+        BaseVersion = $versionParts.BaseVersion
+        CommitCount = $commitCount
+        ShortCommitSha = $shortSha
+        PackageVersion = $versionNumber
+        InformationalVersion = $versionNumber
         AssemblyVersion = $numericVersion
         FileVersion = $numericVersion
     }

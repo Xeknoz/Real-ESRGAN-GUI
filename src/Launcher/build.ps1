@@ -6,6 +6,11 @@ param(
 
     [string]$ProductVersion,
 
+    [string]$DisplayVersion,
+
+    [ValidateSet("x64", "x86")]
+    [string]$Architecture = "x64",
+
     [switch]$Force
 )
 
@@ -55,6 +60,7 @@ function Get-Sha256ForFile([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+$appVersion = $null
 if ([string]::IsNullOrWhiteSpace($FileVersion) -or [string]::IsNullOrWhiteSpace($ProductVersion)) {
     $versionScript = Join-Path $repoRoot "scripts\version.ps1"
     if (-not (Test-Path -LiteralPath $versionScript)) {
@@ -73,14 +79,23 @@ if ([string]::IsNullOrWhiteSpace($FileVersion) -or [string]::IsNullOrWhiteSpace(
     }
 }
 
+if ([string]::IsNullOrWhiteSpace($DisplayVersion)) {
+    if ($null -ne $appVersion) {
+        $DisplayVersion = $appVersion.DisplayVersion
+    }
+    else {
+        $DisplayVersion = $ProductVersion
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $binDir, $objDir | Out-Null
 $numericVersion = ConvertTo-RcNumericVersion $FileVersion
 $fileVersionText = ConvertTo-RcString $FileVersion
 $productVersionText = ConvertTo-RcString $ProductVersion
-$displayVersion = if ($ProductVersion.StartsWith("v", [StringComparison]::OrdinalIgnoreCase)) {
-    $ProductVersion
+$displayVersion = if ($DisplayVersion.StartsWith("v", [StringComparison]::OrdinalIgnoreCase)) {
+    $DisplayVersion
 } else {
-    "v$ProductVersion"
+    "v$DisplayVersion"
 }
 $generatedHeaderContent = @"
 #pragma once
@@ -125,6 +140,7 @@ $inputParts.Add("schema=1")
 $inputParts.Add("fileVersion=$FileVersion")
 $inputParts.Add("productVersion=$ProductVersion")
 $inputParts.Add("displayVersion=$displayVersion")
+$inputParts.Add("architecture=$Architecture")
 $inputParts.Add("source=$(Get-Sha256ForFile $sourcePath)")
 $inputParts.Add("resource=$(Get-Sha256ForText $generatedResourceContent)")
 $inputParts.Add("versionHeader=$(Get-Sha256ForText $generatedHeaderContent)")
@@ -143,7 +159,8 @@ if (-not $Force -and
         $previous = Get-Content -LiteralPath $fingerprintPath -Raw | ConvertFrom-Json
         if ($previous.fingerprint -eq $fingerprint) {
             Write-Host "Launcher unchanged; skipping launcher build."
-            Write-Host "Launcher version: $ProductVersion ($FileVersion)"
+            Write-Host "Launcher version: $ProductVersion ($FileVersion, $Architecture)"
+            Write-Host "Launcher splash version: $displayVersion"
             return
         }
     }
@@ -176,12 +193,13 @@ if (-not $vswhere) {
 
 $vsInstallPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
 if ([string]::IsNullOrWhiteSpace($vsInstallPath)) {
-    throw "MSVC x64 build tools were not found."
+    throw "MSVC C++ build tools were not found."
 }
 
-$vcvarsPath = Join-Path $vsInstallPath "VC\Auxiliary\Build\vcvars64.bat"
+$vcvarsName = if ($Architecture -eq "x64") { "vcvars64.bat" } else { "vcvars32.bat" }
+$vcvarsPath = Join-Path $vsInstallPath "VC\Auxiliary\Build\$vcvarsName"
 if (-not (Test-Path -LiteralPath $vcvarsPath)) {
-    throw "vcvars64.bat not found: $vcvarsPath"
+    throw "$vcvarsName not found: $vcvarsPath"
 }
 
 $vswhereDir = Split-Path -Parent $vswhere
@@ -207,5 +225,5 @@ $fingerprintJson = ([ordered]@{
 [System.IO.File]::WriteAllText($fingerprintPath, $fingerprintJson, $utf8NoBom)
 
 Write-Host "Built $outputPath"
-Write-Host "Launcher version: $ProductVersion ($FileVersion)"
+Write-Host "Launcher version: $ProductVersion ($FileVersion, $Architecture)"
 Write-Host "Launcher splash version: $displayVersion"

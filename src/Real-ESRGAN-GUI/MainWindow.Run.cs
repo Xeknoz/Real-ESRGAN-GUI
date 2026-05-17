@@ -99,24 +99,9 @@ namespace RealESRGAN_GUI
 
                 if (!preflight.HasInputImages)
                 {
-                    var ans = MessageBox.Show(this,
-                        T("NoImagesAsk"),
-                        "Real-ESRGAN GUI", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                    if (ans != MessageBoxResult.Yes) return;
-
-                    SampleCopyResult copyResult = FolderStateService.CopySample(_appDir, _inputDir);
-                    if (!copyResult.Success)
-                    {
-                        string copyError = copyResult.FailureKind == SampleCopyFailureKind.MissingSample
-                            ? T("MissingSample")
-                            : string.Format(CultureInfo.CurrentCulture, T("CopySampleFailed"), copyResult.ErrorMessage);
-
-                        MessageBox.Show(this, copyError, "Real-ESRGAN GUI",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    if (!await FolderStateService.HasSupportedInputsAsync(_inputDir, _cts.Token)) return;
+                    MessageBox.Show(this, T("NoImagesFound"), "Real-ESRGAN GUI",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
                 }
 
                 backendStarted = true;

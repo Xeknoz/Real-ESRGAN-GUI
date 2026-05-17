@@ -7,6 +7,7 @@ It also owns the shipped application icon (`app.ico`); the WPF executable is not
 
 ```powershell
 .\src\Launcher\build.ps1
+.\src\Launcher\build.ps1 -Architecture x86
 ```
 
 The script locates Visual Studio C++ build tools with `vswhere.exe` and writes build output to:
@@ -15,9 +16,11 @@ The script locates Visual Studio C++ build tools with `vswhere.exe` and writes b
 - `src\Launcher\obj\Launcher.obj`
 - `src\Launcher\obj\Launcher.res`
 
-When run from the repository, it resolves the same app version metadata as the WPF build and embeds it into the native PE version resource. Release builds normally call it through `scripts\build-dist.ps1`, which passes the already-resolved app version.
+When run from the repository, it resolves the same app version metadata as the WPF build and embeds it into the native PE version resource. Release builds normally call it through `scripts\build-dist.ps1`, which passes the already-resolved app version and target architecture.
+
+The splash screen uses the resolved display version. Development builds append the `dev` channel marker in the splash text while keeping the PE version metadata numeric.
 
 ## Publish integration
 
-`scripts\build-dist.ps1` and `scripts\build-all.ps1` copy `src\Launcher\bin\Launcher.exe` into `dist\Launcher.exe` automatically.
+`scripts\build-dist.ps1` and `scripts\build-all.ps1` copy `src\Launcher\bin\Launcher.exe` into `artifacts\portable\<arch>\Launcher.exe` automatically.
 When packaging with Enigma Virtual Box, use `Launcher.exe` as the entry point.
