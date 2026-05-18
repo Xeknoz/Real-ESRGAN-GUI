@@ -211,10 +211,12 @@
             <!-- ScrollBar -->
             <Style x:Key="ModernScrollBarThumb" TargetType="Thumb">
                 <Setter Property="Background" Value="{DynamicResource ScrollThumbBrush}"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="MinHeight" Value="0"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Thumb">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Margin="2"/>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="2" Margin="1"/>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
@@ -225,9 +227,25 @@
                 </Style.Triggers>
             </Style>
 
+            <Style x:Key="ScrollBarRepeatButton" TargetType="RepeatButton">
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="MinHeight" Value="0"/>
+                <Setter Property="Opacity" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RepeatButton">
+                            <Border Background="Transparent"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style TargetType="ScrollBar">
                 <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Width" Value="10"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="MinHeight" Value="0"/>
+                <Setter Property="Width" Value="6"/>
                 <Setter Property="local:ScrollBarContextMenuBehavior.UseLocalizedContextMenu" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
@@ -238,10 +256,10 @@
                                         <Thumb Style="{StaticResource ModernScrollBarThumb}"/>
                                     </Track.Thumb>
                                     <Track.IncreaseRepeatButton>
-                                        <RepeatButton x:Name="IncreaseBtn" Command="ScrollBar.PageDownCommand" Opacity="0"/>
+                                        <RepeatButton x:Name="IncreaseBtn" Command="ScrollBar.PageDownCommand" Style="{StaticResource ScrollBarRepeatButton}"/>
                                     </Track.IncreaseRepeatButton>
                                     <Track.DecreaseRepeatButton>
-                                        <RepeatButton x:Name="DecreaseBtn" Command="ScrollBar.PageUpCommand" Opacity="0"/>
+                                        <RepeatButton x:Name="DecreaseBtn" Command="ScrollBar.PageUpCommand" Style="{StaticResource ScrollBarRepeatButton}"/>
                                     </Track.DecreaseRepeatButton>
                                 </Track>
                             </Grid>
@@ -258,7 +276,7 @@
                 <Style.Triggers>
                     <Trigger Property="Orientation" Value="Horizontal">
                         <Setter Property="Width" Value="Auto"/>
-                        <Setter Property="Height" Value="10"/>
+                        <Setter Property="Height" Value="6"/>
                     </Trigger>
                 </Style.Triggers>
             </Style>
@@ -504,6 +522,14 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="DropdownPopupBorder" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="4"/>
+            </Style>
+
             <Style TargetType="ComboBoxItem">
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
                 <Setter Property="Padding" Value="12,9"/>
@@ -549,6 +575,62 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="PreferenceDropdownItem" TargetType="ListBoxItem">
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+                <Setter Property="Padding" Value="12,9"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bd"
+                                    Background="Transparent"
+                                    Padding="{TemplateBinding Padding}"
+                                    CornerRadius="6"
+                                    Margin="0">
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="False"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleHoverBrush}"/>
+                                </MultiTrigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxSelectedBgBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ComboBoxSelectedFgBrush}"/>
+                                </MultiTrigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.55"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PreferenceDropdownListBox" TargetType="ListBox">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="MinWidth" Value="150"/>
+                <Setter Property="MaxHeight" Value="260"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="ItemContainerStyle" Value="{StaticResource PreferenceDropdownItem}"/>
+            </Style>
+
             <Style TargetType="ComboBox">
                 <Setter Property="MinHeight" Value="42"/>
                 <Setter Property="Background" Value="{DynamicResource ControlBrush}"/>
@@ -585,11 +667,7 @@
                                        Placement="Bottom"
                                        VerticalOffset="3">
                                     <Border Margin="0">
-                                        <Border Background="{DynamicResource SurfaceBrush}"
-                                                BorderBrush="{DynamicResource BorderBrush}"
-                                                BorderThickness="1"
-                                                CornerRadius="8"
-                                                Padding="4"
+                                        <Border Style="{StaticResource DropdownPopupBorder}"
                                                 MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                                 MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                             <ScrollViewer VerticalScrollBarVisibility="Auto">

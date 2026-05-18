@@ -44,6 +44,7 @@ namespace RealESRGAN_GUI
         public MainWindow()
         {
             InitializeComponent();
+            ConfigureHeaderActions();
             ConfigureWindowSizing();
 
             // Portable folder layout: engine/realesrgan-ncnn-vulkan.exe, engine/vcomp140*.dll,
@@ -87,6 +88,7 @@ namespace RealESRGAN_GUI
             base.OnSourceInitialized(e);
             ConfigureWindowChromeForVerticalResize();
             ConfigureWindowSizing();
+            ConfigurePreferencePopupWindowMessages();
             ApplyThemePreference();
         }
 

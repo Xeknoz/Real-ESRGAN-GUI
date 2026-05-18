@@ -19,7 +19,7 @@ namespace RealESRGAN_GUI
         private const uint SwpNoZOrder = 0x0004;
         private const uint SwpFrameChanged = 0x0020;
         private const double DefaultWindowWidth = 860;
-        private const double MinimumWindowWidth = 560;
+        private const double MinimumWindowWidth = 460;
         private const double CompactLayoutBreakpoint = 760;
         private const double MinimumWindowHeight = 520;
         private bool? _isCompactLayout;
@@ -138,15 +138,15 @@ namespace RealESRGAN_GUI
         private void ApplyHeaderLayout(bool compact)
         {
             HeaderContentColumn.Width = new GridLength(1, GridUnitType.Star);
-            HeaderActionsColumn.Width = compact ? new GridLength(0) : GridLength.Auto;
-            HeaderCompactGap.Height = compact ? new GridLength(14) : new GridLength(0);
-            HeaderActionsRow.Height = compact ? GridLength.Auto : new GridLength(0);
+            HeaderActionsColumn.Width = GridLength.Auto;
 
             Grid.SetRow(HeaderTitlePanel, 0);
             Grid.SetColumn(HeaderTitlePanel, 0);
-            Grid.SetRow(HeaderActionsPanel, compact ? 2 : 0);
-            Grid.SetColumn(HeaderActionsPanel, compact ? 0 : 1);
-            HeaderActionsPanel.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+            Grid.SetRow(HeaderActionsPanel, 0);
+            Grid.SetColumn(HeaderActionsPanel, 1);
+
+            HeaderActionsPanel.Visibility = Visibility.Visible;
+            HeaderActionsPanel.HorizontalAlignment = HorizontalAlignment.Right;
         }
 
         private void ApplyFoldersLayout(bool compact)
@@ -205,10 +205,10 @@ namespace RealESRGAN_GUI
 
         private void ApplyRunButtonsLayout(bool compact)
         {
-            RunButtonsPanel.Orientation = compact ? Orientation.Vertical : Orientation.Horizontal;
-            StartButton.HorizontalAlignment = compact ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
-            StopButton.HorizontalAlignment = compact ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
-            StopButton.Margin = compact ? new Thickness(0, 10, 0, 0) : new Thickness(10, 0, 0, 0);
+            RunButtonsPanel.Orientation = Orientation.Horizontal;
+            StartButton.HorizontalAlignment = HorizontalAlignment.Left;
+            StopButton.HorizontalAlignment = HorizontalAlignment.Left;
+            StopButton.Margin = new Thickness(10, 0, 0, 0);
         }
 
         private void ConfigureWindowChromeForVerticalResize()
