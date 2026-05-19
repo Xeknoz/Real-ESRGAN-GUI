@@ -13,6 +13,13 @@ namespace RealESRGAN_GUI
         private const uint MonitorDefaultToNearest = 2;
         private const double EdgeTolerance = 1.0;
         private const int DwmExtendedFrameBounds = 9;
+        private const int WmNcLButtonDblClk = 0x00A3;
+        private const int HtTop = 12;
+        private const int HtTopLeft = 13;
+        private const int HtTopRight = 14;
+        private const int HtBottom = 15;
+        private const int HtBottomLeft = 16;
+        private const int HtBottomRight = 17;
         private const int GwlStyle = -16;
         private const int WsMaximizeBox = 0x00010000;
         private const uint SwpNoSize = 0x0001;
@@ -28,6 +35,7 @@ namespace RealESRGAN_GUI
         private bool _hasAppliedInitialWindowSize;
         private bool _contentHeightLimitRefreshPending;
         private bool _contentHeightLimitRefreshKeepInsideWorkArea;
+        private bool _hasInstalledWindowChromeMessageHook;
 
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
@@ -372,6 +380,8 @@ namespace RealESRGAN_GUI
             if (hwnd == IntPtr.Zero)
                 return;
 
+            InstallWindowChromeMessageHook(hwnd);
+
             IntPtr currentStyle = GetWindowStyle(hwnd);
             int updatedStyle = currentStyle.ToInt32() & ~WsMaximizeBox;
             if (updatedStyle == currentStyle.ToInt32())
@@ -379,6 +389,35 @@ namespace RealESRGAN_GUI
 
             SetWindowStyle(hwnd, new IntPtr(updatedStyle));
             SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, SwpNoSize | SwpNoMove | SwpNoZOrder | SwpFrameChanged);
+        }
+
+        private void InstallWindowChromeMessageHook(IntPtr hwnd)
+        {
+            if (_hasInstalledWindowChromeMessageHook)
+                return;
+
+            HwndSource? source = HwndSource.FromHwnd(hwnd);
+            if (source is null)
+                return;
+
+            source.AddHook(OnWindowChromeMessage);
+            _hasInstalledWindowChromeMessageHook = true;
+        }
+
+        private IntPtr OnWindowChromeMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WmNcLButtonDblClk && IsVerticalResizeHitTest(wParam.ToInt32()))
+            {
+                handled = true;
+                return IntPtr.Zero;
+            }
+
+            return IntPtr.Zero;
+        }
+
+        private static bool IsVerticalResizeHitTest(int hitTest)
+        {
+            return hitTest is HtTop or HtTopLeft or HtTopRight or HtBottom or HtBottomLeft or HtBottomRight;
         }
 
         private static IntPtr GetWindowStyle(IntPtr hwnd)
