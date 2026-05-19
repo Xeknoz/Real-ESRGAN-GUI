@@ -13,6 +13,8 @@ namespace RealESRGAN_GUI
 
         private void OnAboutClick(object sender, RoutedEventArgs e)
         {
+            AboutButton.IsActive = true;
+
             var aboutWindow = new AboutWindow(
                 GetAppVersion(),
                 RepositoryUrl,
@@ -29,7 +31,14 @@ namespace RealESRGAN_GUI
                 Owner = this,
             };
 
-            aboutWindow.ShowDialog();
+            try
+            {
+                aboutWindow.ShowDialog();
+            }
+            finally
+            {
+                AboutButton.IsActive = false;
+            }
         }
 
         private static string GetAppVersion()

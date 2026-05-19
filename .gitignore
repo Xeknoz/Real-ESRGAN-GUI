@@ -14,6 +14,7 @@ runtime/
 # Local sample/input/output folders created during manual runs
 input/
 output/
+.scratch/
 
 # Build and publish output
 # Current packaged outputs live under artifacts/.
@@ -58,6 +59,8 @@ docs/
 AGENTS.md
 CLAUDE.md
 CLUADE.md
+CONTEXT.md
+CONTEXT-MAP.md
 
 # Legacy/local documentation not used by this repository.
 README_windows.md

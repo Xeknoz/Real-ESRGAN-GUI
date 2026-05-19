@@ -3,52 +3,27 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Media3D;
 using Microsoft.Win32;
 
 namespace RealESRGAN_GUI
 {
     public partial class MainWindow
     {
-        private const int WmSizing = 0x0214;
-        private const int WmMoving = 0x0216;
-        private const int WmEnterSizeMove = 0x0231;
-        private const double HeaderPreferencePopupGap = 3;
-
         private void ConfigureHeaderActions()
         {
-            ThemeButton.Click += OnThemeClick;
-            LanguageButton.Click += OnLanguageClick;
             AboutButton.Click += OnAboutClick;
-            ThemePopup.CustomPopupPlacementCallback = PlaceHeaderPreferencePopup;
-            LanguagePopup.CustomPopupPlacementCallback = PlaceHeaderPreferencePopup;
-            PreviewMouseDown += OnMainWindowPreviewMouseDown;
-            PreviewKeyDown += OnMainWindowPreviewKeyDown;
-        }
-
-        private void ConfigurePreferencePopupWindowMessages()
-        {
-            if (PresentationSource.FromVisual(this) is HwndSource source)
-            {
-                source.AddHook(OnPreferencePopupWindowMessage);
-            }
         }
 
         private void PopulatePreferenceCombos()
         {
             _updatingSelections = true;
-            SetListItems(ThemeList, BuildThemeItems(), _themePreference);
-            SetListItems(LanguageList, BuildLanguageItems(), _languagePreference);
+            SetComboItems(ThemeCombo, BuildThemeItems(), _themePreference);
+            SetComboItems(LanguageCombo, BuildLanguageItems(), _languagePreference);
             _updatingSelections = false;
-            UpdateThemeButton();
-            UpdateLanguageButtons();
+            UpdateThemeCombo();
+            UpdateLanguageCombo();
             UpdateAboutButton();
         }
 
@@ -122,18 +97,8 @@ namespace RealESRGAN_GUI
             combo.SelectedItem = items.FirstOrDefault(item => item.Tag == selectedTag) ?? items[0];
         }
 
-        private static void SetListItems(ListBox listBox, ComboItem[] items, string selectedTag)
-        {
-            listBox.ItemsSource = items;
-            listBox.DisplayMemberPath = nameof(ComboItem.Display);
-            listBox.SelectedItem = items.FirstOrDefault(item => item.Tag == selectedTag) ?? items[0];
-        }
-
         private static string? SelectedTag(ComboBox combo)
             => combo.SelectedItem is ComboItem item ? item.Tag : null;
-
-        private static string? SelectedTag(ListBox listBox)
-            => listBox.SelectedItem is ComboItem item ? item.Tag : null;
 
         private static int DefaultScaleFor(string model) => model switch
         {
@@ -179,25 +144,14 @@ namespace RealESRGAN_GUI
             SetProgressText("ProgressZero");
         }
 
-        private void OnThemeClick(object sender, RoutedEventArgs e)
-        {
-            TogglePreferencePopup(ThemePopup, ThemeList, LanguagePopup);
-        }
-
-        private void OnLanguageClick(object sender, RoutedEventArgs e)
-        {
-            TogglePreferencePopup(LanguagePopup, LanguageList, ThemePopup);
-        }
-
-        private void OnThemeDropdownSelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void OnThemeChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_updatingSelections)
             {
                 return;
             }
 
-            ClosePreferencePopups();
-            string? selectedTag = SelectedTag(ThemeList);
+            string? selectedTag = SelectedTag(ThemeCombo);
             if (selectedTag is null ||
                 string.Equals(selectedTag, _themePreference, StringComparison.Ordinal))
             {
@@ -206,18 +160,17 @@ namespace RealESRGAN_GUI
 
             _themePreference = selectedTag;
             ApplyThemePreference();
-            PopulatePreferenceCombos();
+            UpdateThemeCombo();
         }
 
-        private void OnLanguageDropdownSelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_updatingSelections)
             {
                 return;
             }
 
-            ClosePreferencePopups();
-            string? selectedTag = SelectedTag(LanguageList);
+            string? selectedTag = SelectedTag(LanguageCombo);
             if (selectedTag is null ||
                 string.Equals(selectedTag, _languagePreference, StringComparison.Ordinal))
             {
@@ -229,151 +182,31 @@ namespace RealESRGAN_GUI
             ApplyLanguage();
         }
 
-        private void OnMainWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!ThemePopup.IsOpen && !LanguagePopup.IsOpen)
-            {
-                return;
-            }
-
-            if (IsWithin(e.OriginalSource as DependencyObject, ThemeButton) ||
-                IsWithin(e.OriginalSource as DependencyObject, LanguageButton))
-            {
-                return;
-            }
-
-            ClosePreferencePopups();
-        }
-
-        private void OnMainWindowPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape && ClosePreferencePopups())
-            {
-                e.Handled = true;
-            }
-        }
-
-        private void OnPreferenceListPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape && ClosePreferencePopups())
-            {
-                e.Handled = true;
-            }
-        }
-
-        private IntPtr OnPreferencePopupWindowMessage(
-            IntPtr hwnd,
-            int msg,
-            IntPtr wParam,
-            IntPtr lParam,
-            ref bool handled)
-        {
-            if (msg is WmEnterSizeMove or WmMoving or WmSizing)
-            {
-                ClosePreferencePopups();
-            }
-
-            return IntPtr.Zero;
-        }
-
         private void ApplyPreferenceControlText()
         {
-            UpdateThemeButton();
-            UpdateLanguageButtons();
+            UpdateThemeCombo();
+            UpdateLanguageCombo();
             UpdateAboutButton();
         }
 
-        private void TogglePreferencePopup(Popup popup, ListBox listBox, Popup otherPopup)
-        {
-            bool shouldOpen = !popup.IsOpen;
-            otherPopup.IsOpen = false;
-            popup.IsOpen = shouldOpen;
-            UpdateHeaderPreferenceActiveStates();
-
-            if (!shouldOpen)
-            {
-                Keyboard.ClearFocus();
-                return;
-            }
-
-            if (shouldOpen)
-            {
-                listBox.Focus();
-
-                if (listBox.ItemContainerGenerator.ContainerFromItem(listBox.SelectedItem) is ListBoxItem item)
-                {
-                    item.Focus();
-                    Keyboard.Focus(item);
-                }
-            }
-        }
-
-        private bool ClosePreferencePopups()
-        {
-            bool wasOpen = ThemePopup.IsOpen || LanguagePopup.IsOpen;
-            ThemePopup.IsOpen = false;
-            LanguagePopup.IsOpen = false;
-            UpdateHeaderPreferenceActiveStates();
-            return wasOpen;
-        }
-
-        private void UpdateHeaderPreferenceActiveStates()
-        {
-            ThemeButton.IsActive = ThemePopup.IsOpen;
-            LanguageButton.IsActive = LanguagePopup.IsOpen;
-        }
-
-        private static CustomPopupPlacement[] PlaceHeaderPreferencePopup(
-            Size popupSize,
-            Size targetSize,
-            Point offset)
-        {
-            return new[]
-            {
-                new CustomPopupPlacement(
-                    new Point(targetSize.Width - popupSize.Width, targetSize.Height + HeaderPreferencePopupGap),
-                    PopupPrimaryAxis.Horizontal),
-                new CustomPopupPlacement(
-                    new Point(0, targetSize.Height + HeaderPreferencePopupGap),
-                    PopupPrimaryAxis.Horizontal),
-            };
-        }
-
-        private static bool IsWithin(DependencyObject? source, DependencyObject target)
-        {
-            while (source is not null)
-            {
-                if (ReferenceEquals(source, target))
-                {
-                    return true;
-                }
-
-                source = source is Visual or Visual3D
-                    ? VisualTreeHelper.GetParent(source)
-                    : LogicalTreeHelper.GetParent(source);
-            }
-
-            return false;
-        }
-
-        private void UpdateThemeButton()
+        private void UpdateThemeCombo()
         {
             string themeText = BuildThemeItems()
                 .FirstOrDefault(item => item.Tag == _themePreference)?.Display ?? T("ThemeSystem");
             string toolTip = string.Format(CultureInfo.CurrentCulture, T("ThemeButtonTooltip"), themeText);
 
-            ThemeButton.ToolTip = toolTip;
-            AutomationProperties.SetName(ThemeButton, toolTip);
+            ThemeCombo.ToolTip = toolTip;
+            AutomationProperties.SetName(ThemeCombo, toolTip);
         }
 
-        private void UpdateLanguageButtons()
+        private void UpdateLanguageCombo()
         {
             string languageText = BuildLanguageItems()
                 .FirstOrDefault(item => item.Tag == _languagePreference)?.Display ?? T("LanguageAuto");
             string toolTip = string.Format(CultureInfo.CurrentCulture, T("LanguageButtonTooltip"), languageText);
 
-            LanguageButton.ToolTip = toolTip;
-            AutomationProperties.SetName(LanguageButton, toolTip);
+            LanguageCombo.ToolTip = toolTip;
+            AutomationProperties.SetName(LanguageCombo, toolTip);
         }
 
         private void UpdateAboutButton()

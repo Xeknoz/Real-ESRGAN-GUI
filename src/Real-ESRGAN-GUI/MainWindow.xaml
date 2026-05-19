@@ -39,7 +39,8 @@
                                 BorderThickness="1"
                                 CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -48,10 +49,111 @@
                             </Trigger>
                             <Trigger Property="IsActive" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#2AFFFFFF"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#46FFFFFF"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HeaderPreferenceComboBox" TargetType="local:HeaderPreferenceComboBox">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="MinWidth" Value="36"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="#18FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#28FFFFFF"/>
+            <Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+            <Setter Property="MaxDropDownHeight" Value="260"/>
+            <Setter Property="local:ComboBoxMouseWheelBehavior.RouteClosedWheelToParent" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="local:HeaderPreferenceComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          Tag="{TemplateBinding IconData}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"
+                                          Focusable="False">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton">
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter Property="Cursor" Value="Arrow"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Style>
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="8">
+                                            <Path Width="18"
+                                                  Height="18"
+                                                  Stretch="Uniform"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  StrokeThickness="2"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeLineJoin="Round"
+                                                  Fill="Transparent"
+                                                  Data="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  IsHitTestVisible="False"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#2AFFFFFF"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#46FFFFFF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#2AFFFFFF"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.45"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Custom"
+                                   PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                   CustomPopupPlacementCallback="{x:Static local:HeaderPreferenceComboBox.PreferencePopupPlacementCallback}">
+                                <Border Style="{StaticResource DropdownPopupBorder}"
+                                        MinWidth="150"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocusBorderVisible" Value="True">
+                                <Setter TargetName="ToggleButton" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
@@ -109,19 +211,17 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Top">
-                    <local:HeaderActionControl x:Name="ThemeButton"
-                                               Style="{StaticResource HeaderIconButton}"
-                                               Margin="0,0,8,0">
-                        <Path Style="{StaticResource HeaderIconPath}"
-                              Data="M12 3 V5 M12 19 V21 M4.22 4.22 L5.64 5.64 M18.36 18.36 L19.78 19.78 M3 12 H5 M19 12 H21 M4.22 19.78 L5.64 18.36 M18.36 5.64 L19.78 4.22 M12 8 A4 4 0 1 1 12 16 A4 4 0 0 1 12 8"/>
-                    </local:HeaderActionControl>
+                    <local:HeaderPreferenceComboBox x:Name="ThemeCombo"
+                                                    Style="{StaticResource HeaderPreferenceComboBox}"
+                                                    IconData="M12 3 V5 M12 19 V21 M4.22 4.22 L5.64 5.64 M18.36 18.36 L19.78 19.78 M3 12 H5 M19 12 H21 M4.22 19.78 L5.64 18.36 M18.36 5.64 L19.78 4.22 M12 8 A4 4 0 1 1 12 16 A4 4 0 0 1 12 8"
+                                                    SelectionChanged="OnThemeChanged"
+                                                    Margin="0,0,8,0"/>
 
-                    <local:HeaderActionControl x:Name="LanguageButton"
-                                               Style="{StaticResource HeaderIconButton}"
-                                               Margin="0,0,8,0">
-                        <Path Style="{StaticResource HeaderIconPath}"
-                              Data="M5 8 L11 14 M4 14 L10 8 L12 5 M2 5 H14 M7 2 H8 M22 22 L17 12 L12 22 M14 18 H20"/>
-                    </local:HeaderActionControl>
+                    <local:HeaderPreferenceComboBox x:Name="LanguageCombo"
+                                                    Style="{StaticResource HeaderPreferenceComboBox}"
+                                                    IconData="M5 8 L11 14 M4 14 L10 8 L12 5 M2 5 H14 M7 2 H8 M22 22 L17 12 L12 22 M14 18 H20"
+                                                    SelectionChanged="OnLanguageChanged"
+                                                    Margin="0,0,8,0"/>
 
                     <local:HeaderActionControl x:Name="AboutButton"
                                                Style="{StaticResource HeaderIconButton}">
@@ -129,34 +229,6 @@
                               Data="M12 16 V12 M12 8 H12.01 M22 12 A10 10 0 1 1 2 12 A10 10 0 0 1 22 12"/>
                     </local:HeaderActionControl>
                 </StackPanel>
-
-                <Popup x:Name="ThemePopup"
-                       PlacementTarget="{Binding ElementName=ThemeButton}"
-                       Placement="Custom"
-                       AllowsTransparency="True"
-                       Focusable="False"
-                       StaysOpen="True">
-                    <Border Style="{StaticResource DropdownPopupBorder}">
-                        <ListBox x:Name="ThemeList"
-                                 Style="{StaticResource PreferenceDropdownListBox}"
-                                 PreviewKeyDown="OnPreferenceListPreviewKeyDown"
-                                 SelectionChanged="OnThemeDropdownSelectionChanged"/>
-                    </Border>
-                </Popup>
-
-                <Popup x:Name="LanguagePopup"
-                       PlacementTarget="{Binding ElementName=LanguageButton}"
-                       Placement="Custom"
-                       AllowsTransparency="True"
-                       Focusable="False"
-                       StaysOpen="True">
-                    <Border Style="{StaticResource DropdownPopupBorder}">
-                        <ListBox x:Name="LanguageList"
-                                 Style="{StaticResource PreferenceDropdownListBox}"
-                                 PreviewKeyDown="OnPreferenceListPreviewKeyDown"
-                                 SelectionChanged="OnLanguageDropdownSelectionChanged"/>
-                    </Border>
-                </Popup>
             </Grid>
         </Border>
 

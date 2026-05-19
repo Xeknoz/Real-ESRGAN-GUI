@@ -88,7 +88,6 @@ namespace RealESRGAN_GUI
             base.OnSourceInitialized(e);
             ConfigureWindowChromeForVerticalResize();
             ConfigureWindowSizing();
-            ConfigurePreferencePopupWindowMessages();
             ApplyThemePreference();
         }
 

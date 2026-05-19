@@ -58,7 +58,6 @@ namespace RealESRGAN_GUI
                 return;
             }
 
-            Focus();
             e.Handled = true;
             RaiseClick();
         }

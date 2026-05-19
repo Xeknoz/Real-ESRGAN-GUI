@@ -575,62 +575,6 @@
                 </Setter>
             </Style>
 
-            <Style x:Key="PreferenceDropdownItem" TargetType="ListBoxItem">
-                <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
-                <Setter Property="Padding" Value="12,9"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ListBoxItem">
-                            <Border x:Name="Bd"
-                                    Background="Transparent"
-                                    Padding="{TemplateBinding Padding}"
-                                    CornerRadius="6"
-                                    Margin="0">
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <MultiTrigger>
-                                    <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="False"/>
-                                        <Condition Property="IsMouseOver" Value="True"/>
-                                    </MultiTrigger.Conditions>
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleHoverBrush}"/>
-                                </MultiTrigger>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                </Trigger>
-                                <MultiTrigger>
-                                    <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="True"/>
-                                        <Condition Property="IsMouseOver" Value="True"/>
-                                    </MultiTrigger.Conditions>
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxSelectedBgBrush}"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource ComboBoxSelectedFgBrush}"/>
-                                </MultiTrigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Opacity" Value="0.55"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <Style x:Key="PreferenceDropdownListBox" TargetType="ListBox">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="MinWidth" Value="150"/>
-                <Setter Property="MaxHeight" Value="260"/>
-                <Setter Property="Padding" Value="0"/>
-                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-                <Setter Property="ItemContainerStyle" Value="{StaticResource PreferenceDropdownItem}"/>
-            </Style>
-
             <Style TargetType="ComboBox">
                 <Setter Property="MinHeight" Value="42"/>
                 <Setter Property="Background" Value="{DynamicResource ControlBrush}"/>
