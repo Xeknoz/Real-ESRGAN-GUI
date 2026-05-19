@@ -44,6 +44,7 @@ namespace RealESRGAN_GUI
         public MainWindow()
         {
             InitializeComponent();
+            ConfigureLaunchReadinessTransition();
             ConfigureHeaderActions();
             ConfigureWindowSizing();
 

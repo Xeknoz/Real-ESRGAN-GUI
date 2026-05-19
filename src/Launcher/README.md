@@ -1,9 +1,11 @@
 # Launcher
 
-`Launcher.exe` is the small native Win32 front-end shown before the WPF runtime is ready.
+`Launcher.exe` is the small native Win32 front-end shown before the WPF runtime and first GUI frame are ready.
 It also owns the shipped application icon (`app.ico`); the WPF executable is not a user-facing entry point.
 
 The launcher owns duplicate-start feedback. If another launcher is already starting the app or the WPF single-instance mutex already exists, it activates the existing GUI when possible, asks the running WPF window for its current UI language, shows one themed native "already running" notice, and exits without starting a second WPF process.
+
+During normal startup, the launcher keeps the splash screen visible until the WPF main window sets the `RealESRGAN_GUI_RenderReady` window property after its first rendered frame. The WPF window starts transparent and only becomes opaque before setting that property, so users do not see the default unthemed white WPF frame between the splash and the main GUI.
 
 ## Build
 
