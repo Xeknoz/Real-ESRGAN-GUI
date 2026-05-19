@@ -66,7 +66,12 @@ namespace RealESRGAN_GUI
             SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
             // Do not clamp position while the user drags; the work-area bottom edge would trap the window at the taskbar.
             LocationChanged += (_, _) => ConfigureWindowSizing(keepInsideWorkArea: false);
-            SizeChanged += (_, _) => ApplyResponsiveLayout();
+            Loaded += (_, _) => ScheduleInitialWindowSizeFit();
+            SizeChanged += (_, _) =>
+            {
+                ApplyResponsiveLayout();
+                ScheduleContentHeightLimitRefresh();
+            };
             StateChanged += (_, _) => ConfigureWindowSizing();
             Activated += (_, _) =>
             {
@@ -86,6 +91,7 @@ namespace RealESRGAN_GUI
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
+            RunningInstanceBridge.AttachLanguageResponder(this, () => _currentLanguage);
             ConfigureWindowChromeForVerticalResize();
             ConfigureWindowSizing();
             ApplyThemePreference();

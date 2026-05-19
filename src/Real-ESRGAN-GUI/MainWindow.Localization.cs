@@ -4,19 +4,6 @@ namespace RealESRGAN_GUI
     {
         private static readonly string[] ApplicationResourceTextKeys =
         {
-            "ScrollBarMenuScrollHere",
-            "ScrollBarMenuTop",
-            "ScrollBarMenuBottom",
-            "ScrollBarMenuPageUp",
-            "ScrollBarMenuPageDown",
-            "ScrollBarMenuScrollUp",
-            "ScrollBarMenuScrollDown",
-            "ScrollBarMenuLeftEdge",
-            "ScrollBarMenuRightEdge",
-            "ScrollBarMenuPageLeft",
-            "ScrollBarMenuPageRight",
-            "ScrollBarMenuScrollLeft",
-            "ScrollBarMenuScrollRight",
         };
 
         private string T(string key)
@@ -37,7 +24,7 @@ namespace RealESRGAN_GUI
             }
         }
 
-        private static string TextForLanguage(string language, string key)
+        internal static string TextForLanguage(string language, string key)
         {
             bool en = language == "en";
             return en ? EnglishText(key) : ChineseText(key);
@@ -45,19 +32,11 @@ namespace RealESRGAN_GUI
 
         private static string ChineseText(string key) => key switch
         {
-            "ScrollBarMenuScrollHere" => "滚动到此处",
-            "ScrollBarMenuTop" => "顶部",
-            "ScrollBarMenuBottom" => "底部",
-            "ScrollBarMenuPageUp" => "向上翻页",
-            "ScrollBarMenuPageDown" => "向下翻页",
-            "ScrollBarMenuScrollUp" => "向上滚动",
-            "ScrollBarMenuScrollDown" => "向下滚动",
-            "ScrollBarMenuLeftEdge" => "最左侧",
-            "ScrollBarMenuRightEdge" => "最右侧",
-            "ScrollBarMenuPageLeft" => "向左翻页",
-            "ScrollBarMenuPageRight" => "向右翻页",
-            "ScrollBarMenuScrollLeft" => "向左滚动",
-            "ScrollBarMenuScrollRight" => "向右滚动",
+            "NoticeTitle" => "提示",
+            "NoticeAlreadyRunning" => "Real-ESRGAN GUI 已经在运行中。",
+            "NoticeOk" => "确定",
+            "LaunchFailedTitle" => "启动失败",
+            "LauncherMissing" => "无法找到 Launcher.exe。",
             "HeaderSubtitle" => "图片清晰化工作台",
             "ThemeSystem" => "跟随系统",
             "ThemeLight" => "浅色",
@@ -139,19 +118,11 @@ namespace RealESRGAN_GUI
 
         private static string EnglishText(string key) => key switch
         {
-            "ScrollBarMenuScrollHere" => "Scroll here",
-            "ScrollBarMenuTop" => "Top",
-            "ScrollBarMenuBottom" => "Bottom",
-            "ScrollBarMenuPageUp" => "Page up",
-            "ScrollBarMenuPageDown" => "Page down",
-            "ScrollBarMenuScrollUp" => "Scroll up",
-            "ScrollBarMenuScrollDown" => "Scroll down",
-            "ScrollBarMenuLeftEdge" => "Left edge",
-            "ScrollBarMenuRightEdge" => "Right edge",
-            "ScrollBarMenuPageLeft" => "Page left",
-            "ScrollBarMenuPageRight" => "Page right",
-            "ScrollBarMenuScrollLeft" => "Scroll left",
-            "ScrollBarMenuScrollRight" => "Scroll right",
+            "NoticeTitle" => "Notice",
+            "NoticeAlreadyRunning" => "Real-ESRGAN GUI is already running.",
+            "NoticeOk" => "OK",
+            "LaunchFailedTitle" => "Launch Failed",
+            "LauncherMissing" => "Launcher.exe could not be found.",
             "HeaderSubtitle" => "Image upscaling workspace",
             "ThemeSystem" => "System",
             "ThemeLight" => "Light",

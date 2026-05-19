@@ -4,12 +4,14 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace RealESRGAN_GUI
 {
     public sealed class HeaderPreferenceComboBox : ComboBox
     {
         private Window? _ownerWindow;
+        private bool _clearFocusBorderAfterDropDownClose;
         private bool _suppressFocusBorderOnNextFocus;
 
         public static readonly DependencyProperty IconDataProperty = DependencyProperty.Register(
@@ -58,6 +60,7 @@ namespace RealESRGAN_GUI
 
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
         {
+            _clearFocusBorderAfterDropDownClose = true;
             _suppressFocusBorderOnNextFocus = true;
             IsFocusBorderVisible = false;
             base.OnPreviewMouseDown(e);
@@ -73,12 +76,11 @@ namespace RealESRGAN_GUI
                 return;
             }
 
-            IsFocusBorderVisible = true;
+            IsFocusBorderVisible = InputManager.Current.MostRecentInputDevice is KeyboardDevice;
         }
 
         protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
         {
-            _suppressFocusBorderOnNextFocus = false;
             IsFocusBorderVisible = false;
             base.OnLostKeyboardFocus(e);
         }
@@ -93,6 +95,7 @@ namespace RealESRGAN_GUI
         {
             UnhookOwnerWindow();
             base.OnDropDownClosed(e);
+            ClearFocusBorderAfterDropDownClose();
         }
 
         private void HookOwnerWindow()
@@ -112,6 +115,7 @@ namespace RealESRGAN_GUI
 
             _ownerWindow.Deactivated += OnOwnerWindowChanged;
             _ownerWindow.LocationChanged += OnOwnerWindowChanged;
+            _ownerWindow.PreviewMouseDown += OnOwnerWindowPreviewMouseDown;
             _ownerWindow.SizeChanged += OnOwnerWindowChanged;
             _ownerWindow.StateChanged += OnOwnerWindowChanged;
         }
@@ -125,14 +129,52 @@ namespace RealESRGAN_GUI
 
             _ownerWindow.Deactivated -= OnOwnerWindowChanged;
             _ownerWindow.LocationChanged -= OnOwnerWindowChanged;
+            _ownerWindow.PreviewMouseDown -= OnOwnerWindowPreviewMouseDown;
             _ownerWindow.SizeChanged -= OnOwnerWindowChanged;
             _ownerWindow.StateChanged -= OnOwnerWindowChanged;
             _ownerWindow = null;
         }
 
+        private void OnOwnerWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (IsMouseOver)
+            {
+                return;
+            }
+
+            CloseDropDownAndClearFocusBorder();
+        }
+
         private void OnOwnerWindowChanged(object? sender, EventArgs e)
         {
+            CloseDropDownAndClearFocusBorder();
+        }
+
+        private void CloseDropDownAndClearFocusBorder()
+        {
+            _clearFocusBorderAfterDropDownClose = true;
+            _suppressFocusBorderOnNextFocus = true;
+            IsFocusBorderVisible = false;
             IsDropDownOpen = false;
+        }
+
+        private void ClearFocusBorderAfterDropDownClose()
+        {
+            if (!_clearFocusBorderAfterDropDownClose)
+            {
+                return;
+            }
+
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.ContextIdle,
+                new Action(() =>
+                {
+                    _clearFocusBorderAfterDropDownClose = false;
+                    if (!IsDropDownOpen)
+                    {
+                        IsFocusBorderVisible = false;
+                    }
+                }));
         }
     }
 }

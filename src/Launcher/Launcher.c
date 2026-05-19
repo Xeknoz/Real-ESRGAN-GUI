@@ -30,6 +30,10 @@
 #define TIMEOUT_MS    15000
 #define NOTICE_W      420
 #define NOTICE_H      170
+#define NOTICE_MUTEX_NAME L"Global\\RealESRGAN_AlreadyRunningNotice"
+#define QUERY_LANGUAGE_MESSAGE_NAME L"RealESRGAN_GUI_QueryLanguage"
+#define QUERY_LANGUAGE_ZH 1
+#define QUERY_LANGUAGE_EN 2
 
 static HWND   g_hwnd   = NULL;
 static HWND   g_mainHwnd = NULL;
@@ -59,6 +63,9 @@ static BOOL    FindMainWindow(void);
 static BOOL    IsAppAlreadyRunning(void);
 static HWND    FindExistingAppWindow(void);
 static void    ActivateAppWindow(HWND hwnd);
+static void    ActivateNoticeWindow(HWND hwnd);
+static void    ResolveRunningInstanceLanguage(HWND hwnd);
+static LPCWSTR NoticeFontFace(void);
 static void    ShowAlreadyRunningNotice(HINSTANCE hInst, HWND owner);
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR lpCmd, int nShow)
@@ -273,7 +280,7 @@ static LRESULT CALLBACK NoticeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     }
 
     case WM_KEYDOWN:
-        if (wParam == VK_RETURN || wParam == VK_ESCAPE) {
+        if (wParam == VK_RETURN || wParam == VK_SPACE || wParam == VK_ESCAPE) {
             DestroyWindow(hWnd);
             return 0;
         }
@@ -448,7 +455,7 @@ static void PaintNotice(HWND hWnd)
 
     HFONT hFontTitle = CreateFontW(-S(18), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, NoticeFontFace());
     HFONT hOldFont = (HFONT)SelectObject(dc, hFontTitle);
     SetTextColor(dc, clrText);
     RECT rcTitle = { S(24), S(22), w - S(24), S(48) };
@@ -456,7 +463,7 @@ static void PaintNotice(HWND hWnd)
 
     HFONT hFontMessage = CreateFontW(-S(13), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, NoticeFontFace());
     SelectObject(dc, hFontMessage);
     SetTextColor(dc, clrMuted);
     RECT rcMessage = { S(24), S(58), w - S(24), h - S(70) };
@@ -487,7 +494,7 @@ static void PaintNotice(HWND hWnd)
 
     HFONT hFontButton = CreateFontW(-S(12), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, NoticeFontFace());
     SelectObject(dc, hFontButton);
     SetTextColor(dc, clrOnAccent);
     DrawTextW(dc, g_zh ? L"确定" : L"OK", -1, &g_noticeButtonRect,
@@ -597,8 +604,72 @@ static HWND FindExistingAppWindow(void)
     return existing;
 }
 
+static void ResolveRunningInstanceLanguage(HWND hwnd)
+{
+    if (!hwnd || !IsWindow(hwnd)) return;
+
+    UINT message = RegisterWindowMessageW(QUERY_LANGUAGE_MESSAGE_NAME);
+    if (!message) return;
+
+    DWORD_PTR result = 0;
+    LRESULT sent = SendMessageTimeoutW(
+        hwnd,
+        message,
+        0,
+        0,
+        SMTO_ABORTIFHUNG,
+        200,
+        &result);
+
+    if (!sent) return;
+
+    if (result == QUERY_LANGUAGE_ZH) {
+        g_zh = TRUE;
+    } else if (result == QUERY_LANGUAGE_EN) {
+        g_zh = FALSE;
+    }
+}
+
+static LPCWSTR NoticeFontFace(void)
+{
+    return g_zh ? L"Microsoft YaHei UI" : L"Segoe UI";
+}
+
+static void ActivateNoticeWindow(HWND hwnd)
+{
+    if (!hwnd || !IsWindow(hwnd)) return;
+
+    ShowWindow(hwnd, SW_SHOWNORMAL);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    SetForegroundWindow(hwnd);
+}
+
 static void ShowAlreadyRunningNotice(HINSTANCE hInst, HWND owner)
 {
+    ResolveRunningInstanceLanguage(owner);
+
+    BOOL ownsNoticeMutex = FALSE;
+    HANDLE noticeMutex = CreateMutexW(NULL, TRUE, NOTICE_MUTEX_NAME);
+    if (noticeMutex) {
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            HWND notice = NULL;
+            for (int i = 0; i < 10 && !notice; i++) {
+                notice = FindWindowW(L"RESG_Notice", NULL);
+                if (!notice) Sleep(25);
+            }
+
+            if (notice) {
+                ActivateNoticeWindow(notice);
+            }
+
+            CloseHandle(noticeMutex);
+            return;
+        }
+
+        ownsNoticeMutex = TRUE;
+    }
+
     WNDCLASSEXW wc = { sizeof(wc) };
     wc.lpfnWndProc   = NoticeWndProc;
     wc.hInstance     = hInst;
@@ -654,10 +725,12 @@ static void ShowAlreadyRunningNotice(HINSTANCE hInst, HWND owner)
         NULL);
 
     if (!hwnd) {
-        MessageBoxW(NULL,
-            g_zh ? L"Real-ESRGAN GUI 已经在运行中。" : L"Real-ESRGAN GUI is already running.",
-            g_zh ? L"提示" : L"Notice",
-            MB_OK | MB_ICONINFORMATION);
+        if (ownsNoticeMutex) {
+            ReleaseMutex(noticeMutex);
+        }
+        if (noticeMutex) {
+            CloseHandle(noticeMutex);
+        }
         return;
     }
 
@@ -675,6 +748,13 @@ static void ShowAlreadyRunningNotice(HINSTANCE hInst, HWND owner)
     while (!g_noticeDone && GetMessageW(&msg, NULL, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
+    }
+
+    if (ownsNoticeMutex) {
+        ReleaseMutex(noticeMutex);
+    }
+    if (noticeMutex) {
+        CloseHandle(noticeMutex);
     }
 }
 

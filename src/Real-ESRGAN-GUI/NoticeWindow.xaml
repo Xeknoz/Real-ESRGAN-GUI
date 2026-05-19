@@ -46,6 +46,7 @@
                         Margin="0,20,0,0"
                         MinWidth="96"
                         HorizontalAlignment="Right"
+                        FontFamily="Segoe UI, Microsoft YaHei UI, DengXian"
                         Style="{StaticResource AccentButton}"
                         Click="OnOkClick"/>
             </Grid>

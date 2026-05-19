@@ -16,6 +16,7 @@ namespace RealESRGAN_GUI
                 ? Visibility.Visible
                 : Visibility.Collapsed;
             UpdateAdvancedToggleText();
+            ScheduleContentHeightLimitRefresh();
         }
 
         private void UpdateAdvancedToggleText()
@@ -32,6 +33,7 @@ namespace RealESRGAN_GUI
                 ? Visibility.Visible
                 : Visibility.Collapsed;
             UpdateLogToggleText();
+            ScheduleContentHeightLimitRefresh();
         }
 
         private void UpdateLogToggleText()
@@ -226,6 +228,7 @@ namespace RealESRGAN_GUI
                 UpdateProgressBars();
                 SetProgressPercent(0);
             }
+            ScheduleContentHeightLimitRefresh();
         }
 
         private void UpdateProgressBars()

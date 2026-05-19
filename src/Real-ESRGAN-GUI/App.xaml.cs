@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -8,6 +7,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Microsoft.Win32;
+using RealESRGAN_GUI.Services;
 
 namespace RealESRGAN_GUI
 {
@@ -40,10 +40,8 @@ namespace RealESRGAN_GUI
 
             if (!createdNew)
             {
-                bool zh = CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
-                string message = zh ? "Real-ESRGAN GUI 已经在运行中。" : "Real-ESRGAN GUI is already running.";
-                string caption = zh ? "提示" : "Notice";
-                ShowThemedNotice(caption, message, zh);
+                string language = RunningInstanceBridge.ResolveNoticeLanguage();
+                ShowLocalizedNotice("NoticeTitle", "NoticeAlreadyRunning", language, singleInstance: true);
                 Current.Shutdown();
                 return;
             }
@@ -90,18 +88,51 @@ namespace RealESRGAN_GUI
                 // Fall through to a short actionable notice below.
             }
 
-            bool zh = CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
-            string message = zh
-                ? "无法找到 Launcher.exe。"
-                : "Launcher.exe could not be found.";
-            string caption = zh ? "启动失败" : "Launch Failed";
-            ShowThemedNotice(caption, message, zh);
+            string language = RunningInstanceBridge.ResolveSystemLanguage();
+            ShowLocalizedNotice("LaunchFailedTitle", "LauncherMissing", language);
         }
 
-        private static void ShowThemedNotice(string caption, string message, bool zh)
+        private static void ShowLocalizedNotice(
+            string titleKey,
+            string messageKey,
+            string language,
+            bool singleInstance = false)
         {
-            var notice = new NoticeWindow(caption, message, zh ? "确定" : "OK");
-            notice.ShowDialog();
+            string caption = RealESRGAN_GUI.MainWindow.TextForLanguage(language, titleKey);
+            string message = RealESRGAN_GUI.MainWindow.TextForLanguage(language, messageKey);
+            string okText = RealESRGAN_GUI.MainWindow.TextForLanguage(language, "NoticeOk");
+
+            Mutex? noticeMutex = null;
+            bool ownsNoticeMutex = false;
+
+            try
+            {
+                if (singleInstance)
+                {
+                    noticeMutex = new Mutex(
+                        true,
+                        RunningInstanceBridge.AlreadyRunningNoticeMutexName,
+                        out ownsNoticeMutex);
+
+                    if (!ownsNoticeMutex)
+                    {
+                        RunningInstanceBridge.ActivateExistingNoticeWindow();
+                        return;
+                    }
+                }
+
+                var notice = new NoticeWindow(caption, message, okText);
+                notice.ShowDialog();
+            }
+            finally
+            {
+                if (ownsNoticeMutex)
+                {
+                    noticeMutex?.ReleaseMutex();
+                }
+
+                noticeMutex?.Dispose();
+            }
         }
 
         public static bool IsSystemDarkTheme()

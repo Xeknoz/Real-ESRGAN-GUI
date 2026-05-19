@@ -116,7 +116,7 @@
                 <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
             </Style>
 
-            <!-- Context menus, including the WPF ScrollBar right-click menu. -->
+            <!-- Context menus. ScrollBar context menus are disabled in the ScrollBar style below. -->
             <Style TargetType="{x:Type ContextMenu}">
                 <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
@@ -216,7 +216,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Thumb">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="2" Margin="1"/>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Margin="1"/>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
@@ -245,8 +245,8 @@
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="MinWidth" Value="0"/>
                 <Setter Property="MinHeight" Value="0"/>
-                <Setter Property="Width" Value="6"/>
-                <Setter Property="local:ScrollBarContextMenuBehavior.UseLocalizedContextMenu" Value="True"/>
+                <Setter Property="Width" Value="8"/>
+                <Setter Property="ContextMenu" Value="{x:Null}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
@@ -276,33 +276,9 @@
                 <Style.Triggers>
                     <Trigger Property="Orientation" Value="Horizontal">
                         <Setter Property="Width" Value="Auto"/>
-                        <Setter Property="Height" Value="6"/>
+                        <Setter Property="Height" Value="8"/>
                     </Trigger>
                 </Style.Triggers>
-            </Style>
-
-            <Style x:Key="OverlayScrollViewer" TargetType="ScrollViewer">
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ScrollViewer">
-                            <Grid>
-                                <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
-                                                        CanContentScroll="{TemplateBinding CanContentScroll}"
-                                                        Content="{TemplateBinding Content}"
-                                                        ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                        Margin="{TemplateBinding Padding}"/>
-                                <ScrollBar x:Name="PART_VerticalScrollBar"
-                                           Orientation="Vertical"
-                                           HorizontalAlignment="Right"
-                                           Margin="0,4,4,4"
-                                           Maximum="{TemplateBinding ScrollableHeight}"
-                                           ViewportSize="{TemplateBinding ViewportHeight}"
-                                           Value="{TemplateBinding VerticalOffset}"
-                                           Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
             </Style>
 
             <!-- TextBox -->

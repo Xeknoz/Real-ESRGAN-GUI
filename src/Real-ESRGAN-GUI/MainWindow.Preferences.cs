@@ -298,6 +298,7 @@ namespace RealESRGAN_GUI
             RenderStatusText();
             RenderProgressText();
             RefreshFolderSummaries();
+            ScheduleContentHeightLimitRefresh();
         }
     }
 }

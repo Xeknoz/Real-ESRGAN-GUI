@@ -3,7 +3,7 @@
 `Launcher.exe` is the small native Win32 front-end shown before the WPF runtime is ready.
 It also owns the shipped application icon (`app.ico`); the WPF executable is not a user-facing entry point.
 
-The launcher owns duplicate-start feedback. If another launcher is already starting the app or the WPF single-instance mutex already exists, it activates the existing GUI when possible, shows a themed native "already running" notice immediately, and exits without starting a second WPF process.
+The launcher owns duplicate-start feedback. If another launcher is already starting the app or the WPF single-instance mutex already exists, it activates the existing GUI when possible, asks the running WPF window for its current UI language, shows one themed native "already running" notice, and exits without starting a second WPF process.
 
 ## Build
 

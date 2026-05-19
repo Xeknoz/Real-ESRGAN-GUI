@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace RealESRGAN_GUI
 {
@@ -21,8 +22,12 @@ namespace RealESRGAN_GUI
         private const double DefaultWindowWidth = 860;
         private const double MinimumWindowWidth = 460;
         private const double CompactLayoutBreakpoint = 760;
+        private const double SmallScreenDefaultWindowHeight = 640;
         private const double MinimumWindowHeight = 520;
         private bool? _isCompactLayout;
+        private bool _hasAppliedInitialWindowSize;
+        private bool _contentHeightLimitRefreshPending;
+        private bool _contentHeightLimitRefreshKeepInsideWorkArea;
 
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
@@ -104,6 +109,7 @@ namespace RealESRGAN_GUI
             MinWidth = minimumWindowWidth;
             MaxWidth = maximumWindowWidth;
             MinHeight = Math.Min(MinimumWindowHeight, workAreaOuterHeight);
+            // Temporary measurement ceiling; RefreshContentDrivenMaxHeight narrows it to the content height after layout.
             MaxHeight = workAreaOuterHeight;
 
             if (WindowState == WindowState.Normal)
@@ -118,6 +124,155 @@ namespace RealESRGAN_GUI
 
             MainScrollViewer.MaxHeight = Math.Max(80, maxHeight);
             ApplyResponsiveLayout();
+
+            if (_hasAppliedInitialWindowSize)
+                ScheduleContentHeightLimitRefresh(keepInsideWorkArea);
+        }
+
+        private void ScheduleInitialWindowSizeFit()
+        {
+            if (_hasAppliedInitialWindowSize)
+                return;
+
+            Dispatcher.BeginInvoke(new Action(ApplyInitialWindowSize), DispatcherPriority.Loaded);
+        }
+
+        private void ApplyInitialWindowSize()
+        {
+            if (_hasAppliedInitialWindowSize || WindowState != WindowState.Normal)
+                return;
+
+            _hasAppliedInitialWindowSize = true;
+            ConfigureWindowSizing();
+            UpdateLayout();
+
+            double contentFitHeight = CalculateContentFitWindowHeight();
+            if (ShouldUseSmallScreenDefault(contentFitHeight))
+            {
+                Width = ClampWindowWidth(MinimumWindowWidth);
+                UpdateLayout();
+                ApplyResponsiveLayout();
+                UpdateLayout();
+                RefreshContentDrivenMaxHeight(keepInsideWorkArea: true);
+
+                Height = ClampWindowHeight(SmallScreenDefaultWindowHeight);
+                UpdateLayout();
+                RefreshContentDrivenMaxHeight(keepInsideWorkArea: true);
+                KeepNormalWindowInsideWorkArea(GetCurrentWorkArea(), GetWindowFrameInsets());
+                return;
+            }
+
+            if (!IsFinitePositive(contentFitHeight))
+                return;
+
+            RefreshContentDrivenMaxHeight(keepInsideWorkArea: true);
+
+            double currentHeight = GetCurrentWindowHeight();
+            double targetHeight = ClampWindowHeight(contentFitHeight);
+            if (Math.Abs(targetHeight - currentHeight) <= EdgeTolerance)
+                return;
+
+            Height = targetHeight;
+            UpdateLayout();
+            RefreshContentDrivenMaxHeight(keepInsideWorkArea: true);
+            KeepNormalWindowInsideWorkArea(GetCurrentWorkArea(), GetWindowFrameInsets());
+        }
+
+        private void ScheduleContentHeightLimitRefresh(bool keepInsideWorkArea = false)
+        {
+            _contentHeightLimitRefreshKeepInsideWorkArea = keepInsideWorkArea;
+
+            if (_contentHeightLimitRefreshPending)
+                return;
+
+            _contentHeightLimitRefreshPending = true;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                bool shouldKeepInsideWorkArea = _contentHeightLimitRefreshKeepInsideWorkArea;
+                _contentHeightLimitRefreshPending = false;
+                _contentHeightLimitRefreshKeepInsideWorkArea = false;
+                RefreshContentDrivenMaxHeight(shouldKeepInsideWorkArea);
+            }), DispatcherPriority.Loaded);
+        }
+
+        private void RefreshContentDrivenMaxHeight(bool keepInsideWorkArea = false)
+        {
+            if (WindowState != WindowState.Normal)
+                return;
+
+            double workAreaOuterHeight = GetCurrentWorkAreaOuterHeight();
+            MaxHeight = workAreaOuterHeight;
+            UpdateLayout();
+
+            double contentFitHeight = CalculateContentFitWindowHeight();
+            if (!IsFinitePositive(contentFitHeight))
+                return;
+
+            double contentDrivenMaxHeight = Math.Min(workAreaOuterHeight, Math.Max(MinHeight, contentFitHeight));
+            MaxHeight = contentDrivenMaxHeight;
+
+            double currentHeight = GetCurrentWindowHeight();
+            if (IsFinitePositive(currentHeight) && currentHeight > contentDrivenMaxHeight + EdgeTolerance)
+            {
+                Height = contentDrivenMaxHeight;
+                UpdateLayout();
+            }
+
+            if (keepInsideWorkArea)
+                KeepNormalWindowInsideWorkArea(GetCurrentWorkArea(), GetWindowFrameInsets());
+        }
+
+        private double CalculateContentFitWindowHeight()
+        {
+            if (!IsFinitePositive(MainScrollViewer.ViewportHeight) ||
+                !IsFinitePositive(MainScrollViewer.ExtentHeight))
+            {
+                return double.NaN;
+            }
+
+            double currentHeight = GetCurrentWindowHeight();
+            if (!IsFinitePositive(currentHeight))
+                return double.NaN;
+
+            double heightDelta = MainScrollViewer.ExtentHeight - MainScrollViewer.ViewportHeight;
+            return Math.Ceiling(currentHeight + heightDelta);
+        }
+
+        private bool ShouldUseSmallScreenDefault(double contentFitHeight)
+        {
+            bool defaultWidthDoesNotFit = MaxWidth < DefaultWindowWidth - EdgeTolerance;
+            bool defaultContentHeightDoesNotFit =
+                IsFinitePositive(contentFitHeight) &&
+                contentFitHeight > GetCurrentWorkAreaOuterHeight() + EdgeTolerance;
+
+            return defaultWidthDoesNotFit || defaultContentHeightDoesNotFit;
+        }
+
+        private double GetCurrentWindowHeight()
+        {
+            return double.IsNaN(Height) ? ActualHeight : Height;
+        }
+
+        private double GetCurrentWorkAreaOuterHeight()
+        {
+            var workArea = GetCurrentWorkArea();
+            var frameInsets = GetWindowFrameInsets();
+            return Math.Max(1, workArea.Height) + frameInsets.Vertical;
+        }
+
+        private double ClampWindowWidth(double width)
+        {
+            return Math.Max(MinWidth, Math.Min(MaxWidth, width));
+        }
+
+        private double ClampWindowHeight(double height)
+        {
+            return Math.Max(MinHeight, Math.Min(MaxHeight, height));
+        }
+
+        private static bool IsFinitePositive(double value)
+        {
+            return !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
         }
 
         private void ApplyResponsiveLayout()

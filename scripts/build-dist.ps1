@@ -122,11 +122,91 @@ function Resolve-VisualStudioRedistNotice {
     throw "Unable to locate Visual Studio Redist.txt. Install Visual Studio C++ build tools before packaging the OpenMP runtime."
 }
 
+function Test-NuGetPackageCacheForRuntime {
+    param(
+        [string]$PackagesPath,
+        [string]$RuntimeIdentifier
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PackagesPath) -or
+        -not (Test-Path -LiteralPath $PackagesPath -PathType Container)) {
+        return $false
+    }
+
+    $requiredPackages = @(
+        "microsoft.netcore.app.runtime.$RuntimeIdentifier",
+        "microsoft.windowsdesktop.app.runtime.$RuntimeIdentifier",
+        "microsoft.aspnetcore.app.runtime.$RuntimeIdentifier"
+    )
+
+    foreach ($packageName in $requiredPackages) {
+        $packageRoot = Join-Path $PackagesPath $packageName
+        if (-not (Test-Path -LiteralPath $packageRoot -PathType Container)) {
+            return $false
+        }
+
+        $packageVersion = Get-ChildItem -LiteralPath $packageRoot -Directory -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if (-not $packageVersion) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Resolve-NuGetPackageCache {
+    param([string]$RuntimeIdentifier)
+
+    $candidates = @()
+    if (-not [string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
+        $candidates += $env:NUGET_PACKAGES
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+        $candidates += Join-Path $env:USERPROFILE ".nuget\packages"
+    }
+
+    $dotNetUserProfile = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
+    if (-not [string]::IsNullOrWhiteSpace($dotNetUserProfile)) {
+        $candidates += Join-Path $dotNetUserProfile ".nuget\packages"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:HOMEDRIVE) -and -not [string]::IsNullOrWhiteSpace($env:HOMEPATH)) {
+        $candidates += Join-Path ($env:HOMEDRIVE + $env:HOMEPATH) ".nuget\packages"
+    }
+
+    foreach ($candidate in $candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique) {
+        $fullPath = [System.IO.Path]::GetFullPath($candidate)
+        if (Test-NuGetPackageCacheForRuntime -PackagesPath $fullPath -RuntimeIdentifier $RuntimeIdentifier) {
+            return $fullPath
+        }
+    }
+
+    return $null
+}
+
+function Use-NuGetPackageCache {
+    param([string]$RuntimeIdentifier)
+
+    $packagesPath = Resolve-NuGetPackageCache -RuntimeIdentifier $RuntimeIdentifier
+    if ([string]::IsNullOrWhiteSpace($packagesPath)) {
+        Write-Host "No local NuGet package cache with $RuntimeIdentifier runtime packs was found; dotnet may restore from configured sources."
+        return $null
+    }
+
+    if ($env:NUGET_PACKAGES -ne $packagesPath) {
+        $env:NUGET_PACKAGES = $packagesPath
+        Write-Host "Using local NuGet package cache: $packagesPath"
+    }
+
+    return $packagesPath
+}
+
 function Test-DotNetRestoreAssets {
     param(
         [string]$AssetsPath,
         [string]$ProjectPath,
-        [string]$RuntimeIdentifier
+        [string]$RuntimeIdentifier,
+        [string]$PackagesPath
     )
 
     if (-not (Test-Path -LiteralPath $AssetsPath -PathType Leaf)) {
@@ -147,7 +227,33 @@ function Test-DotNetRestoreAssets {
         return $false
     }
 
-    return $targets -contains "net9.0-windows/$RuntimeIdentifier"
+    $errors = @($assets.logs | Where-Object { $_.level -eq "Error" })
+    if ($errors.Count -gt 0) {
+        return $false
+    }
+
+    if ($targets -notcontains "net9.0-windows/$RuntimeIdentifier") {
+        return $false
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($PackagesPath)) {
+        $normalizedPackagesPath = [System.IO.Path]::GetFullPath($PackagesPath).TrimEnd('\')
+        $packageFolders = @($assets.packageFolders.PSObject.Properties.Name)
+        $hasPackageFolder = $false
+        foreach ($packageFolder in $packageFolders) {
+            $normalizedPackageFolder = [System.IO.Path]::GetFullPath($packageFolder).TrimEnd('\')
+            if ($normalizedPackageFolder.Equals($normalizedPackagesPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $hasPackageFolder = $true
+                break
+            }
+        }
+
+        if (-not $hasPackageFolder) {
+            return $false
+        }
+    }
+
+    return $true
 }
 
 $appVersion = Resolve-AppVersion -RepoRoot $repoRoot -VersionOverride $Version
@@ -159,6 +265,7 @@ $defaultOutputDir = Join-Path (Join-Path "artifacts" "portable") $Architecture
 $distDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($OutputDir)) { $defaultOutputDir } else { $OutputDir }) -BasePath $repoRoot
 $licenseRoot = Join-Path $distDir "licenses"
 $architectureMarkerPath = Join-Path $distDir "ARCHITECTURE.txt"
+$nuGetPackagesPath = Use-NuGetPackageCache -RuntimeIdentifier $runtimeIdentifier
 
 $requiredPayload = @(
     @{ Root = $backendRuntimeDir; RelativePath = "realesrgan-ncnn-vulkan.exe" },
@@ -209,9 +316,9 @@ $manifestContent = $manifestContent -replace '(<assemblyIdentity version=")[^"]+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($generatedManifestPath, $manifestContent, $utf8NoBom)
 
-if ($ForceRestore -or -not (Test-DotNetRestoreAssets -AssetsPath $restoreAssetsPath -ProjectPath $projectPath -RuntimeIdentifier $runtimeIdentifier)) {
+if ($ForceRestore -or -not (Test-DotNetRestoreAssets -AssetsPath $restoreAssetsPath -ProjectPath $projectPath -RuntimeIdentifier $runtimeIdentifier -PackagesPath $nuGetPackagesPath)) {
     Write-Host "Restoring .NET assets..."
-    & dotnet restore $projectPath -r $runtimeIdentifier -p:Platform=$Architecture
+    & dotnet restore $projectPath -r $runtimeIdentifier -p:Platform=$Architecture -p:NuGetAudit=false
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet restore failed."
     }
