@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using RealESRGAN_GUI.Services;
 
 namespace RealESRGAN_GUI
@@ -70,6 +71,8 @@ namespace RealESRGAN_GUI
 
             SetUIBusy(true);
             _cts = new();
+            // Paint the busy state before slower folder checks or backend launch work can begin.
+            await Dispatcher.Yield(DispatcherPriority.Background);
 
             bool stopped = false;
             int failed = 0;

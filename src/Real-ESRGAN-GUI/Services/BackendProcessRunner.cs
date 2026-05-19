@@ -10,6 +10,7 @@ namespace RealESRGAN_GUI.Services
     internal sealed class BackendProcessRunner
     {
         private readonly string _executablePath;
+        private readonly object _processGate = new();
         private Process? _process;
 
         public BackendProcessRunner(string executablePath)
@@ -52,37 +53,77 @@ namespace RealESRGAN_GUI.Services
                     onLogLine(e.Data);
             };
 
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            _process = process;
-
             try
             {
-                await process.WaitForExitAsync(token);
+                await StartProcessAsync(process, token).ConfigureAwait(false);
+                await process.WaitForExitAsync(token).ConfigureAwait(false);
                 return process.ExitCode;
             }
             catch (OperationCanceledException)
             {
                 Stop();
-                try { await process.WaitForExitAsync(CancellationToken.None); } catch { /* ignore */ }
+                try { await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false); } catch { /* ignore */ }
                 throw;
             }
             finally
             {
                 try { process.CancelErrorRead(); } catch { /* ignore */ }
                 try { process.CancelOutputRead(); } catch { /* ignore */ }
-                _process = null;
+                ClearCurrentProcess(process);
                 process.Dispose();
+            }
+        }
+
+        private async Task StartProcessAsync(Process process, CancellationToken token)
+        {
+            await Task.Run(() =>
+            {
+                token.ThrowIfCancellationRequested();
+
+                if (!process.Start())
+                    throw new InvalidOperationException("Failed to start backend process.");
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                SetCurrentProcess(process);
+
+                if (token.IsCancellationRequested)
+                {
+                    Stop();
+                    token.ThrowIfCancellationRequested();
+                }
+            }, token).ConfigureAwait(false);
+        }
+
+        private void SetCurrentProcess(Process process)
+        {
+            lock (_processGate)
+            {
+                _process = process;
+            }
+        }
+
+        private void ClearCurrentProcess(Process process)
+        {
+            lock (_processGate)
+            {
+                if (ReferenceEquals(_process, process))
+                    _process = null;
             }
         }
 
         public void Stop()
         {
+            Process? process;
+            lock (_processGate)
+            {
+                process = _process;
+            }
+
             try
             {
-                if (_process is { HasExited: false })
-                    _process.Kill(entireProcessTree: true);
+                if (process is { HasExited: false })
+                    process.Kill(entireProcessTree: true);
             }
             catch
             {
