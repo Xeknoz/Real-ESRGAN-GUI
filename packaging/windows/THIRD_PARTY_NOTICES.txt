@@ -1,0 +1,229 @@
+Real-ESRGAN GUI Third-Party Notices
+===================================
+
+The Real-ESRGAN GUI application, launcher, scripts, and project documentation
+are licensed under this project's MIT License. The installer shows that license
+separately before this notice page.
+
+This page lists third-party software included in, embedded in, or used to
+produce the installed application and installer. These summaries are provided
+to identify the components and explain how this distribution preserves their
+required copyright notices, license conditions, and disclaimers.
+
+For components installed with the application, the complete license texts,
+copyright notices, conditions, and disclaimers are bundled with the installed
+application. To view them after installation:
+
+1. Open Real-ESRGAN GUI from the Start menu or desktop shortcut.
+2. Click About. In Chinese UI, click "关于".
+3. Read the Licenses section. In Chinese UI, this section is "许可证".
+
+
+Real-ESRGAN models and upstream project
+---------------------------------------
+Source: https://github.com/xinntao/Real-ESRGAN
+Used for: model files used by the local upscaling backend.
+License: BSD 3-Clause.
+Copyright notice retained:
+Copyright (c) 2021, Xintao Wang. All rights reserved.
+Redistribution notice: the BSD 3-Clause license requires redistributions to
+retain the copyright notice, license conditions, and disclaimer, and prohibits
+using the copyright holder's or contributors' names for endorsement without
+permission. This distribution preserves the full required text in the
+application's About > Licenses window.
+
+
+Real-ESRGAN NCNN/Vulkan backend
+-------------------------------
+Source: https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan
+Used for: local NCNN/Vulkan image upscaling executable.
+License: MIT.
+Copyright notices retained:
+Copyright (c) 2021 Xintao Wang.
+Copyright (c) 2019 nihui, for the portions based on realsr-ncnn-vulkan.
+Redistribution notice: the MIT license requires the copyright notice and
+permission notice to be included in all copies or substantial portions of the
+software. This distribution preserves the full required text in the
+application's About > Licenses window.
+
+
+ncnn
+----
+Source: https://github.com/Tencent/ncnn
+Used for: neural network inference runtime used by the backend.
+License: BSD 3-Clause for ncnn, with additional upstream third-party notices
+under zlib, BSD 2-Clause, BSD 3-Clause, and other listed terms in the ncnn
+license file.
+Copyright notice retained:
+Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+Redistribution notice: the ncnn license file requires preserving the BSD
+license text and the listed third-party notices that accompany ncnn. This
+distribution preserves the complete ncnn license and third-party notice file in
+the application's About > Licenses window.
+
+
+glslang
+-------
+Source: https://github.com/KhronosGroup/glslang
+Used for: shader tooling included through the backend's ncnn dependency tree.
+Licenses/notices retained: BSD 3-Clause, BSD 2-Clause, MIT, Apache License
+2.0, GPL 3 with the special Bison exception notice, and the NVIDIA preprocessor
+license notice, as carried by upstream glslang's license file.
+Copyright notices retained include:
+Copyright (C) 2015-2018 Google, Inc.
+Copyright 2020 The Khronos Group Inc.
+Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+Copyright (c) 2002, NVIDIA Corporation.
+Redistribution notice: the glslang license file contains several license texts
+and attribution notices. This distribution preserves the complete upstream
+license file in the application's About > Licenses window.
+
+
+libwebp
+-------
+Source: https://chromium.googlesource.com/webm/libwebp
+Used for: WebP image format support in the backend dependency tree.
+License: BSD 3-Clause.
+Copyright notice retained:
+Copyright (c) 2010, Google Inc. All rights reserved.
+Redistribution notice: the BSD 3-Clause license requires redistributions to
+retain the copyright notice, license conditions, and disclaimer, and prohibits
+using Google's or contributors' names for endorsement without permission. This
+distribution preserves the full required text in the application's About >
+Licenses window.
+
+
+pybind11
+--------
+Source: https://github.com/pybind/pybind11
+Used for: upstream backend dependency tree notices retained from ncnn source.
+License: BSD 3-Clause.
+Copyright notice retained:
+Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>. All rights reserved.
+Redistribution notice: the BSD 3-Clause license requires redistributions to
+retain the copyright notice, license conditions, and disclaimer, and prohibits
+using the copyright holder's or contributors' names for endorsement without
+permission. This distribution preserves the full required text in the
+application's About > Licenses window.
+
+
+Microsoft .NET runtime and Windows Desktop runtime
+--------------------------------------------------
+Sources:
+https://github.com/dotnet/runtime
+https://github.com/dotnet/wpf
+Used for: self-contained Windows desktop application runtime.
+License/terms retained: Microsoft Software License Terms, Microsoft .NET
+Library, plus Microsoft-provided third-party notices.
+Redistribution notice: the .NET license terms identify the distributable code
+requirements and Microsoft-provided third-party notices. This distribution
+preserves the complete Microsoft .NET license terms and ThirdPartyNotices file
+in the application's About > Licenses window.
+
+
+Microsoft Visual C++ OpenMP runtime
+-----------------------------------
+Source/reference: https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist
+Used for: OpenMP runtime required by the backend executable.
+Redistribution notice retained:
+Distributable Code for Microsoft Visual Studio (Includes Utilities &
+BuildServer Files). For the latest version of this Redist.txt file, please
+visit https://aka.ms/vs/18/redistribution.
+Distribution scope: normal Visual Studio redistributable runtime files only;
+debug-only runtime files are not shipped. This distribution preserves the
+redistributable notice in the application's About > Licenses window.
+
+
+Inno Setup installer runtime
+----------------------------
+Source: https://jrsoftware.org/isinfo.php
+Used for: this installer and its uninstaller.
+License: Inno Setup License.
+Copyright notices retained:
+Copyright (C) 1997-2026 Jordan Russell. All rights reserved.
+Portions Copyright (C) 2000-2026 Martijn Laan. All rights reserved.
+Redistribution notice: the Inno Setup License allows use and redistribution,
+including commercial use, provided redistributions retain copyright notices and
+web site addresses, do not misrepresent origin, and plainly mark modified
+versions. This installer notice retains the copyright notices and upstream web
+site address for the installer runtime. The complete license text is reproduced
+below in "Installer-only license texts".
+
+
+Inno Setup Chinese Simplified messages
+--------------------------------------
+Source: https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation
+Used for: Simplified Chinese setup UI text.
+License: MIT.
+Copyright notice retained:
+Copyright (c) 2019 - 2020 kirakira.
+Redistribution notice: the MIT license requires the copyright notice and
+permission notice to be included in all copies or substantial portions of the
+software. This installer notice retains the copyright notice, license name, and
+upstream source for the Simplified Chinese setup messages. The complete license
+text is reproduced below in "Installer-only license texts".
+
+
+Installer-only license texts
+============================
+
+Inno Setup License
+------------------
+
+Except where otherwise noted, all of the documentation and software included in
+the Inno Setup package is copyrighted by Jordan Russell.
+
+Copyright (C) 1997-2026 Jordan Russell. All rights reserved.
+Portions Copyright (C) 2000-2026 Martijn Laan. All rights reserved.
+
+This software is provided "as-is," without any express or implied warranty. In
+no event shall the author be held liable for any damages arising from the use of
+this software.
+
+Permission is granted to anyone to use this software for any purpose, including
+commercial applications, and to alter and redistribute it, provided that the
+following conditions are met:
+
+1. All redistributions of source code files must retain all copyright notices
+that are currently in place, and this list of conditions without modification.
+
+2. All redistributions in binary form must retain all occurrences of the above
+copyright notice and web site addresses that are currently in place (for
+example, in the About boxes).
+
+3. The origin of this software must not be misrepresented; you must not claim
+that you wrote the original software. If you use this software to distribute a
+product, an acknowledgment in the product documentation would be appreciated but
+is not required.
+
+4. Modified versions in source or binary form must be plainly marked as such,
+and must not be misrepresented as being the original software.
+
+Jordan Russell
+jr-2020 AT jrsoftware.org
+https://jrsoftware.org/
+
+
+Inno Setup Chinese Simplified Messages MIT License
+--------------------------------------------------
+
+MIT License
+
+Copyright (c) 2019 - 2020 kirakira
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
