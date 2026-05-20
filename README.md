@@ -2,114 +2,178 @@
 
 [简体中文](README.zh-CN.md)
 
-Real-ESRGAN GUI is a Windows desktop app for making images sharper and larger with Real-ESRGAN. It wraps the bundled Real-ESRGAN NCNN/Vulkan backend in a desktop interface, so normal use does not require Python, PyTorch, CUDA, .NET Runtime, or command-line commands.
+Real-ESRGAN GUI is a Windows app for making images larger and sharper on your own PC. It uses the bundled Real-ESRGAN NCNN/Vulkan backend, but you do not need to type commands or install Python, PyTorch, CUDA, or the .NET Runtime.
 
-Use it when you want to upscale photos, portraits, anime images, or illustration/video frames locally on your PC.
+The usual workflow is simple: choose an input folder, choose an output folder, pick the image type, then start. The app is meant for photos, portraits, anime images, illustrations, and animation frames.
 
-## Download
+Your images are processed locally. They are not uploaded to a cloud service.
 
-1. Open the [latest release](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest).
-2. Download `Real-ESRGAN-GUI-Setup-x64.exe` for 64-bit Windows, or `Real-ESRGAN-GUI-Setup-x86.exe` for 32-bit Windows 10.
-3. Run the installer.
-4. Open **Real-ESRGAN GUI** from the Start menu or desktop shortcut.
+## Download and install
 
-Do not download the repository source code zip if you only want to use the app. The installer contains the GUI, backend executable, .NET runtime files, and models.
+Open the [latest release](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest), then download one of the app files from Assets.
 
-## Quick Start
+For most users:
 
-1. Put your images in one folder.
-2. Open **Real-ESRGAN GUI**.
-3. Click **Choose image folder** and select the folder with your images.
-4. Click **Choose output folder** and select where results should be saved.
-5. Pick an image type.
-6. Leave the other settings at their defaults for the first run.
-7. Click **Start upscaling**.
+- Use `Real-ESRGAN-GUI-Setup-x64.exe` on 64-bit Windows 10 or Windows 11.
+- Use `Real-ESRGAN-GUI-Setup-x86.exe` only on 32-bit Windows 10.
+- If you want a no-install copy, download the portable archive if the release includes one, for example `Real-ESRGAN-GUI-win-x64.zip`.
 
-If the input folder is empty, add images to it before starting. The app no longer ships a sample input image.
+Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
 
-## Choosing Settings
+The installers are currently unsigned. If Windows SmartScreen appears, continue only when you downloaded the file from this repository's Releases page.
 
-| Setting | What to choose |
+## Use the installer
+
+1. Run `Real-ESRGAN-GUI-Setup-x64.exe`, or the x86 installer if you are on 32-bit Windows 10.
+2. Follow the installer prompts.
+3. Open Real-ESRGAN GUI from the Start menu or the desktop shortcut.
+
+The installer includes the GUI, launcher, backend executable, .NET runtime files, models, and license notices.
+
+## Use the portable version
+
+1. Download the portable archive from the release page, such as `Real-ESRGAN-GUI-win-x64.zip`.
+2. Extract the whole archive to a normal folder, for example `C:\Apps\Real-ESRGAN GUI\`.
+3. Open the extracted folder and run `Launcher.exe`.
+4. Keep the files together. The `engine\` folder and model files must stay next to the app files.
+
+Do not run the app from inside the zip file. To remove the portable version, close the app and delete the extracted folder.
+
+## Quick start
+
+1. Put the images you want to process in one folder.
+2. Open Real-ESRGAN GUI.
+3. Click `Choose image folder` and select the folder with your images.
+4. Click `Choose output folder` and select where the results should be saved.
+5. Pick the image type.
+6. Keep the default settings for your first run.
+7. Click `Start upscaling`.
+
+If the input folder is empty, add images before starting. The app does not ship a sample input image.
+
+## Settings
+
+| Setting | Practical choice |
 | --- | --- |
-| Image type | Use **Photo / portrait** for real-world photos, **Anime / illustration** for drawings, and the anime video options for animation frames. |
-| Scale | Leave **Model default** unless you know you need 2x, 3x, or 4x output. |
-| Format | Use **PNG** for best preservation, **JPG** for smaller files, or **WebP** for web use. |
-| Enhanced quality | This can improve some outputs, but it is slower. Try it only after a normal run. |
-| Advanced settings | Leave threads and GPU on **Auto** unless you are troubleshooting a specific device. |
+| Image type | Use Photo / portrait for real photos, Anime / illustration for drawings, and the anime video options for animation frames. |
+| Scale | Keep Model default unless you specifically need 2x, 3x, or 4x output. |
+| Format | Use PNG when you care most about preservation, JPG for smaller files, and WebP for web use. |
+| Enhanced quality | Try a normal run first. Enhanced quality may improve some images, but it is slower. |
+| Advanced settings | Keep threads and GPU on Auto unless you are troubleshooting a device problem. |
 
 Supported input files: `png`, `jpg`, `jpeg`, `bmp`, `webp`, `tif`, `tiff`.
 
 Supported output formats: `png`, `jpg`, `webp`.
 
-## Notes
+## Notes for users
 
-- This release supports Windows 10/11 x64 and Windows 10 x86.
-- Use the x64 installer on 64-bit Windows. Use the x86 installer only on 32-bit Windows 10.
-- The x86 build can process smaller images, but it has a much lower memory ceiling than x64.
-- You do not need to install .NET separately; the app is published as a self-contained Windows build.
-- The app processes images locally. It does not upload images to a cloud service.
-- The installed shortcut starts the app through `Launcher.exe`, which handles the startup splash and opens the main GUI.
-- A Vulkan-capable GPU and a working graphics driver are recommended because the bundled backend uses NCNN/Vulkan.
-- Very large images can take time and may use significant GPU memory.
-- Installers are currently unsigned. If Windows SmartScreen appears, only continue when the file came from this repository's Releases page.
+- The supported release targets are Windows 10/11 x64 and Windows 10 x86.
+- Use x64 on 64-bit Windows. The x86 build has a much lower memory limit and is mainly for 32-bit Windows 10.
+- A Vulkan-capable GPU and a current graphics driver are recommended because the backend uses NCNN/Vulkan.
+- Very large images may take a long time or run out of GPU memory.
+- The normal release entry is `Launcher.exe`. It shows the startup splash and opens the main GUI.
 
 ## Relationship to Real-ESRGAN
 
-This project is a GUI distribution around the Real-ESRGAN NCNN/Vulkan backend. The upstream Real-ESRGAN project documents command-line and Python workflows, model research, training, and portable NCNN executables. This repository focuses on a simpler Windows GUI workflow: choose folders and settings, then run.
+This repository is a Windows GUI distribution around the Real-ESRGAN NCNN/Vulkan backend. Upstream Real-ESRGAN also covers command-line use, Python workflows, model research, training, and standalone NCNN releases. This project keeps the end-user flow narrower: choose folders and settings, then run locally.
 
 Useful upstream projects:
 
 - [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)
 - [Real-ESRGAN-ncnn-vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan)
 
-## For Developers
+## Build from source
 
-<details>
-<summary>Build and repository notes</summary>
+Basic build requirements:
 
-Build release artifacts with one command:
+- Windows 10/11 x64
+- Git
+- PowerShell 5.1 or newer
+- .NET SDK 9
+- Git submodules
+
+Full release requirements:
+
+- Visual Studio C++ Build Tools with x64 and x86 toolchains
+- Windows SDK
+- CMake 3.10 or newer
+- Vulkan SDK, including `Lib32\vulkan-1.lib` when building x86
+- Inno Setup 6 if you want to build installers
+
+Clone the repository and initialize the backend submodule:
+
+```powershell
+git clone --recursive https://github.com/Xeknoz/Real-ESRGAN-GUI.git
+cd Real-ESRGAN-GUI
+git submodule update --init --recursive
+```
+
+If you already cloned the repository without submodules, run only:
 
 ```powershell
 git submodule update --init --recursive
+```
+
+Compile the WPF GUI project:
+
+```powershell
+dotnet build src/Real-ESRGAN-GUI/RealESRGAN-GUI.csproj
+```
+
+Build a portable x64 app folder:
+
+```powershell
+.\scripts\build-all.ps1 -Clean -Architecture x64
+```
+
+The output is written to:
+
+```text
+artifacts\portable\x64\
+```
+
+Build both release architectures and installers:
+
+```powershell
 .\scripts\build-release.ps1
 ```
 
-You can also double-click `scripts/build-release.cmd` on Windows. The release script builds x64 and x86 portable folders under `artifacts/portable/<arch>/`, then builds unsigned installers under `artifacts/installers/`, and prunes backend CMake build directories after successful backend builds.
-Use `.\scripts\build-release.ps1 -Architecture x64` for a single architecture, or `.\scripts\build-release.ps1 -SkipInstaller` when you only need portable folders.
+Build only the portable folders, without installers:
 
-`build-all.ps1` builds one portable folder at a time. It builds the backend when needed, prepares the shared NCNN models, builds the native launcher, publishes the WPF app, and assembles a ready-to-ship folder under `artifacts/portable/<arch>/`.
-The backend is skipped automatically when the generated `artifacts/backend/<arch>/engine/realesrgan-ncnn-vulkan.exe` already matches the backend source. Use `.\scripts\build-all.ps1 -Clean -ForceBackend` when you intentionally need a full backend rebuild.
-Model preparation extracts only the required `*.bin` and `*.param` files from the official Real-ESRGAN NCNN release archive into `artifacts/models/`; it does not fully extract the archive and does not reuse bundled backend binaries, DLLs, videos, or sample inputs. Use `.\scripts\build-models.ps1 -Force` if you need to refresh the local model cache.
-
-Repository layout:
-
-```text
-src/
-  Launcher/             Native Win32 splash launcher
-  Real-ESRGAN-GUI/      WPF desktop application
-scripts/
-  build-all.ps1         Build backend, launcher, GUI, and portable output
-  build-backend.ps1     Rebuild backend and copy it into artifacts/backend/<arch>/engine
-  build-models.ps1      Prepare architecture-independent NCNN models
-  backend-state.ps1     Backend build fingerprint helpers
-  build-dist.ps1        Publish the GUI into artifacts/portable/<arch>
-  build-installer.ps1   Build a local Windows installer
-  build-release.ps1     Build x64/x86 portable folders and installers
-  build-release.cmd     Double-click entry for build-release.ps1
-  version.ps1           Resolve app versions for builds and releases
-  Start_Real-ESRGAN.ps1 PowerShell CLI wrapper
-artifacts/
-  backend/<arch>/engine Generated backend executable and runtime DLLs
-  installers/           Unsigned Windows installers
-  models/                Generated architecture-independent NCNN models
-  portable/<arch>/      Ready-to-ship app folder
-third_party/
-  ncnn_src/             Backend source submodule
-VERSION                 Base numeric version for development builds
+```powershell
+.\scripts\build-release.ps1 -SkipInstaller
 ```
 
-</details>
+Build only one architecture:
+
+```powershell
+.\scripts\build-release.ps1 -Architecture x64
+.\scripts\build-release.ps1 -Architecture x86
+```
+
+Useful focused commands:
+
+```powershell
+.\src\Launcher\build.ps1
+.\scripts\build-backend.ps1 -Clean -Architecture x64
+.\scripts\build-models.ps1
+.\scripts\build-all.ps1 -Clean -ForceBackend
+.\scripts\build-models.ps1 -Force
+.\scripts\build-installer.ps1 -Clean -Architecture x64
+```
+
+Generated files go under `artifacts\`:
+
+```text
+artifacts\
+  backend\<arch>\engine\   Generated backend executable and runtime DLLs
+  models\                  Generated NCNN model files shared by architectures
+  portable\<arch>\         Ready-to-run portable app folder
+  installers\              Unsigned Windows installers
+```
+
+The portable folder should contain `Launcher.exe`, `Real-ESRGAN GUI.exe`, `engine\realesrgan-ncnn-vulkan.exe`, model files under `engine\models\`, version markers, and license notices.
 
 ## License
 
-The original GUI, launcher, scripts, and repository-specific documentation are licensed under the MIT License. Bundled third-party components keep their own licenses and attributions; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+The GUI, launcher, scripts, and repository-specific documentation are licensed under the MIT License. Bundled third-party components keep their own licenses and attributions; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
