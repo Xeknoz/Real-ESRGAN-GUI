@@ -16,7 +16,7 @@ For most users:
 
 - Use `Real-ESRGAN-GUI-Setup-x64.exe` on 64-bit Windows 10 or Windows 11.
 - Use `Real-ESRGAN-GUI-Setup-x86.exe` only on 32-bit Windows 10.
-- If you want a no-install copy, download the portable archive if the release includes one, for example `Real-ESRGAN-GUI-win-x64.zip`.
+- If you want a no-install copy, download the portable archive or single-file portable executable if the release includes one, for example `Real-ESRGAN-GUI-win-x64.zip` or `Real-ESRGAN-GUI-Portable-x64.exe`.
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
 
@@ -38,6 +38,12 @@ The installer includes the GUI, launcher, backend executable, .NET runtime files
 4. Keep the files together. The `engine\` folder and model files must stay next to the app files.
 
 Do not run the app from inside the zip file. To remove the portable version, close the app and delete the extracted folder.
+
+## Use the single-file portable version
+
+1. Download the single-file portable executable from the release page, such as `Real-ESRGAN-GUI-Portable-x64.exe`.
+2. Run the executable directly from a normal folder.
+3. Keep using the file from that folder. The app uses virtualized internal files and removes extracted temporary files when it exits.
 
 ## Quick start
 
@@ -99,6 +105,7 @@ Full release requirements:
 - CMake 3.10 or newer
 - Vulkan SDK, including `Lib32\vulkan-1.lib` when building x86
 - Inno Setup 6 if you want to build installers
+- Enigma Virtual Box if you want to build single-file portable executables
 
 Clone the repository and initialize the backend submodule:
 
@@ -132,6 +139,21 @@ The output is written to:
 artifacts\portable\x64\
 ```
 
+Build Enigma single-file portable executables:
+
+```powershell
+.\scripts\build-enigma.ps1 -Clean
+```
+
+By default this builds both release architectures. The script first builds or reuses `artifacts\portable\<arch>\`, then packages each portable folder into:
+
+```text
+artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x64.exe
+artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x86.exe
+```
+
+Pass `-Architecture x64` or `-Architecture x86` to build only one Enigma portable executable.
+
 Build both release architectures and installers:
 
 ```powershell
@@ -142,6 +164,12 @@ Build only the portable folders, without installers:
 
 ```powershell
 .\scripts\build-release.ps1 -SkipInstaller
+```
+
+Build release artifacts plus Enigma single-file portable executables:
+
+```powershell
+.\scripts\build-release.ps1 -BuildEnigma
 ```
 
 Build only one architecture:
@@ -160,6 +188,7 @@ Useful focused commands:
 .\scripts\build-all.ps1 -Clean -ForceBackend
 .\scripts\build-models.ps1 -Force
 .\scripts\build-installer.ps1 -Clean -Architecture x64
+.\scripts\build-enigma.ps1 -Clean
 ```
 
 Generated files go under `artifacts\`:
@@ -169,6 +198,8 @@ artifacts\
   backend\<arch>\engine\   Generated backend executable and runtime DLLs
   models\                  Generated NCNN model files shared by architectures
   portable\<arch>\         Ready-to-run portable app folder
+  portable-enigma\          Single-file portable executables built by Enigma Virtual Box
+  intermediate\enigma-projects\  Rebuildable Enigma .evb intermediate projects
   installers\              Unsigned Windows installers
 ```
 

@@ -161,6 +161,12 @@ namespace RealESRGAN_GUI
                 "Microsoft Visual C++ Redistributable - Redist notice",
                 root,
                 Path.Combine("licenses", "Microsoft-Visual-Cpp-Redistributable-Redist.txt"));
+            AddLicenseDocument(
+                documents,
+                "Enigma Virtual Box - License Agreement",
+                root,
+                Path.Combine("licenses", "Enigma-Virtual-Box-LICENSE.txt"),
+                Path.Combine("packaging", "windows", "EnigmaVirtualBox.LICENSE.txt"));
 
             return documents;
         }

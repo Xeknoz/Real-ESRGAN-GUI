@@ -27,4 +27,4 @@ The splash screen uses the resolved display version. Development builds append t
 ## Publish integration
 
 `scripts\build-dist.ps1` and `scripts\build-all.ps1` copy `src\Launcher\bin\Launcher.exe` into `artifacts\portable\<arch>\Launcher.exe` automatically.
-When packaging with Enigma Virtual Box, use `Launcher.exe` as the entry point.
+When packaging with Enigma Virtual Box, use `Launcher.exe` as the entry point. The Enigma project must also allow running virtual EXE files and share the virtual system with child processes, because the launcher starts `Real-ESRGAN GUI.exe`, and the GUI starts the NCNN/Vulkan backend from the virtualized `engine\` folder.

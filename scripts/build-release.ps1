@@ -32,6 +32,14 @@ param(
 
     [string]$InstallerOutputDir,
 
+    [switch]$BuildEnigma,
+
+    [string]$EnigmaConsolePath,
+
+    [string]$EnigmaOutputDir,
+
+    [switch]$EnigmaCompressFiles,
+
     [switch]$NoStopRunningApps
 )
 
@@ -41,6 +49,7 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $buildAllScript = Join-Path $scriptRoot "build-all.ps1"
 $buildInstallerScript = Join-Path $scriptRoot "build-installer.ps1"
+$buildEnigmaScript = Join-Path $scriptRoot "build-enigma.ps1"
 
 function Resolve-FullPath {
     param(
@@ -160,6 +169,7 @@ $pruneBackendBuildDirectory = -not $KeepBackendBuildDirectory
 $architectures = @(Get-UniqueArchitectures)
 $resolvedPortableRoot = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($PortableRoot)) { "artifacts\portable" } else { $PortableRoot }) -BasePath $repoRoot
 $resolvedInstallerOutputDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($InstallerOutputDir)) { "artifacts\installers" } else { $InstallerOutputDir }) -BasePath $repoRoot
+$resolvedEnigmaOutputDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($EnigmaOutputDir)) { "artifacts\portable-enigma" } else { $EnigmaOutputDir }) -BasePath $repoRoot
 $isccPath = $null
 
 if (-not $SkipInstaller) {
@@ -237,10 +247,30 @@ for ($index = 0; $index -lt $architectures.Count; $index++) {
         Assert-RequiredFile -Path $installerPath -Description "$arch installer"
     }
 
+    $enigmaPath = $null
+    if ($BuildEnigma) {
+        $enigmaArgs = @{
+            Configuration = $Configuration
+            Architecture = $arch
+            DistDir = $portableDir
+            OutputDir = $resolvedEnigmaOutputDir
+            SkipDistBuild = $true
+        }
+        Add-SwitchArgument -Arguments $enigmaArgs -Name "Clean" -Enabled $clean
+        Add-SwitchArgument -Arguments $enigmaArgs -Name "CompressFiles" -Enabled $EnigmaCompressFiles
+        Add-StringArgument -Arguments $enigmaArgs -Name "EnigmaConsolePath" -Value $EnigmaConsolePath
+
+        & $buildEnigmaScript @enigmaArgs
+
+        $enigmaPath = Join-Path $resolvedEnigmaOutputDir "Real-ESRGAN-GUI-Portable-$arch.exe"
+        Assert-RequiredFile -Path $enigmaPath -Description "$arch Enigma portable executable"
+    }
+
     $outputs.Add([pscustomobject]@{
         Architecture = $arch
         Portable = $portableDir
         Installer = $installerPath
+        EnigmaPortable = $enigmaPath
     })
 }
 
@@ -251,5 +281,8 @@ foreach ($output in $outputs) {
     Write-Host "  Portable : $($output.Portable)"
     if ($output.Installer) {
         Write-Host "  Installer: $($output.Installer)"
+    }
+    if ($output.EnigmaPortable) {
+        Write-Host "  Enigma   : $($output.EnigmaPortable)"
     }
 }
