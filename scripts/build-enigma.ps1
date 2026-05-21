@@ -231,6 +231,52 @@ function Test-ExcludedPath {
     return $false
 }
 
+function Get-EvbChildSortBucket {
+    param(
+        [System.IO.FileSystemInfo]$Child,
+        [string]$RootPath
+    )
+
+    $root = [System.IO.Path]::GetFullPath($RootPath).TrimEnd('\')
+    $fullPath = [System.IO.Path]::GetFullPath($Child.FullName).TrimEnd('\')
+    $relativePath = $fullPath.Substring($root.Length).TrimStart('\')
+
+    if ($Child.PSIsContainer) {
+        if ($relativePath -eq "engine") {
+            return 900
+        }
+
+        if ($relativePath -eq "licenses") {
+            return 910
+        }
+
+        return 800
+    }
+
+    switch -Exact ($Child.Name) {
+        "Real-ESRGAN GUI.exe" { return 0 }
+        "Real-ESRGAN GUI.dll" { return 1 }
+        "Real-ESRGAN GUI.deps.json" { return 2 }
+        "Real-ESRGAN GUI.runtimeconfig.json" { return 3 }
+        "hostfxr.dll" { return 10 }
+        "hostpolicy.dll" { return 11 }
+        "coreclr.dll" { return 12 }
+        "System.Private.CoreLib.dll" { return 13 }
+        "clrjit.dll" { return 14 }
+        "PresentationFramework.dll" { return 20 }
+        "PresentationCore.dll" { return 21 }
+        "WindowsBase.dll" { return 22 }
+        "System.Xaml.dll" { return 23 }
+        default {
+            if ($Child.Extension.Equals(".dll", [System.StringComparison]::OrdinalIgnoreCase)) {
+                return 100
+            }
+
+            return 200
+        }
+    }
+}
+
 function New-EvbFileEntry {
     param(
         [string]$Name,
@@ -258,11 +304,12 @@ function New-EvbFileEntry {
 function New-EvbDirectoryEntry {
     param(
         [System.IO.DirectoryInfo]$Directory,
+        [string]$RootPath,
         [string[]]$ExcludedPaths
     )
 
     $escapedName = Escape-EvbText -Value $Directory.Name
-    $entries = New-EvbEntriesForDirectory -DirectoryPath $Directory.FullName -ExcludedPaths $ExcludedPaths
+    $entries = New-EvbEntriesForDirectory -DirectoryPath $Directory.FullName -RootPath $RootPath -ExcludedPaths $ExcludedPaths
 
     return @"
 <File>
@@ -281,12 +328,13 @@ $entries
 function New-EvbEntriesForDirectory {
     param(
         [string]$DirectoryPath,
+        [string]$RootPath,
         [string[]]$ExcludedPaths
     )
 
     $entries = New-Object System.Collections.Generic.List[string]
     $children = Get-ChildItem -LiteralPath $DirectoryPath -Force |
-        Sort-Object @{ Expression = { -not $_.PSIsContainer } }, Name
+        Sort-Object @{ Expression = { Get-EvbChildSortBucket -Child $_ -RootPath $RootPath } }, Name
 
     foreach ($child in $children) {
         if (Test-ExcludedPath -Path $child.FullName -ExcludedPaths $ExcludedPaths) {
@@ -294,7 +342,7 @@ function New-EvbEntriesForDirectory {
         }
 
         if ($child.PSIsContainer) {
-            $entries.Add((New-EvbDirectoryEntry -Directory $child -ExcludedPaths $ExcludedPaths))
+            $entries.Add((New-EvbDirectoryEntry -Directory $child -RootPath $RootPath -ExcludedPaths $ExcludedPaths))
         }
         else {
             $entries.Add((New-EvbFileEntry -Name $child.Name -Path $child.FullName))
@@ -437,7 +485,8 @@ for ($index = 0; $index -lt $architectures.Count; $index++) {
     Remove-FileIfExists -Path $outputPath
 
     Write-Host "Generating Enigma intermediate project: $projectPath"
-    $fileEntries = New-EvbEntriesForDirectory -DirectoryPath $resolvedDistDir -ExcludedPaths @($inputFile)
+    Write-Host "Ordering virtual files for cold startup: WPF app/runtime first, backend models later."
+    $fileEntries = New-EvbEntriesForDirectory -DirectoryPath $resolvedDistDir -RootPath $resolvedDistDir -ExcludedPaths @($inputFile)
     $projectContent = New-EvbProjectContent `
         -InputFile $inputFile `
         -OutputFile $outputPath `

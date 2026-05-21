@@ -14,6 +14,7 @@
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'x64')">win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishReadyToRun>false</PublishReadyToRun>
+    <SatelliteResourceLanguages>zh-Hans;zh-Hant</SatelliteResourceLanguages>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
