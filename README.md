@@ -103,7 +103,7 @@ Full release requirements:
 - Visual Studio C++ Build Tools with x64 and x86 toolchains
 - Windows SDK
 - CMake 3.10 or newer
-- Vulkan SDK, including `Lib32\vulkan-1.lib` when building x86
+- Vulkan SDK. x86 builds need `Lib32\vulkan-1.lib`; `scripts/setup-vulkan-sdk.ps1 -RequireLib32` installs/selects an SDK with that component for CI.
 - Inno Setup 6 if you want to build installers
 - Enigma Virtual Box if you want to build single-file portable executables
 
@@ -172,6 +172,14 @@ Build release artifacts plus Enigma single-file portable executables:
 .\scripts\build-release.ps1 -BuildEnigma
 ```
 
+Collect release upload assets after a release build:
+
+```powershell
+.\scripts\package-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
+```
+
+GitHub Actions publishes the same assets for numeric `v*` release tags such as `v1.0.1` or `v1.0.1.4`.
+
 Build only one architecture:
 
 ```powershell
@@ -199,6 +207,7 @@ artifacts\
   models\                  Generated NCNN model files shared by architectures
   portable\<arch>\         Ready-to-run portable app folder
   portable-enigma\          Single-file portable executables built by Enigma Virtual Box
+  release-assets\           Zip archives, installers, and single-file executables for upload
   intermediate\enigma-projects\  Rebuildable Enigma .evb intermediate projects
   installers\              Unsigned Windows installers
 ```

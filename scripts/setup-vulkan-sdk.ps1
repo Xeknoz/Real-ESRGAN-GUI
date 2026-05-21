@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
-    [switch]$NoInstall
+    [switch]$NoInstall,
+    [switch]$RequireLib32,
+    [string]$X86CompatibleVersion = "1.3.296.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,9 +12,19 @@ function Test-VulkanSdk([string]$Path) {
         return $false
     }
 
-    return (Test-Path -LiteralPath (Join-Path $Path "Include\vulkan\vulkan.h")) -and
-           (Test-Path -LiteralPath (Join-Path $Path "Lib\vulkan-1.lib")) -and
-           (Test-Path -LiteralPath (Join-Path $Path "Bin\glslangValidator.exe"))
+    $hasCoreSdk = (Test-Path -LiteralPath (Join-Path $Path "Include\vulkan\vulkan.h")) -and
+                  (Test-Path -LiteralPath (Join-Path $Path "Lib\vulkan-1.lib")) -and
+                  (Test-Path -LiteralPath (Join-Path $Path "Bin\glslangValidator.exe"))
+
+    if (-not $hasCoreSdk) {
+        return $false
+    }
+
+    if ($RequireLib32 -and -not (Test-Path -LiteralPath (Join-Path $Path "Lib32\vulkan-1.lib"))) {
+        return $false
+    }
+
+    return $true
 }
 
 function Find-VulkanSdk {
@@ -42,12 +54,7 @@ function Find-VulkanSdk {
     return $null
 }
 
-$sdkPath = Find-VulkanSdk
-if (-not $sdkPath) {
-    if ($NoInstall) {
-        throw "Vulkan SDK was not found."
-    }
-
+function Install-VulkanSdkWithChocolatey {
     $choco = Get-Command choco -ErrorAction SilentlyContinue
     if (-not $choco) {
         throw "Vulkan SDK was not found and Chocolatey is unavailable. Install Vulkan SDK or add VULKAN_SDK to the environment."
@@ -58,10 +65,57 @@ if (-not $sdkPath) {
     if ($LASTEXITCODE -ne 0) {
         throw "Chocolatey failed to install vulkan-sdk."
     }
+}
+
+function Install-VulkanSdkWithLib32 {
+    if ([string]::IsNullOrWhiteSpace($X86CompatibleVersion)) {
+        throw "X86CompatibleVersion must not be empty when -RequireLib32 is used."
+    }
+
+    $installerName = "VulkanSDK-$X86CompatibleVersion-Installer.exe"
+    $downloadUrl = "https://sdk.lunarg.com/sdk/download/$X86CompatibleVersion/windows/$installerName"
+    $tempRoot = if (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
+        $env:RUNNER_TEMP
+    } else {
+        [System.IO.Path]::GetTempPath()
+    }
+    $installerPath = Join-Path $tempRoot $installerName
+
+    Write-Host "Vulkan SDK with Lib32 not found. Downloading $downloadUrl"
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath
+
+    Write-Host "Installing Vulkan SDK $X86CompatibleVersion with 32-bit components..."
+    & $installerPath --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.32bit
+    if ($LASTEXITCODE -ne 0) {
+        throw "Vulkan SDK installer failed with exit code $LASTEXITCODE."
+    }
+}
+
+$sdkPath = Find-VulkanSdk
+if (-not $sdkPath) {
+    if ($NoInstall) {
+        if ($RequireLib32) {
+            throw "Vulkan SDK with Lib32\vulkan-1.lib was not found."
+        }
+
+        throw "Vulkan SDK was not found."
+    }
+
+    if ($RequireLib32) {
+        Install-VulkanSdkWithLib32
+    }
+    else {
+        Install-VulkanSdkWithChocolatey
+    }
 
     $sdkPath = Find-VulkanSdk
     if (-not $sdkPath) {
-        throw "vulkan-sdk was installed, but a valid Vulkan SDK directory could not be located."
+        if ($RequireLib32) {
+            throw "Vulkan SDK was installed, but a valid directory with Lib32\vulkan-1.lib could not be located."
+        }
+
+        throw "Vulkan SDK was installed, but a valid Vulkan SDK directory could not be located."
     }
 }
 

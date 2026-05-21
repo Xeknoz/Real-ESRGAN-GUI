@@ -30,6 +30,35 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Install Enigma Virtual Box
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = Join-Path $env:RUNNER_TEMP "enigmavb.exe"
+          Invoke-WebRequest -Uri "https://enigmaprotector.com/assets/files/enigmavb.exe" -OutFile $installer
+
+          $process = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Enigma Virtual Box installer failed with exit code $($process.ExitCode)."
+          }
+
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} "Enigma Virtual Box\enigmavbconsole.exe"),
+            (Join-Path $env:ProgramFiles "Enigma Virtual Box\enigmavbconsole.exe")
+          )
+          $console = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $console) {
+            throw "enigmavbconsole.exe was not found after installing Enigma Virtual Box."
+          }
+
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "ENIGMA_CONSOLE=$console"
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value (Split-Path -Parent $console)
+          Write-Host "Using Enigma Virtual Box console: $console"
+
       - name: Check backend build fingerprint
         id: backend
         shell: pwsh
@@ -43,38 +72,52 @@ jobs:
       - name: Setup Vulkan SDK
         if: steps.backend.outputs.current != 'true'
         shell: pwsh
-        run: ./scripts/setup-vulkan-sdk.ps1
+        run: ./scripts/setup-vulkan-sdk.ps1 -RequireLib32
 
-      - name: Build all outputs
+      - name: Build release outputs
         shell: pwsh
         env:
           APP_VERSION: ${{ github.event.inputs.version }}
-        run: ./scripts/build-all.ps1 -Clean -Version "$env:APP_VERSION"
-
-      - name: Create release archive
-        shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          Compress-Archive -Path dist\* -DestinationPath artifacts\Real-ESRGAN-GUI-win-x64.zip -Force
+          $ErrorActionPreference = "Stop"
+          $releaseArgs = @{
+            BuildEnigma = $true
+            EnigmaConsolePath = $env:ENIGMA_CONSOLE
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:APP_VERSION)) {
+            $releaseArgs.Version = $env:APP_VERSION
+          }
 
-      - name: Upload workflow artifact
+          ./scripts/build-release.ps1 @releaseArgs
+
+      - name: Package release assets
+        shell: pwsh
+        run: ./scripts/package-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
+
+      - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: Real-ESRGAN-GUI-win-x64
-          path: artifacts/Real-ESRGAN-GUI-win-x64.zip
+          name: Real-ESRGAN-GUI-release-assets
+          path: artifacts/release-assets/*
+          if-no-files-found: error
 
-      - name: Publish GitHub Release asset
+      - name: Publish GitHub Release assets
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $ErrorActionPreference = "Stop"
           $tag = "${{ github.ref_name }}"
-          $asset = "artifacts\Real-ESRGAN-GUI-win-x64.zip"
+          $assetPaths = @(Get-ChildItem -LiteralPath "artifacts\release-assets" -File | Sort-Object Name | ForEach-Object { $_.FullName })
+          if ($assetPaths.Count -eq 0) {
+            throw "No release assets were generated."
+          }
 
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag $asset --clobber
-          } else {
-            gh release create $tag $asset --verify-tag --generate-notes
+            & gh release upload $tag @assetPaths --clobber
+          }
+          else {
+            & gh release create $tag @assetPaths --verify-tag --generate-notes
           }
