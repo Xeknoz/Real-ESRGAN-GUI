@@ -136,13 +136,19 @@ namespace RealESRGAN_GUI
                 Path.Combine("third_party", "ncnn_src", "src", "libwebp", "COPYING"));
             AddLicenseDocument(
                 documents,
+                "libwebp - WebM Project patent grant",
+                root,
+                Path.Combine("licenses", "libwebp-PATENTS.txt"),
+                Path.Combine("third_party", "ncnn_src", "src", "libwebp", "PATENTS"));
+            AddLicenseDocument(
+                documents,
                 "pybind11 - BSD 3-Clause License",
                 root,
                 Path.Combine("licenses", "pybind11-LICENSE.txt"),
                 Path.Combine("third_party", "ncnn_src", "src", "ncnn", "python", "pybind11", "LICENSE"));
             AddLicenseDocument(
                 documents,
-                "Microsoft .NET runtime - MIT License",
+                "Microsoft .NET runtime - license terms",
                 root,
                 Path.Combine("licenses", "Microsoft-dotnet-LICENSE.txt"));
             AddLicenseDocument(

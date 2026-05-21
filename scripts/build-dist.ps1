@@ -387,6 +387,7 @@ Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\LICENSE"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\LICENSE.txt") -DestinationFileName "ncnn-LICENSE.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\glslang\LICENSE.txt") -DestinationFileName "glslang-LICENSE.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\libwebp\COPYING") -DestinationFileName "libwebp-COPYING.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\libwebp\PATENTS") -DestinationFileName "libwebp-PATENTS.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\python\pybind11\LICENSE") -DestinationFileName "pybind11-LICENSE.txt"
 
 $dotNetRoot = Resolve-DotNetRoot

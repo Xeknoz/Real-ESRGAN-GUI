@@ -36,23 +36,23 @@ The entries below identify each component and the downstream notice handling use
 
 - Source: https://chromium.googlesource.com/webm/libwebp
 - Build input: `third_party/ncnn_src/src/libwebp/`
-- License: BSD 3-Clause.
+- License: BSD 3-Clause, with an additional WebM Project patent grant carried in upstream `PATENTS`.
 - Copyright notice retained: Copyright (c) 2010, Google Inc. All rights reserved.
-- Downstream notice handling: BSD 3-Clause requires redistributions to retain the copyright notice, license conditions, and disclaimer, and prohibits endorsement by Google or contributors without permission. The full required text is distributed as `licenses/libwebp-COPYING.txt`.
+- Downstream notice handling: BSD 3-Clause requires redistributions to retain the copyright notice, license conditions, and disclaimer, and prohibits endorsement by Google or contributors without permission. The full required text is distributed as `licenses/libwebp-COPYING.txt`, and the upstream patent grant is distributed as `licenses/libwebp-PATENTS.txt`.
 
 ## pybind11
 
 - Source: https://github.com/pybind/pybind11
-- Build input: `third_party/ncnn_src/src/ncnn/python/pybind11/`
+- Notice source: `third_party/ncnn_src/src/ncnn/python/pybind11/`
 - License: BSD 3-Clause.
 - Copyright notice retained: Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>. All rights reserved.
-- Downstream notice handling: BSD 3-Clause requires redistributions to retain the copyright notice, license conditions, and disclaimer, and prohibits endorsement by the copyright holder or contributors without permission. The full required text is distributed as `licenses/pybind11-LICENSE.txt`.
+- Downstream notice handling: pybind11 is retained from the upstream ncnn source tree notices and is not an application Python runtime dependency. BSD 3-Clause requires redistributions to retain the copyright notice, license conditions, and disclaimer, and prohibits endorsement by the copyright holder or contributors without permission. The full required text is distributed as `licenses/pybind11-LICENSE.txt`.
 
 ## glslang
 
 - Source: https://github.com/KhronosGroup/glslang
 - Build input: `third_party/ncnn_src/src/ncnn/glslang/`
-- Licenses/notices retained: BSD 3-Clause, BSD 2-Clause, MIT, Apache License 2.0, GPL 3 with the special Bison exception notice, and the NVIDIA preprocessor license notice, as carried by upstream glslang's license file.
+- Licenses/notices retained: BSD 3-Clause, BSD 2-Clause, MIT, Apache License 2.0, the historical GPL 3 with special Bison exception text that upstream keeps in its license file while noting Bison was removed long ago, and the NVIDIA preprocessor license notice.
 - Copyright notices retained include: Copyright (C) 2015-2018 Google, Inc.; Copyright 2020 The Khronos Group Inc.; Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.; Copyright (c) 2002, NVIDIA Corporation.
 - Downstream notice handling: the complete upstream glslang license file is distributed as `licenses/glslang-LICENSE.txt`.
 
@@ -76,7 +76,7 @@ The entries below identify each component and the downstream notice handling use
 - Used to build the Windows installer and uninstaller.
 - License: Inno Setup License.
 - Copyright notices retained: Copyright (C) 1997-2026 Jordan Russell. All rights reserved.; Portions Copyright (C) 2000-2026 Martijn Laan. All rights reserved.
-- Downstream notice handling: the Inno Setup License allows use and redistribution, including commercial use, provided redistributions retain copyright notices and web site addresses, do not misrepresent origin, and plainly mark modified versions. The installer notice retains the copyright notices and upstream web site address, reproduces the complete license text in `packaging/windows/THIRD_PARTY_NOTICES.txt`, and keeps the source-tree license text at `packaging/windows/InnoSetup.LICENSE.txt`.
+- Downstream notice handling: the Inno Setup License allows use and redistribution, including commercial use, provided redistributions retain copyright notices and web site addresses, do not misrepresent origin, and plainly mark modified versions. The plain-text setup notice at `packaging/windows/THIRD_PARTY_NOTICES.txt` includes the required copyright notices, upstream web site address, and complete Inno Setup License text shown by the installer. A maintainer copy of the same license text is kept at `packaging/windows/InnoSetup.LICENSE.txt`.
 
 ## Inno Setup Chinese Simplified messages
 
@@ -84,7 +84,7 @@ The entries below identify each component and the downstream notice handling use
 - Embedded in the installer to provide Simplified Chinese setup UI text.
 - License: MIT.
 - Copyright notice retained: Copyright (c) 2019 - 2020 kirakira.
-- Downstream notice handling: MIT requires the copyright notice and permission notice to be included in all copies or substantial portions of the software. The installer notice reproduces the complete license text in `packaging/windows/THIRD_PARTY_NOTICES.txt`, and the source-tree license text is kept at `packaging/windows/languages/ChineseSimplified.LICENSE.txt`.
+- Downstream notice handling: MIT requires the copyright notice and permission notice to be included in all copies or substantial portions of the software. The plain-text setup notice at `packaging/windows/THIRD_PARTY_NOTICES.txt` includes the required copyright notice, upstream source URL, and complete MIT License text shown by the installer. A maintainer copy of the same license text is kept at `packaging/windows/languages/ChineseSimplified.LICENSE.txt`.
 
 ## Additional notices carried by ncnn
 

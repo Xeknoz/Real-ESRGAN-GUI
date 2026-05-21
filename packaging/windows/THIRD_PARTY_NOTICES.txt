@@ -67,8 +67,9 @@ glslang
 Source: https://github.com/KhronosGroup/glslang
 Used for: shader tooling included through the backend's ncnn dependency tree.
 Licenses/notices retained: BSD 3-Clause, BSD 2-Clause, MIT, Apache License
-2.0, GPL 3 with the special Bison exception notice, and the NVIDIA preprocessor
-license notice, as carried by upstream glslang's license file.
+2.0, the historical GPL 3 with special Bison exception text that upstream keeps
+in its license file while noting Bison was removed long ago, and the NVIDIA
+preprocessor license notice.
 Copyright notices retained include:
 Copyright (C) 2015-2018 Google, Inc.
 Copyright 2020 The Khronos Group Inc.
@@ -83,20 +84,22 @@ libwebp
 -------
 Source: https://chromium.googlesource.com/webm/libwebp
 Used for: WebP image format support in the backend dependency tree.
-License: BSD 3-Clause.
+License: BSD 3-Clause, with an additional WebM Project patent grant carried
+in upstream PATENTS.
 Copyright notice retained:
 Copyright (c) 2010, Google Inc. All rights reserved.
 Redistribution notice: the BSD 3-Clause license requires redistributions to
 retain the copyright notice, license conditions, and disclaimer, and prohibits
 using Google's or contributors' names for endorsement without permission. This
 distribution preserves the full required text in the application's About >
-Licenses window.
+Licenses window, together with the upstream patent grant.
 
 
 pybind11
 --------
 Source: https://github.com/pybind/pybind11
-Used for: upstream backend dependency tree notices retained from ncnn source.
+Used for: upstream ncnn source-tree notice retained with the distribution; it
+is not an application Python runtime dependency.
 License: BSD 3-Clause.
 Copyright notice retained:
 Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>. All rights reserved.
