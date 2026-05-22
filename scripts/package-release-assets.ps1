@@ -15,7 +15,9 @@ param(
 
     [switch]$RequireInstallers,
 
-    [switch]$RequireEnigma
+    [switch]$RequireEnigma,
+
+    [switch]$IncludePortableArchives
 )
 
 $ErrorActionPreference = "Stop"
@@ -116,7 +118,11 @@ function Get-UniqueArchitectures {
     return $result
 }
 
-$resolvedPortableRoot = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($PortableRoot)) { "artifacts\portable" } else { $PortableRoot }) -BasePath $repoRoot
+$resolvedPortableRoot = if ($IncludePortableArchives) {
+    Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($PortableRoot)) { "artifacts\portable" } else { $PortableRoot }) -BasePath $repoRoot
+} else {
+    $null
+}
 $resolvedInstallerRoot = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($InstallerRoot)) { "artifacts\installers" } else { $InstallerRoot }) -BasePath $repoRoot
 $resolvedEnigmaRoot = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($EnigmaRoot)) { "artifacts\portable-enigma" } else { $EnigmaRoot }) -BasePath $repoRoot
 $resolvedOutputDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($OutputDir)) { "artifacts\release-assets" } else { $OutputDir }) -BasePath $repoRoot
@@ -129,33 +135,35 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
 $assets = New-Object System.Collections.Generic.List[object]
 
 foreach ($arch in @(Get-UniqueArchitectures)) {
-    $portableDir = Join-Path $resolvedPortableRoot $arch
-    $architectureMarkerPath = Join-Path $portableDir "ARCHITECTURE.txt"
-    Assert-RequiredDirectory -Path $portableDir -Description "$arch portable output"
-    Assert-RequiredFile -Path (Join-Path $portableDir "Launcher.exe") -Description "$arch Launcher.exe"
-    Assert-RequiredFile -Path (Join-Path $portableDir "Real-ESRGAN GUI.exe") -Description "$arch Real-ESRGAN GUI.exe"
-    Assert-RequiredFile -Path (Join-Path $portableDir "engine\realesrgan-ncnn-vulkan.exe") -Description "$arch backend executable"
-    Assert-RequiredFile -Path (Join-Path $portableDir "VERSION.txt") -Description "$arch VERSION.txt"
-    Assert-RequiredFile -Path (Join-Path $portableDir "CHANNEL.txt") -Description "$arch CHANNEL.txt"
-    Assert-RequiredFile -Path $architectureMarkerPath -Description "$arch ARCHITECTURE.txt"
-
-    $distArchitecture = (Get-Content -LiteralPath $architectureMarkerPath -TotalCount 1).Trim()
-    if ($distArchitecture -ne $arch) {
-        throw "Portable output architecture is '$distArchitecture', expected '$arch': $portableDir"
-    }
-
     $portableArchivePath = Join-Path $resolvedOutputDir "Real-ESRGAN-GUI-win-$arch.zip"
     if (Test-Path -LiteralPath $portableArchivePath -PathType Leaf) {
         Remove-Item -LiteralPath $portableArchivePath -Force
     }
 
-    Write-Host "Creating portable archive: $portableArchivePath"
-    Compress-Archive -Path (Join-Path $portableDir "*") -DestinationPath $portableArchivePath -Force
-    $assets.Add([pscustomobject]@{
-        Architecture = $arch
-        Kind = "portable-archive"
-        Path = $portableArchivePath
-    })
+    if ($IncludePortableArchives) {
+        $portableDir = Join-Path $resolvedPortableRoot $arch
+        $architectureMarkerPath = Join-Path $portableDir "ARCHITECTURE.txt"
+        Assert-RequiredDirectory -Path $portableDir -Description "$arch portable output"
+        Assert-RequiredFile -Path (Join-Path $portableDir "Launcher.exe") -Description "$arch Launcher.exe"
+        Assert-RequiredFile -Path (Join-Path $portableDir "Real-ESRGAN GUI.exe") -Description "$arch Real-ESRGAN GUI.exe"
+        Assert-RequiredFile -Path (Join-Path $portableDir "engine\realesrgan-ncnn-vulkan.exe") -Description "$arch backend executable"
+        Assert-RequiredFile -Path (Join-Path $portableDir "VERSION.txt") -Description "$arch VERSION.txt"
+        Assert-RequiredFile -Path (Join-Path $portableDir "CHANNEL.txt") -Description "$arch CHANNEL.txt"
+        Assert-RequiredFile -Path $architectureMarkerPath -Description "$arch ARCHITECTURE.txt"
+
+        $distArchitecture = (Get-Content -LiteralPath $architectureMarkerPath -TotalCount 1).Trim()
+        if ($distArchitecture -ne $arch) {
+            throw "Portable output architecture is '$distArchitecture', expected '$arch': $portableDir"
+        }
+
+        Write-Host "Creating portable archive: $portableArchivePath"
+        Compress-Archive -Path (Join-Path $portableDir "*") -DestinationPath $portableArchivePath -Force
+        $assets.Add([pscustomobject]@{
+            Architecture = $arch
+            Kind = "portable-archive"
+            Path = $portableArchivePath
+        })
+    }
 
     $installerPath = Join-Path $resolvedInstallerRoot "Real-ESRGAN-GUI-Setup-$arch.exe"
     if (Test-Path -LiteralPath $installerPath -PathType Leaf) {
@@ -172,6 +180,10 @@ foreach ($arch in @(Get-UniqueArchitectures)) {
     elseif ($RequireEnigma) {
         throw "Missing $arch Enigma portable executable: $enigmaPath"
     }
+}
+
+if ($assets.Count -eq 0) {
+    throw "No release assets were collected."
 }
 
 Write-Host ""

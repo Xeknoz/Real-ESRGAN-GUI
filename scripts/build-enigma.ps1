@@ -407,7 +407,7 @@ $resolvedOutputDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($
 $resolvedProjectDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($ProjectDir)) { "artifacts\intermediate\enigma-projects" } else { $ProjectDir }) -BasePath $repoRoot
 $architectures = @(Get-UniqueArchitectures)
 if (-not [string]::IsNullOrWhiteSpace($DistDir) -and $architectures.Count -ne 1) {
-    throw "-DistDir can only be used with a single -Architecture value. Pass -Architecture x64 or -Architecture x86, or omit -DistDir for the default artifacts\portable\<arch> layout."
+    throw "-DistDir can only be used with a single -Architecture value. Pass -Architecture x64 or -Architecture x86, or omit -DistDir for the default artifacts\intermediate\portable\<arch> layout."
 }
 
 $enigmaConsole = Resolve-EnigmaConsolePath -ExplicitPath $EnigmaConsolePath
@@ -424,7 +424,7 @@ for ($index = 0; $index -lt $architectures.Count; $index++) {
     Write-Host ""
     Write-Host "========== Enigma $step/$($architectures.Count): $arch =========="
 
-    $defaultDistDir = Join-Path (Join-Path "artifacts" "portable") $arch
+    $defaultDistDir = Join-Path (Join-Path (Join-Path "artifacts" "intermediate") "portable") $arch
     $resolvedDistDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($DistDir)) { $defaultDistDir } else { $DistDir }) -BasePath $repoRoot
     $outputPath = Join-Path $resolvedOutputDir "Real-ESRGAN-GUI-Portable-$arch.exe"
     $projectPath = Join-Path $resolvedProjectDir "Real-ESRGAN-GUI-Portable-$arch.evb"

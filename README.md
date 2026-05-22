@@ -16,7 +16,7 @@ For most users:
 
 - Use `Real-ESRGAN-GUI-Setup-x64.exe` on 64-bit Windows 10 or Windows 11.
 - Use `Real-ESRGAN-GUI-Setup-x86.exe` only on 32-bit Windows 10.
-- If you want a no-install copy, download the portable archive or single-file portable executable if the release includes one, for example `Real-ESRGAN-GUI-win-x64.zip` or `Real-ESRGAN-GUI-Portable-x64.exe`.
+- If you want a no-install copy, download the single-file portable executable, for example `Real-ESRGAN-GUI-Portable-x64.exe`.
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
 
@@ -29,15 +29,6 @@ The installers are currently unsigned. If Windows SmartScreen appears, continue 
 3. Open Real-ESRGAN GUI from the Start menu or the desktop shortcut.
 
 The installer includes the GUI, launcher, backend executable, .NET runtime files, models, and license notices.
-
-## Use the portable version
-
-1. Download the portable archive from the release page, such as `Real-ESRGAN-GUI-win-x64.zip`.
-2. Extract the whole archive to a normal folder, for example `C:\Apps\Real-ESRGAN GUI\`.
-3. Open the extracted folder and run `Launcher.exe`.
-4. Keep the files together. The `engine\` folder and model files must stay next to the app files.
-
-Do not run the app from inside the zip file. To remove the portable version, close the app and delete the extracted folder.
 
 ## Use the single-file portable version
 
@@ -145,7 +136,7 @@ Build Enigma single-file portable executables:
 .\scripts\build-enigma.ps1 -Clean
 ```
 
-By default this builds both release architectures. The script first builds or reuses `artifacts\portable\<arch>\`, then packages each portable folder into:
+By default this builds both release architectures. The script first builds or reuses rebuildable staging under `artifacts\intermediate\portable\<arch>\`, then packages each portable folder into:
 
 ```text
 artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x64.exe
@@ -159,6 +150,8 @@ Build both release architectures and installers:
 ```powershell
 .\scripts\build-release.ps1
 ```
+
+Full release builds use `artifacts\intermediate\portable\<arch>\` as staging for installers and Enigma single-file portable executables. Use `-SkipInstaller` when you specifically want a ready-to-run portable folder under `artifacts\portable\<arch>\` for local testing.
 
 Build only the portable folders, without installers:
 
@@ -177,6 +170,8 @@ Collect release upload assets after a release build:
 ```powershell
 .\scripts\package-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
 ```
+
+Release upload assets contain the installers and Enigma single-file portable executables. Portable folder zip archives are not produced unless you explicitly pass `-IncludePortableArchives`.
 
 GitHub Actions publishes the same assets for numeric `v*` release tags such as `v1.0.1` or `v1.0.1.4`.
 
@@ -205,9 +200,10 @@ Generated files go under `artifacts\`:
 artifacts\
   backend\<arch>\engine\   Generated backend executable and runtime DLLs
   models\                  Generated NCNN model files shared by architectures
-  portable\<arch>\         Ready-to-run portable app folder
+  portable\<arch>\         Ready-to-run portable app folder from build-all or -SkipInstaller
   portable-enigma\          Single-file portable executables built by Enigma Virtual Box
-  release-assets\           Zip archives, installers, and single-file executables for upload
+  release-assets\           Installers and single-file executables for upload
+  intermediate\portable\<arch>\  Rebuildable staging for installers and Enigma
   intermediate\enigma-projects\  Rebuildable Enigma .evb intermediate projects
   installers\              Unsigned Windows installers
 ```

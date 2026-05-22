@@ -167,7 +167,8 @@ function Get-UniqueArchitectures {
 $clean = -not $NoClean
 $pruneBackendBuildDirectory = -not $KeepBackendBuildDirectory
 $architectures = @(Get-UniqueArchitectures)
-$resolvedPortableRoot = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($PortableRoot)) { "artifacts\portable" } else { $PortableRoot }) -BasePath $repoRoot
+$defaultPortableRoot = if ($SkipInstaller -and -not $BuildEnigma) { "artifacts\portable" } else { "artifacts\intermediate\portable" }
+$resolvedPortableRoot = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($PortableRoot)) { $defaultPortableRoot } else { $PortableRoot }) -BasePath $repoRoot
 $resolvedInstallerOutputDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($InstallerOutputDir)) { "artifacts\installers" } else { $InstallerOutputDir }) -BasePath $repoRoot
 $resolvedEnigmaOutputDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($EnigmaOutputDir)) { "artifacts\portable-enigma" } else { $EnigmaOutputDir }) -BasePath $repoRoot
 $isccPath = $null

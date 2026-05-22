@@ -83,6 +83,7 @@ jobs:
           $releaseArgs = @{
             BuildEnigma = $true
             EnigmaConsolePath = $env:ENIGMA_CONSOLE
+            PortableRoot = "artifacts\intermediate\portable"
           }
           if (-not [string]::IsNullOrWhiteSpace($env:APP_VERSION)) {
             $releaseArgs.Version = $env:APP_VERSION
