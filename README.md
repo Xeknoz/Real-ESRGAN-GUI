@@ -1,6 +1,6 @@
 # Real-ESRGAN GUI
 
-[简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md)
 
 Real-ESRGAN GUI is a Windows app for making images larger and sharper on your own PC. It uses the bundled Real-ESRGAN NCNN/Vulkan backend, but you do not need to type commands or install Python, PyTorch, CUDA, or the .NET Runtime.
 
