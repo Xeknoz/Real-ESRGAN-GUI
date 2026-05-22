@@ -50,23 +50,32 @@ Most people should download the x64 installer. It includes the GUI, launcher, ba
 
 | Your computer / 你的电脑 | Download / 下载 |
 | --- | --- |
-| Windows 10/11, 64-bit / 64 位 Windows 10/11 | [Real-ESRGAN-GUI-Setup-x64.exe]($setupX64) |
-| Windows 10, 32-bit / 32 位 Windows 10 | [Real-ESRGAN-GUI-Setup-x86.exe]($setupX86) |
-| No-install x64 / 64 位免安装单文件版 | [Real-ESRGAN-GUI-Portable-x64.exe]($portableX64) |
-| No-install x86 / 32 位免安装单文件版 | [Real-ESRGAN-GUI-Portable-x86.exe]($portableX86) |
+| Windows 10/11, 64-bit / 64 位 Windows 10/11 | [Download installer for x64 / 下载 x64 安装包]($setupX64) |
+| Windows 10, 32-bit / 32 位 Windows 10 | [Download installer for x86 / 下载 x86 安装包]($setupX86) |
+| No-install x64 / 64 位免安装单文件版 | [Download portable x64 / 下载 x64 单文件绿色版]($portableX64) |
+| No-install x86 / 32 位免安装单文件版 | [Download portable x86 / 下载 x86 单文件绿色版]($portableX86) |
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app.
 
 如果只是使用软件，不要下载 "Source code (zip)" 或 "Source code (tar.gz)"。
 
-## Changelog / 更新日志
+## What's new / 更新内容
 
-- First public release of Real-ESRGAN GUI $version.
-- Added unsigned Windows installers for x64 and x86.
-- Added Enigma single-file portable executables for x64 and x86.
-- Bundled the WPF GUI, native launcher, Real-ESRGAN NCNN/Vulkan backend, NCNN models, .NET runtime files, and license notices.
+- First release of Real-ESRGAN GUI $version.
+- Includes Windows installers for x64 and x86.
+- Includes single-file portable executables for x64 and x86.
+- Bundles the GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, models, .NET runtime files, and license notices.
 - Supports folder-based batch upscaling, photo/anime/video model choices, PNG/JPG/WebP output, GPU and thread settings, and enhanced-quality mode.
-- Installer defaults to current-user installation and can be switched to all-users installation when needed.
+- The installer uses current-user installation by default and can be switched to all-users installation when needed.
+
+---
+
+- Real-ESRGAN GUI $version 首个发布版本。
+- 提供 x64 和 x86 Windows 安装包。
+- 提供 x64 和 x86 单文件绿色版。
+- 随包包含 GUI、启动器、Real-ESRGAN NCNN/Vulkan 后端、模型、.NET runtime 文件和许可证说明。
+- 支持按文件夹批量处理，支持照片、动漫、动画帧等模型选择，支持 PNG/JPG/WebP 输出、GPU 和线程设置，以及质量增强模式。
+- 安装包默认仅为当前用户安装，需要时可以切换为所有用户安装。
 
 ## Notes / 注意事项
 
