@@ -1,6 +1,6 @@
 # Real-ESRGAN GUI
 
-[English](README.md)
+[English](README.md) | 简体中文
 
 Real-ESRGAN GUI 是一个 Windows 图片放大和清晰化工具。它使用随包附带的 Real-ESRGAN NCNN/Vulkan 后端，但你不需要输入命令，也不需要安装 Python、PyTorch、CUDA 或 .NET Runtime。
 
