@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace RealESRGAN_GUI
@@ -10,6 +11,8 @@ namespace RealESRGAN_GUI
     public partial class MainWindow
     {
         private const string RepositoryUrl = "https://github.com/Xeknoz/realesrgan-gui";
+        private static readonly Regex MarkdownLinkRegex = new(@"\[([^\]]+)\]\(([^)]+)\)");
+        private static readonly Regex MarkdownInlineCodeRegex = new(@"`([^`]+)`");
 
         private void OnAboutClick(object sender, RoutedEventArgs e)
         {
@@ -203,7 +206,7 @@ namespace RealESRGAN_GUI
 
                 try
                 {
-                    string text = File.ReadAllText(path);
+                    string text = PrepareLicenseDocumentText(relativePath, File.ReadAllText(path));
                     if (!string.IsNullOrWhiteSpace(text))
                     {
                         documents.Add(new AboutWindow.LicenseDocument(title, text));
@@ -215,6 +218,93 @@ namespace RealESRGAN_GUI
                     return;
                 }
             }
+        }
+
+        internal static string PrepareLicenseDocumentText(string relativePath, string text)
+        {
+            return relativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                ? ConvertMarkdownNoticeToPlainText(text)
+                : text;
+        }
+
+        private static string ConvertMarkdownNoticeToPlainText(string markdown)
+        {
+            string[] lines = markdown
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n')
+                .Split('\n');
+
+            var result = new List<string>(lines.Length);
+            bool inCodeFence = false;
+
+            foreach (string rawLine in lines)
+            {
+                string line = rawLine.TrimEnd();
+                string trimmed = line.TrimStart();
+
+                if (trimmed.StartsWith("```", StringComparison.Ordinal))
+                {
+                    inCodeFence = !inCodeFence;
+                    continue;
+                }
+
+                result.Add(inCodeFence ? line : ConvertMarkdownLineToPlainText(line));
+            }
+
+            return string.Join(Environment.NewLine, result).Trim();
+        }
+
+        private static string ConvertMarkdownLineToPlainText(string line)
+        {
+            string trimmed = line.TrimStart();
+
+            if (TryConvertMarkdownHeading(trimmed, out string heading))
+                return heading;
+
+            if (trimmed.StartsWith("> ", StringComparison.Ordinal))
+                line = trimmed[2..];
+
+            line = MarkdownLinkRegex.Replace(line, FormatMarkdownLink);
+            line = MarkdownInlineCodeRegex.Replace(line, "$1");
+            line = line.Replace("**", string.Empty, StringComparison.Ordinal);
+            line = line.Replace("__", string.Empty, StringComparison.Ordinal);
+
+            return line;
+        }
+
+        private static bool TryConvertMarkdownHeading(string line, out string heading)
+        {
+            int depth = 0;
+            while (depth < line.Length && depth < 6 && line[depth] == '#')
+            {
+                depth++;
+            }
+
+            if (depth == 0 || depth >= line.Length || line[depth] != ' ')
+            {
+                heading = string.Empty;
+                return false;
+            }
+
+            heading = line[(depth + 1)..].Trim();
+            return heading.Length > 0;
+        }
+
+        private static string FormatMarkdownLink(Match match)
+        {
+            string label = match.Groups[1].Value.Trim().Trim('`');
+            string target = match.Groups[2].Value.Trim();
+
+            if (string.IsNullOrEmpty(label))
+                return target;
+
+            if (string.Equals(label, target, StringComparison.OrdinalIgnoreCase))
+                return target;
+
+            if (target.StartsWith("#", StringComparison.Ordinal))
+                return label;
+
+            return $"{label} ({target})";
         }
     }
 }
