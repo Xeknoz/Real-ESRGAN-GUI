@@ -79,15 +79,15 @@ Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want t
 
 ## Notes / 注意事项
 
-- The installers are not code-signed yet. Windows SmartScreen may warn before the first run.
-- A Vulkan-capable GPU and a current graphics driver are recommended.
-- Very large images may take a long time or run out of GPU memory.
+- For most Windows 10/11 PCs, choose the x64 installer above.
+- A dedicated GPU and a recent graphics driver are recommended for faster processing.
+- Very large images may take longer and need more memory.
 
 ---
 
-- 安装包目前还没有代码签名，第一次运行时 Windows SmartScreen 可能会提示。
-- 建议使用支持 Vulkan 的显卡和较新的显卡驱动。
-- 特别大的图片可能处理很久，也可能因为显存不足而失败。
+- 大多数 Windows 10/11 电脑请选择上方的 x64 安装包。
+- 建议使用独立显卡和较新的显卡驱动，处理速度会更稳定。
+- 特别大的图片可能需要更久时间和更多内存。
 "@
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)

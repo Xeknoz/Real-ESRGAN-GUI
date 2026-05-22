@@ -23,8 +23,6 @@ You can also open the [latest release page](https://github.com/Xeknoz/Real-ESRGA
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
 
-The installers are currently unsigned. If Windows SmartScreen appears, continue only when you downloaded the file from this repository's Releases page.
-
 ## Use the installer
 
 1. Run `Real-ESRGAN-GUI-Setup-x64.exe`, or the x86 installer if you are on 32-bit Windows 10.
@@ -207,7 +205,7 @@ artifacts\
   portable-enigma\          Single-file portable executables built by Enigma Virtual Box
   intermediate\portable\<arch>\  Rebuildable staging for installers and Enigma
   intermediate\enigma-projects\  Rebuildable Enigma .evb intermediate projects
-  installers\              Unsigned Windows installers
+  installers\              Windows installers
 ```
 
 The portable folder should contain `Launcher.exe`, `Real-ESRGAN GUI.exe`, `engine\realesrgan-ncnn-vulkan.exe`, model files under `engine\models\`, version markers, and license notices.
