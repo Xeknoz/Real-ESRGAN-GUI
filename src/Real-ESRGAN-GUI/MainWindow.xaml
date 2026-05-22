@@ -198,7 +198,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel x:Name="HeaderTitlePanel" Grid.Row="0" Grid.Column="0">
-                    <TextBlock Text="Real-ESRGAN" Style="{StaticResource AppTitle}"/>
+                    <TextBlock Text="Real-ESRGAN GUI" Style="{StaticResource AppTitle}"/>
                     <TextBlock x:Name="HeaderSubtitleText"
                                Text="图片清晰化工作台"
                                Style="{StaticResource HeroSubtitle}"
