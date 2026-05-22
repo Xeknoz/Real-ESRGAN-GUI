@@ -10,13 +10,16 @@ Your images are processed locally. They are not uploaded to a cloud service.
 
 ## Download and install
 
-Open the [latest release](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest), then download one of the app files from Assets.
+These links always point to the latest release. If you are not sure which one to choose, download the first one.
 
-For most users:
+| Your computer | Download |
+| --- | --- |
+| Windows 10/11, 64-bit | [Download installer for x64](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/Real-ESRGAN-GUI-Setup-x64.exe) |
+| Windows 10, 32-bit | [Download installer for x86](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/Real-ESRGAN-GUI-Setup-x86.exe) |
+| No-install copy on 64-bit Windows | [Download portable x64](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/Real-ESRGAN-GUI-Portable-x64.exe) |
+| No-install copy on 32-bit Windows | [Download portable x86](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/Real-ESRGAN-GUI-Portable-x86.exe) |
 
-- Use `Real-ESRGAN-GUI-Setup-x64.exe` on 64-bit Windows 10 or Windows 11.
-- Use `Real-ESRGAN-GUI-Setup-x86.exe` only on 32-bit Windows 10.
-- If you want a no-install copy, download the single-file portable executable, for example `Real-ESRGAN-GUI-Portable-x64.exe`.
+You can also open the [latest release page](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest) to read the changelog and see all files.
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
 
@@ -72,7 +75,7 @@ Supported output formats: `png`, `jpg`, `webp`.
 
 ## Relationship to Real-ESRGAN
 
-This repository is a Windows GUI distribution around the Real-ESRGAN NCNN/Vulkan backend. Upstream Real-ESRGAN also covers command-line use, Python workflows, model research, training, and standalone NCNN releases. This project keeps the end-user flow narrower: choose folders and settings, then run locally.
+This repository is a Windows GUI distribution around the Real-ESRGAN NCNN/Vulkan backend. Upstream Real-ESRGAN also covers command-line use, Python workflows, model research, training, and standalone NCNN releases.
 
 Useful upstream projects:
 
@@ -165,13 +168,13 @@ Build release artifacts plus Enigma single-file portable executables:
 .\scripts\build-release.ps1 -BuildEnigma
 ```
 
-Collect release upload assets after a release build:
+Check the release upload assets after a release build:
 
 ```powershell
-.\scripts\package-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
+.\scripts\resolve-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
 ```
 
-Release upload assets contain the installers and Enigma single-file portable executables. Portable folder zip archives are not produced unless you explicitly pass `-IncludePortableArchives`.
+Release upload assets are the installer executables in `artifacts\installers\` and the Enigma single-file portable executables in `artifacts\portable-enigma\`. The check script prints those paths for upload and removes the legacy duplicate `artifacts\release-assets\` directory when `-Clean` is passed.
 
 GitHub Actions publishes the same assets for numeric `v*` release tags such as `v1.0.1` or `v1.0.1.4`.
 
@@ -202,7 +205,6 @@ artifacts\
   models\                  Generated NCNN model files shared by architectures
   portable\<arch>\         Ready-to-run portable app folder from build-all or -SkipInstaller
   portable-enigma\          Single-file portable executables built by Enigma Virtual Box
-  release-assets\           Installers and single-file executables for upload
   intermediate\portable\<arch>\  Rebuildable staging for installers and Enigma
   intermediate\enigma-projects\  Rebuildable Enigma .evb intermediate projects
   installers\              Unsigned Windows installers

@@ -91,16 +91,31 @@ jobs:
 
           ./scripts/build-release.ps1 @releaseArgs
 
-      - name: Package release assets
+      - name: Resolve release assets
         shell: pwsh
-        run: ./scripts/package-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
+        run: ./scripts/resolve-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
         with:
           name: Real-ESRGAN-GUI-release-assets
-          path: artifacts/release-assets/*
+          path: |
+            artifacts/installers/Real-ESRGAN-GUI-Setup-x64.exe
+            artifacts/installers/Real-ESRGAN-GUI-Setup-x86.exe
+            artifacts/portable-enigma/Real-ESRGAN-GUI-Portable-x64.exe
+            artifacts/portable-enigma/Real-ESRGAN-GUI-Portable-x86.exe
           if-no-files-found: error
+
+      - name: Write GitHub Release notes
+        id: release_notes
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ github.ref_name }}"
+          $notesPath = "artifacts\release-notes\$tag.md"
+          ./scripts/write-release-notes.ps1 -Tag $tag -OutputPath $notesPath
+          "notes_path=$notesPath" >> $env:GITHUB_OUTPUT
 
       - name: Publish GitHub Release assets
         if: startsWith(github.ref, 'refs/tags/')
@@ -110,15 +125,27 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $tag = "${{ github.ref_name }}"
-          $assetPaths = @(Get-ChildItem -LiteralPath "artifacts\release-assets" -File | Sort-Object Name | ForEach-Object { $_.FullName })
-          if ($assetPaths.Count -eq 0) {
-            throw "No release assets were generated."
+          $assetPaths = @(
+            "artifacts\installers\Real-ESRGAN-GUI-Setup-x64.exe",
+            "artifacts\installers\Real-ESRGAN-GUI-Setup-x86.exe",
+            "artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x64.exe",
+            "artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x86.exe"
+          )
+          foreach ($assetPath in $assetPaths) {
+            if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+              throw "Release asset was not found: $assetPath"
+            }
+          }
+          $notesPath = "${{ steps.release_notes.outputs.notes_path }}"
+          if (-not (Test-Path -LiteralPath $notesPath -PathType Leaf)) {
+            throw "Release notes were not generated: $notesPath"
           }
 
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
+            & gh release edit $tag --notes-file $notesPath
             & gh release upload $tag @assetPaths --clobber
           }
           else {
-            & gh release create $tag @assetPaths --verify-tag --generate-notes
+            & gh release create $tag @assetPaths --verify-tag --title "Real-ESRGAN GUI $tag" --notes-file $notesPath
           }

@@ -1,0 +1,87 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$Tag,
+
+    [string]$OutputPath
+)
+
+$ErrorActionPreference = "Stop"
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptRoot
+
+function Resolve-FullPath {
+    param(
+        [string]$Path,
+        [string]$BasePath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $null
+    }
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+
+    return [System.IO.Path]::GetFullPath((Join-Path $BasePath $Path))
+}
+
+$version = $Tag.TrimStart("v")
+$resolvedOutputPath = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($OutputPath)) { "artifacts\release-notes\$Tag.md" } else { $OutputPath }) -BasePath $repoRoot
+$outputDir = Split-Path -Parent $resolvedOutputPath
+New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+$releaseBaseUrl = "https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/download/$Tag"
+$setupX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Setup-x64.exe"
+$setupX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Setup-x86.exe"
+$portableX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x64.exe"
+$portableX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x86.exe"
+
+$content = @"
+# Real-ESRGAN GUI $Tag
+
+## Download / 下载
+
+Most people should download the x64 installer. It includes the GUI, launcher, backend, models, and .NET runtime.
+
+大多数 Windows 10/11 用户下载 x64 安装包即可。安装包已经包含 GUI、启动器、后端、模型和 .NET runtime。
+
+| Your computer / 你的电脑 | Download / 下载 |
+| --- | --- |
+| Windows 10/11, 64-bit / 64 位 Windows 10/11 | [Real-ESRGAN-GUI-Setup-x64.exe]($setupX64) |
+| Windows 10, 32-bit / 32 位 Windows 10 | [Real-ESRGAN-GUI-Setup-x86.exe]($setupX86) |
+| No-install x64 / 64 位免安装单文件版 | [Real-ESRGAN-GUI-Portable-x64.exe]($portableX64) |
+| No-install x86 / 32 位免安装单文件版 | [Real-ESRGAN-GUI-Portable-x86.exe]($portableX86) |
+
+Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app.
+
+如果只是使用软件，不要下载 "Source code (zip)" 或 "Source code (tar.gz)"。
+
+## Changelog / 更新日志
+
+- First public release of Real-ESRGAN GUI $version.
+- Added unsigned Windows installers for x64 and x86.
+- Added Enigma single-file portable executables for x64 and x86.
+- Bundled the WPF GUI, native launcher, Real-ESRGAN NCNN/Vulkan backend, NCNN models, .NET runtime files, and license notices.
+- Supports folder-based batch upscaling, photo/anime/video model choices, PNG/JPG/WebP output, GPU and thread settings, and enhanced-quality mode.
+- Installer defaults to current-user installation and can be switched to all-users installation when needed.
+
+## Notes / 注意事项
+
+- The installers are not code-signed yet. Windows SmartScreen may warn before the first run.
+- A Vulkan-capable GPU and a current graphics driver are recommended.
+- Very large images may take a long time or run out of GPU memory.
+
+---
+
+- 安装包目前还没有代码签名，第一次运行时 Windows SmartScreen 可能会提示。
+- 建议使用支持 Vulkan 的显卡和较新的显卡驱动。
+- 特别大的图片可能处理很久，也可能因为显存不足而失败。
+"@
+
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($resolvedOutputPath, $content, $utf8NoBom)
+Write-Host "Release notes written: $resolvedOutputPath"
+$resolvedOutputPath
