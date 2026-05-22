@@ -40,8 +40,6 @@ $portableX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x64.exe"
 $portableX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x86.exe"
 
 $content = @"
-# Real-ESRGAN GUI $Tag
-
 ## Download / 下载
 
 Most people should download the x64 installer. It includes the GUI, launcher, backend, models, and .NET runtime.
