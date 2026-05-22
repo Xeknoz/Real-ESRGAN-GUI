@@ -11,6 +11,7 @@ namespace RealESRGAN_GUI
     public partial class MainWindow
     {
         private const string RepositoryUrl = "https://github.com/Xeknoz/realesrgan-gui";
+        private const string AboutNativeTitle = "About Real-ESRGAN GUI";
         private static readonly Regex MarkdownLinkRegex = new(@"\[([^\]]+)\]\(([^)]+)\)");
         private static readonly Regex MarkdownInlineCodeRegex = new(@"`([^`]+)`");
 
@@ -21,7 +22,7 @@ namespace RealESRGAN_GUI
             var aboutWindow = new AboutWindow(
                 GetAppVersion(),
                 RepositoryUrl,
-                T("AboutTitle"),
+                AboutNativeTitle,
                 T("AboutDescription"),
                 T("VersionLabel"),
                 T("LicenseSection"),

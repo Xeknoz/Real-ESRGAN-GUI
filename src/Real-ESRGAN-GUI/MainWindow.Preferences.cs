@@ -251,7 +251,7 @@ namespace RealESRGAN_GUI
             };
 
             App.ApplyTheme(dark);
-            App.ApplyWindowTitleBarTheme(this);
+            App.ApplyWindowTitleBarTheme(this, hideTitleText: true);
         }
 
         private string ResolveLanguage()

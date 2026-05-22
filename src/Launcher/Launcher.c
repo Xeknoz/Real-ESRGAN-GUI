@@ -348,14 +348,14 @@ static void Paint(HWND hWnd)
 
     SetBkMode(dc, TRANSPARENT);
 
-    // Title: "Real-ESRGAN"
+    // Title: "Real-ESRGAN GUI"
     HFONT hFontTitle = CreateFontW(-S(22), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Microsoft YaHei UI");
     HFONT hOldFont = (HFONT)SelectObject(dc, hFontTitle);
     SetTextColor(dc, clrText);
     RECT rcTitle = { S(28), S(20), S(280), S(46) };
-    DrawTextW(dc, L"Real-ESRGAN", -1, &rcTitle, DT_LEFT | DT_SINGLELINE);
+    DrawTextW(dc, L"Real-ESRGAN GUI", -1, &rcTitle, DT_LEFT | DT_SINGLELINE);
 
     // Version
     HFONT hFontVer = CreateFontW(-S(11), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,

@@ -238,7 +238,7 @@ namespace RealESRGAN_GUI
             SetBrush(resources, SystemColors.GrayTextBrushKey, dark ? "#FF87949F" : "#FF7B8791");
         }
 
-        public static void ApplyWindowTitleBarTheme(Window window)
+        public static void ApplyWindowTitleBarTheme(Window window, bool hideTitleText = false)
         {
             try
             {
@@ -249,8 +249,10 @@ namespace RealESRGAN_GUI
                 if (DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref useDark, sizeof(int)) != 0)
                     DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkModeLegacy, ref useDark, sizeof(int));
 
+                string titleTextBrush = hideTitleText ? "RailBrush" : "HeaderForegroundBrush";
+
                 SetTitleBarColor(hwnd, DwmwaCaptionColor, "RailBrush");
-                SetTitleBarColor(hwnd, DwmwaTextColor, "HeaderForegroundBrush");
+                SetTitleBarColor(hwnd, DwmwaTextColor, titleTextBrush);
                 SetTitleBarColor(hwnd, DwmwaBorderColor, "RailBrush");
             }
             catch
