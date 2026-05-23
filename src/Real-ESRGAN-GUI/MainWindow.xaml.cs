@@ -46,6 +46,7 @@ namespace RealESRGAN_GUI
             InitializeComponent();
             ConfigureHeaderActions();
             ConfigureWindowSizing();
+            PrepareLauncherHandoff();
 
             // Portable folder layout: engine/realesrgan-ncnn-vulkan.exe, engine/vcomp140*.dll,
             // engine/models/

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows;
+using RealESRGAN_GUI.Services;
 
 namespace RealESRGAN_GUI
 {
@@ -37,6 +38,8 @@ namespace RealESRGAN_GUI
 
             try
             {
+                WindowFirstPaintGate.PrepareForFirstPaint(aboutWindow);
+                WindowFirstPaintGate.ReleaseTransitionWhenStable(aboutWindow);
                 aboutWindow.ShowDialog();
             }
             finally

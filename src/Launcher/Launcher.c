@@ -34,6 +34,7 @@
 #define QUERY_LANGUAGE_MESSAGE_NAME L"RealESRGAN_GUI_QueryLanguage"
 #define QUERY_LANGUAGE_ZH 1
 #define QUERY_LANGUAGE_EN 2
+#define MAIN_WINDOW_READY_PROP_NAME L"RealESRGAN_GUI_RenderReady"
 
 static HWND   g_hwnd   = NULL;
 static HWND   g_mainHwnd = NULL;
@@ -569,7 +570,7 @@ static BOOL CALLBACK EnumWindowProc(HWND hwnd, LPARAM lParam)
     if (pid == (DWORD)lParam && IsWindowVisible(hwnd)) {
         WCHAR title[256] = {0};
         GetWindowTextW(hwnd, title, 256);
-        if (title[0] != L'\0') {
+        if (title[0] != L'\0' && GetPropW(hwnd, MAIN_WINDOW_READY_PROP_NAME)) {
             g_mainHwnd = hwnd;
             g_found = TRUE;
             return FALSE;
