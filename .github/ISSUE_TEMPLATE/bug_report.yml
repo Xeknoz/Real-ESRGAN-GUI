@@ -1,0 +1,94 @@
+name: Bug report
+description: Report a problem in Real-ESRGAN GUI
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please include enough detail for another developer to reproduce it.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Open About or check VERSION.txt in the portable folder.
+      placeholder: 1.0.0.88 dev
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Build architecture
+      options:
+        - x64
+        - x86
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2, Windows 10 22H2, Windows 10 x86
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package-type
+    attributes:
+      label: Package type
+      options:
+        - Installer
+        - Single-file portable
+        - Portable folder
+        - Built from source
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: artifact
+    attributes:
+      label: Artifact path or download
+      description: Include the local artifact path, release asset name, or download source.
+      placeholder: artifacts\portable\x64\Launcher.exe
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: What were you doing?
+      description: List the actions that led to the problem.
+      placeholder: |
+        1. Started Launcher.exe
+        2. Selected an input folder
+        3. Clicked Start upscaling
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+      description: Include error text, screenshots, logs, or output file details if relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Add GPU model, driver version, input image format, or anything else that may help.
+    validations:
+      required: false

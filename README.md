@@ -210,6 +210,36 @@ artifacts\
 
 The portable folder should contain `Launcher.exe`, `Real-ESRGAN GUI.exe`, `engine\realesrgan-ncnn-vulkan.exe`, model files under `engine\models\`, version markers, and license notices.
 
+## Try a local build
+
+To try the app after building from source, create both runnable portable folders:
+
+```powershell
+.\scripts\build-release.ps1 -SkipInstaller
+```
+
+This produces:
+
+```text
+artifacts\portable\x64\
+artifacts\portable\x86\
+```
+
+Start each build through its launcher:
+
+```powershell
+.\artifacts\portable\x64\Launcher.exe
+.\artifacts\portable\x86\Launcher.exe
+```
+
+If the current build output contains `NU1900`, the build may still create files, but NuGet did not finish checking dependency vulnerability information. For a build you plan to share with others, rerun with internet access:
+
+```powershell
+.\scripts\build-release.ps1 -SkipInstaller -ForceRestore
+```
+
+`-ForceRestore` is not an offline workaround; it only makes sense with internet access because it forces the build to fetch and check dependency information again.
+
 ## License
 
 The GUI, launcher, scripts, and repository-specific documentation are licensed under the MIT License. Bundled third-party components keep their own licenses and attributions; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

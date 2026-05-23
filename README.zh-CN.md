@@ -210,6 +210,36 @@ artifacts\
 
 便携版目录里应包含 `Launcher.exe`、`Real-ESRGAN GUI.exe`、`engine\realesrgan-ncnn-vulkan.exe`、`engine\models\` 下的模型文件、版本标记和许可证说明。
 
+## 试运行本地构建
+
+从源码构建后，如果想试运行软件，可以先生成 x64 和 x86 两套可直接运行的便携版目录：
+
+```powershell
+.\scripts\build-release.ps1 -SkipInstaller
+```
+
+输出位置：
+
+```text
+artifacts\portable\x64\
+artifacts\portable\x86\
+```
+
+每个架构都从自己的启动器进入软件：
+
+```powershell
+.\artifacts\portable\x64\Launcher.exe
+.\artifacts\portable\x86\Launcher.exe
+```
+
+如果本次构建输出中出现 `NU1900`，构建可能仍然会生成文件，但 NuGet 没有完成依赖包漏洞信息检查。如果这份构建准备分享给别人，请在有网络时重新运行：
+
+```powershell
+.\scripts\build-release.ps1 -SkipInstaller -ForceRestore
+```
+
+`-ForceRestore` 不是离线修复参数；它只有在能联网时才有意义，作用是强制构建重新获取并检查依赖包信息。
+
 ## 许可证
 
 GUI、启动器、脚本和本仓库专属文档使用 MIT License。随包附带的第三方组件保留各自原始许可证和署名，详见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
