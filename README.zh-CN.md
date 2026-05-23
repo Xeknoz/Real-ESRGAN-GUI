@@ -246,6 +246,22 @@ artifacts\portable\x86\
 
 `-ForceRestore` 不是离线修复参数；它只有在能联网时才有意义，作用是强制构建重新获取并检查依赖包信息。
 
+## 面向 Agent 的性能 Trace Skill
+
+仓库公开提供了 [`skills/windows-wpf-trace-analysis`](skills/windows-wpf-trace-analysis/) 这个 Codex Skill，用来分析 Windows WPF 软件的 WPR/WPA/xperf ETL trace。
+
+它适合在修改启动流程、Splash 到主窗口交接、弹窗显示、DWM/GPU 合成、UI delay 或性能相关代码前使用。Skill 会指导 Agent 先导出并比较 trace 证据，再判断问题更像 UI 线程阻塞、DWM/首帧合成、GPU、分页、磁盘 I/O，还是需要继续加临时 ETW 标记。
+
+其中的导出脚本会把 `wpaexporter.exe` 运行时使用的 `LOCALAPPDATA`、`TEMP` 和 `TMP` 临时指向输出目录，避免 WPA 第一次运行时尝试写入真实用户目录或被沙箱拦截：
+
+```powershell
+.\skills\windows-wpf-trace-analysis\scripts\export-wpf-trace.ps1 `
+  -TracePath .\artifacts\traces\baseline-splash-main-about.etl `
+  -OutputDirectory .\artifacts\trace-analysis\baseline
+```
+
+完整 WPR、WPA Exporter 和 xperf 命令用法见 Skill 内的 [`references/wpt-command-reference.md`](skills/windows-wpf-trace-analysis/references/wpt-command-reference.md)。
+
 ## 许可证
 
 GUI、启动器、脚本和本仓库专属文档使用 MIT License。随包附带的第三方组件保留各自原始许可证和署名，详见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Windows WPF Trace Analysis"
+  short_description: "Analyze WPF ETL traces safely"
+  default_prompt: "Use $windows-wpf-trace-analysis to analyze Windows WPF ETL traces before changing startup, dialog, DWM, or performance code."
+
+policy:
+  allow_implicit_invocation: true

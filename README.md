@@ -246,6 +246,22 @@ If the current build output contains `NU1900`, the build may still create files,
 
 `-ForceRestore` is not an offline workaround; it only makes sense with internet access because it forces the build to fetch and check dependency information again.
 
+## Agent Skill for Performance Traces
+
+This repository publishes the [`skills/windows-wpf-trace-analysis`](skills/windows-wpf-trace-analysis/) Codex Skill for analyzing Windows WPF ETL traces captured with WPR/WPA/xperf.
+
+Use it before changing startup flow, splash-to-main handoff, dialog display, DWM/GPU composition, UI delay, or performance-related code. The Skill guides an agent to export and compare trace evidence before deciding whether the issue points to UI-thread blocking, first-frame/DWM composition, GPU work, paging, disk I/O, or missing app lifecycle instrumentation.
+
+Its export script temporarily redirects `LOCALAPPDATA`, `TEMP`, and `TMP` to the output directory for `wpaexporter.exe`, so WPA first-run cache/config writes do not touch the real user profile or fail in a sandbox:
+
+```powershell
+.\skills\windows-wpf-trace-analysis\scripts\export-wpf-trace.ps1 `
+  -TracePath .\artifacts\traces\baseline-splash-main-about.etl `
+  -OutputDirectory .\artifacts\trace-analysis\baseline
+```
+
+See [`references/wpt-command-reference.md`](skills/windows-wpf-trace-analysis/references/wpt-command-reference.md) inside the Skill for the full WPR, WPA Exporter, and xperf command references.
+
 ## License
 
 The GUI, launcher, scripts, and repository-specific documentation are licensed under the MIT License. Bundled third-party components keep their own licenses and attributions; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
