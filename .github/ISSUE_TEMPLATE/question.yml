@@ -1,0 +1,71 @@
+name: Question / support
+description: Ask for help with using Real-ESRGAN GUI
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for asking. Please keep questions focused on the local Windows desktop app, launcher, installer, portable package, or build workflow.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Question area
+      options:
+        - Installation or update
+        - Launching the app
+        - Image processing or output
+        - GPU, threads, or advanced settings
+        - Build from source
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What do you need help with?
+      description: Describe the question, the goal, and what you have already tried.
+      placeholder: I am trying to...
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Open About or check VERSION.txt in the portable folder, if available.
+      placeholder: 1.0.0.88 dev
+    validations:
+      required: false
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2, Windows 10 22H2
+    validations:
+      required: false
+
+  - type: dropdown
+    id: package-type
+    attributes:
+      label: Package type
+      options:
+        - Installer
+        - Single-file portable
+        - Portable folder
+        - Source build
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Add screenshots, logs, GPU model, driver version, input image format, or output details if relevant.
+    validations:
+      required: false
