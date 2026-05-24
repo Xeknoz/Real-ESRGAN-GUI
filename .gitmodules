@@ -1,3 +1,4 @@
 [submodule "third_party/ncnn_src"]
 	path = third_party/ncnn_src
 	url = https://github.com/Xeknoz/Real-ESRGAN-ncnn-vulkan-Enhanced.git
+	ignore = untracked

@@ -17,16 +17,15 @@ output/
 .scratch/
 
 # Build and publish output
-# Current packaged outputs live under artifacts/.
+# Current packaged outputs live under artifacts/. These directories are
+# script-generated and may appear while release builds are still running.
 artifacts/
 .cache/
 # Legacy root publish output; kept ignored for old local runs.
 dist/
 RealESRGAN-GUI-App/
-src/Real-ESRGAN-GUI/bin/
-src/Real-ESRGAN-GUI/obj/
-src/Launcher/bin/
-src/Launcher/obj/
+src/**/bin/
+src/**/obj/
 third_party/ncnn_src/src/build/
 third_party/ncnn_src/src/build-*/
 
