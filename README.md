@@ -10,6 +10,12 @@ The usual workflow is simple: choose an input folder, choose an output folder, p
 
 Your images are processed locally. They are not uploaded to a cloud service.
 
+## Screenshots
+
+| Light theme | Dark theme |
+| --- | --- |
+| <img src="assets/screenshots/main-window-light.png" alt="Real-ESRGAN GUI light theme screenshot" width="420"> | <img src="assets/screenshots/main-window-dark.png" alt="Real-ESRGAN GUI dark theme screenshot" width="420"> |
+
 ## License and third-party notices
 
 The original GUI, launcher, scripts, and repository-specific documentation in this repository are licensed under the MIT License. The app also bundles or distributes third-party components, including the Real-ESRGAN model files, the NCNN/Vulkan backend, .NET runtime files, and installer tooling. Those components keep their own licenses and attribution requirements.
