@@ -45,28 +45,24 @@ function Get-ReleaseHighlights {
     if ($Version -eq "1.0.1") {
         return [pscustomobject]@{
             English = @(
-                "- Rebuilds the x64 and x86 Windows installers and single-file portable executables for version $Version.",
-                "- Packages the GUI startup fixes so the launcher splash waits for a stable first render before handing off to the main window.",
-                "- Packages the About and license-notice fixes so bundled third-party notices open as readable plain text.",
-                "- Keeps the bundled Real-ESRGAN NCNN/Vulkan backend, model files, .NET runtime files, and license notices in every downloadable app package."
+                "- The app opens more smoothly.",
+                "- The About window and license information are easier to read."
             )
             Chinese = @(
-                "- 重新生成 $Version 的 x64 / x86 Windows 安装包和单文件绿色版。",
-                "- 随包包含 GUI 启动修复：启动器 splash 会等待主窗口稳定完成首次渲染后再交接。",
-                "- 随包包含 About 与许可证说明修复：内置第三方 notice 会以可读的纯文本方式打开。",
-                "- 每个可下载应用包都继续内置 Real-ESRGAN NCNN/Vulkan 后端、模型文件、.NET runtime 文件和许可证说明。"
+                "- 软件打开过程更顺畅。",
+                "- 关于窗口和许可证说明更容易阅读。"
             )
         }
     }
 
     return [pscustomobject]@{
         English = @(
-            "- Rebuilds the x64 and x86 Windows installers and single-file portable executables for version $Version.",
-            "- Includes the current packaged GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, model files, .NET runtime files, and license notices."
+            "- This release includes the latest app improvements.",
+            "- For most people, the x64 installer is the right download."
         )
         Chinese = @(
-            "- 重新生成 $Version 的 x64 / x86 Windows 安装包和单文件绿色版。",
-            "- 随包包含当前 GUI、启动器、Real-ESRGAN NCNN/Vulkan 后端、模型文件、.NET runtime 文件和许可证说明。"
+            "- 这个版本包含最新的软件改进。",
+            "- 大多数用户下载 x64 安装包即可。"
         )
     }
 }
@@ -102,20 +98,6 @@ $englishHighlights
 ---
 
 $chineseHighlights
-
-### Included packages / 包含内容
-
-- Includes Windows installers for x64 and x86.
-- Includes single-file portable executables for x64 and x86.
-- Bundles the GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, models, .NET runtime files, and license notices.
-- The installer uses current-user installation by default and can be switched to all-users installation when needed.
-
----
-
-- 提供 x64 和 x86 Windows 安装包。
-- 提供 x64 和 x86 单文件绿色版。
-- 随包包含 GUI、启动器、Real-ESRGAN NCNN/Vulkan 后端、模型、.NET runtime 文件和许可证说明。
-- 安装包默认仅为当前用户安装，需要时可以切换为所有用户安装。
 
 ## Notes / 注意事项
 
