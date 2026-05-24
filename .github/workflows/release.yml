@@ -11,12 +11,16 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   build:
     runs-on: windows-2022
+    permissions:
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -24,6 +28,37 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(\.\d+)?$') {
+            throw "Release tags must use vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH.REVISION. Got: $tag"
+          }
+
+      - name: Check repository set
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          git config --file .gitmodules --get-regexp "^submodule\..*\.(path|url)$"
+          $submodules = @(git submodule status --recursive)
+          if ($LASTEXITCODE -ne 0) {
+            throw "git submodule status --recursive failed."
+          }
+
+          foreach ($line in $submodules) {
+            if ([string]::IsNullOrWhiteSpace($line)) {
+              continue
+            }
+
+            $prefix = $line.Substring(0, 1)
+            if ($prefix -ne " ") {
+              throw "Submodule is not release-ready: $line"
+            }
+          }
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -95,6 +130,34 @@ jobs:
         shell: pwsh
         run: ./scripts/resolve-release-assets.ps1 -Clean -RequireInstallers -RequireEnigma
 
+      - name: Write release evidence
+        id: release_evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ github.ref_name }}"
+          ./scripts/write-release-evidence.ps1 -Tag $tag -OutputDir artifacts\release-evidence -RequireInstallers -RequireEnigma
+          "sha256_path=artifacts\release-evidence\SHA256SUMS.txt" >> $env:GITHUB_OUTPUT
+          "manifest_path=artifacts\release-evidence\release-manifest.json" >> $env:GITHUB_OUTPUT
+
+      - name: Generate release asset attestations
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            artifacts/installers/Real-ESRGAN-GUI-Setup-x64.exe
+            artifacts/installers/Real-ESRGAN-GUI-Setup-x86.exe
+            artifacts/portable-enigma/Real-ESRGAN-GUI-Portable-x64.exe
+            artifacts/portable-enigma/Real-ESRGAN-GUI-Portable-x86.exe
+
+      - name: Generate release evidence attestations
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            artifacts/release-evidence/SHA256SUMS.txt
+            artifacts/release-evidence/release-manifest.json
+
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -104,6 +167,8 @@ jobs:
             artifacts/installers/Real-ESRGAN-GUI-Setup-x86.exe
             artifacts/portable-enigma/Real-ESRGAN-GUI-Portable-x64.exe
             artifacts/portable-enigma/Real-ESRGAN-GUI-Portable-x86.exe
+            artifacts/release-evidence/SHA256SUMS.txt
+            artifacts/release-evidence/release-manifest.json
           if-no-files-found: error
 
       - name: Write GitHub Release notes
@@ -129,7 +194,9 @@ jobs:
             "artifacts\installers\Real-ESRGAN-GUI-Setup-x64.exe",
             "artifacts\installers\Real-ESRGAN-GUI-Setup-x86.exe",
             "artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x64.exe",
-            "artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x86.exe"
+            "artifacts\portable-enigma\Real-ESRGAN-GUI-Portable-x86.exe",
+            "artifacts\release-evidence\SHA256SUMS.txt",
+            "artifacts\release-evidence\release-manifest.json"
           )
           foreach ($assetPath in $assetPaths) {
             if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {

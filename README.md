@@ -1,6 +1,8 @@
 # Real-ESRGAN GUI
 
-English | [简体中文](README.zh-CN.md)
+**Select your Language: English | [简体中文](README.zh-CN.md)**
+
+## Introduction
 
 Real-ESRGAN GUI is a Windows app for making images larger and sharper on your own PC. It uses the bundled Real-ESRGAN NCNN/Vulkan backend, but you do not need to type commands or install Python, PyTorch, CUDA, or the .NET Runtime.
 
@@ -28,6 +30,28 @@ These links always point to the latest release. If you are not sure which one to
 You can also open the [latest release page](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest) to read the changelog and see all files.
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
+
+## Verify downloads
+
+Release binaries are currently unsigned. Windows may show an "Unknown publisher" or SmartScreen warning. This does not prove the file is unsafe, but it does mean you should verify that the file came from this GitHub Release before running it. Do not disable Windows security features to install the app.
+
+Each release includes:
+
+- [`SHA256SUMS.txt`](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/SHA256SUMS.txt)
+- [`release-manifest.json`](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/release-manifest.json)
+
+After downloading an installer or portable executable, compare its SHA256 hash with `SHA256SUMS.txt`:
+
+```powershell
+Get-FileHash .\Real-ESRGAN-GUI-Setup-x64.exe -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
+```
+
+`release-manifest.json` records the tag, commit, workflow run, release asset sizes, SHA256 hashes, and submodule revisions. Public release builds also publish GitHub artifact attestations when GitHub supports them for the repository:
+
+```powershell
+gh attestation verify .\Real-ESRGAN-GUI-Setup-x64.exe -R Xeknoz/Real-ESRGAN-GUI
+```
 
 ## Use the installer
 
@@ -179,6 +203,14 @@ Check the release upload assets after a release build:
 ```
 
 Release upload assets are the installer executables in `artifacts\installers\` and the Enigma single-file portable executables in `artifacts\portable-enigma\`. The check script prints those paths for upload and removes the legacy duplicate `artifacts\release-assets\` directory when `-Clean` is passed.
+
+Generate release hashes and a machine-readable manifest:
+
+```powershell
+.\scripts\write-release-evidence.ps1 -RequireInstallers -RequireEnigma
+```
+
+The evidence files are written to `artifacts\release-evidence\SHA256SUMS.txt` and `artifacts\release-evidence\release-manifest.json`.
 
 GitHub Actions publishes the same assets for numeric `v*` release tags such as `v1.0.1` or `v1.0.1.4`.
 

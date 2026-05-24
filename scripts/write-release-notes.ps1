@@ -38,6 +38,8 @@ $setupX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Setup-x64.exe"
 $setupX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Setup-x86.exe"
 $portableX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x64.exe"
 $portableX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x86.exe"
+$sha256Sums = "$releaseBaseUrl/SHA256SUMS.txt"
+$releaseManifest = "$releaseBaseUrl/release-manifest.json"
 
 function Get-ReleaseHighlights {
     param([string]$Version)
@@ -88,6 +90,32 @@ Most people should download the x64 installer. It includes the GUI, launcher, ba
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app.
 
 如果只是使用软件，不要下载 "Source code (zip)" 或 "Source code (tar.gz)"。
+
+## Verify the download / 验证下载
+
+This release is not code-signed. Windows may show an "Unknown publisher" or SmartScreen warning. Only download files from this GitHub Release, then compare the SHA256 hash before running the installer or portable executable.
+
+本版本未做代码签名。Windows 可能显示 "Unknown publisher" 或 SmartScreen 提示。请只从这个 GitHub Release 下载文件，并在运行安装包或绿色版之前核对 SHA256。
+
+Download the hash and manifest files:
+
+- [SHA256SUMS.txt]($sha256Sums)
+- [release-manifest.json]($releaseManifest)
+
+PowerShell check example:
+
+~~~powershell
+Get-FileHash .\Real-ESRGAN-GUI-Setup-x64.exe -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
+~~~
+
+The manifest records the tag, commit, workflow run, release asset sizes, SHA256 hashes, and submodule revisions. Public repository builds also publish GitHub artifact attestations; if available, you can verify them with:
+
+~~~powershell
+gh attestation verify .\Real-ESRGAN-GUI-Setup-x64.exe -R Xeknoz/Real-ESRGAN-GUI
+~~~
+
+manifest 会记录 tag、commit、workflow run、发布资产大小、SHA256 和子模块版本。公开仓库构建还会发布 GitHub artifact attestation；如果该 release 提供 attestation，可以用上面的 gh attestation verify 命令验证来源。
 
 ## What's new / 更新内容
 
