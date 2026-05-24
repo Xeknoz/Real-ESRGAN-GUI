@@ -45,12 +45,12 @@ function Get-ReleaseHighlights {
     if ($Version -eq "1.0.1") {
         return [pscustomobject]@{
             English = @(
-                "- The app opens more smoothly.",
-                "- The About window and license information are easier to read."
+                "- The app is more stable when opening.",
+                "- The About window is clearer."
             )
             Chinese = @(
-                "- 软件打开过程更顺畅。",
-                "- 关于窗口和许可证说明更容易阅读。"
+                "- 打开软件时更稳定。",
+                "- 关于窗口里的说明更清楚。"
             )
         }
     }
@@ -90,8 +90,6 @@ Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want t
 如果只是使用软件，不要下载 "Source code (zip)" 或 "Source code (tar.gz)"。
 
 ## What's new / 更新内容
-
-### Release highlights / 更新重点
 
 $englishHighlights
 
