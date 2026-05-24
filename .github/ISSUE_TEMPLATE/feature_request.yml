@@ -1,0 +1,86 @@
+name: Feature request
+description: Suggest an improvement for Real-ESRGAN GUI
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please keep requests focused on the local Windows desktop app, launcher, packaging, or developer workflow.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Feature summary
+      description: Describe the request in one sentence.
+      placeholder: Add a way to...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      options:
+        - GUI workflow
+        - Launcher
+        - Installer or release package
+        - Backend integration
+        - Build or developer tooling
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Explain the workflow, limitation, or repeated task behind the request.
+      placeholder: When I...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Describe the behavior or UI you are suggesting.
+      placeholder: I would like Real-ESRGAN GUI to...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: package-types
+    attributes:
+      label: Affected package type
+      description: Select any package type where this matters.
+      options:
+        - label: Installer
+        - label: Single-file portable
+        - label: Portable folder
+        - label: Not package-specific
+
+  - type: checkboxes
+    id: source-build
+    attributes:
+      label: Source build
+      options:
+        - label: This request involves a build made from source
+          required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: Mention any workaround you use today, or any alternative design you considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Add screenshots, examples, related issues, or implementation notes if useful.
+    validations:
+      required: false
