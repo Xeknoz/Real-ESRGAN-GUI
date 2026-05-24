@@ -39,114 +39,41 @@ $setupX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Setup-x86.exe"
 $portableX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x64.exe"
 $portableX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x86.exe"
 
-function Get-GitOutput {
-    param(
-        [string[]]$Arguments
-    )
+function Get-ReleaseHighlights {
+    param([string]$Version)
 
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        return @()
-    }
-
-    $output = & git -C $repoRoot @Arguments 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        return @()
-    }
-
-    return @($output)
-}
-
-function ConvertTo-VersionObject {
-    param([string]$Value)
-
-    if ([string]::IsNullOrWhiteSpace($Value)) {
-        return $null
-    }
-
-    $normalized = $Value.Trim()
-    if ($normalized.StartsWith("v", [System.StringComparison]::OrdinalIgnoreCase)) {
-        $normalized = $normalized.Substring(1)
-    }
-
-    if ($normalized -notmatch '^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:\.(?<revision>0|[1-9]\d*))?$') {
-        return $null
-    }
-
-    $revision = if ($Matches["revision"]) { [int]$Matches["revision"] } else { 0 }
-    return [version]::new([int]$Matches["major"], [int]$Matches["minor"], [int]$Matches["patch"], $revision)
-}
-
-function Get-PreviousVersionTag {
-    param([string]$CurrentTag)
-
-    $currentVersion = ConvertTo-VersionObject -Value $CurrentTag
-    if (-not $currentVersion) {
-        return $null
-    }
-
-    $candidates = New-Object System.Collections.Generic.List[object]
-    foreach ($candidateTag in @(Get-GitOutput -Arguments @("tag", "--list", "v[0-9]*"))) {
-        if ([string]::IsNullOrWhiteSpace($candidateTag) -or $candidateTag -eq $CurrentTag) {
-            continue
-        }
-
-        $candidateVersion = ConvertTo-VersionObject -Value $candidateTag
-        if ($candidateVersion -and $candidateVersion -lt $currentVersion) {
-            $candidates.Add([pscustomobject]@{
-                Tag = $candidateTag
-                Version = $candidateVersion
-            })
+    if ($Version -eq "1.0.1") {
+        return [pscustomobject]@{
+            English = @(
+                "- Rebuilds the x64 and x86 Windows installers and single-file portable executables for version $Version.",
+                "- Packages the GUI startup fixes so the launcher splash waits for a stable first render before handing off to the main window.",
+                "- Packages the About and license-notice fixes so bundled third-party notices open as readable plain text.",
+                "- Keeps the bundled Real-ESRGAN NCNN/Vulkan backend, model files, .NET runtime files, and license notices in every downloadable app package."
+            )
+            Chinese = @(
+                "- 重新生成 $Version 的 x64 / x86 Windows 安装包和单文件绿色版。",
+                "- 随包包含 GUI 启动修复：启动器 splash 会等待主窗口稳定完成首次渲染后再交接。",
+                "- 随包包含 About 与许可证说明修复：内置第三方 notice 会以可读的纯文本方式打开。",
+                "- 每个可下载应用包都继续内置 Real-ESRGAN NCNN/Vulkan 后端、模型文件、.NET runtime 文件和许可证说明。"
+            )
         }
     }
 
-    $previous = $candidates | Sort-Object -Property Version -Descending | Select-Object -First 1
-    if ($previous) {
-        return $previous.Tag
-    }
-
-    return $null
-}
-
-function Format-ChangeList {
-    param([string]$PreviousTag)
-
-    if ([string]::IsNullOrWhiteSpace($PreviousTag)) {
-        return @(
-            "- First release of Real-ESRGAN GUI $version.",
-            "- Includes Windows installers for x64 and x86.",
-            "- Includes single-file portable executables for x64 and x86.",
-            "- Bundles the GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, models, .NET runtime files, and license notices.",
-            "- Supports folder-based batch upscaling, photo/anime/video model choices, PNG/JPG/WebP output, GPU and thread settings, and enhanced-quality mode."
+    return [pscustomobject]@{
+        English = @(
+            "- Rebuilds the x64 and x86 Windows installers and single-file portable executables for version $Version.",
+            "- Includes the current packaged GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, model files, .NET runtime files, and license notices."
+        )
+        Chinese = @(
+            "- 重新生成 $Version 的 x64 / x86 Windows 安装包和单文件绿色版。",
+            "- 随包包含当前 GUI、启动器、Real-ESRGAN NCNN/Vulkan 后端、模型文件、.NET runtime 文件和许可证说明。"
         )
     }
-
-    $subjects = @(Get-GitOutput -Arguments @("log", "--first-parent", "--max-count=12", "--pretty=format:%s", "$PreviousTag..HEAD")) |
-        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-
-    if ($subjects.Count -eq 0) {
-        return @("- Maintenance update built from tag $Tag.")
-    }
-
-    $lines = New-Object System.Collections.Generic.List[string]
-    foreach ($subject in $subjects) {
-        $lines.Add("- $subject")
-    }
-
-    if ($subjects.Count -eq 12) {
-        $lines.Add("- Additional internal build, documentation, and release maintenance updates.")
-    }
-
-    return @($lines)
 }
 
-$previousTag = Get-PreviousVersionTag -CurrentTag $Tag
-$changeHeading = if ($previousTag) {
-    "Changes since $previousTag / 自 $previousTag 以来的变化"
-}
-else {
-    "Initial release / 首次发布"
-}
-$changeList = (Format-ChangeList -PreviousTag $previousTag) -join "`r`n"
+$highlights = Get-ReleaseHighlights -Version $version
+$englishHighlights = $highlights.English -join "`r`n"
+$chineseHighlights = $highlights.Chinese -join "`r`n"
 
 $content = @"
 ## Download / 下载
@@ -168,9 +95,13 @@ Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want t
 
 ## What's new / 更新内容
 
-### $changeHeading
+### Release highlights / 更新重点
 
-$changeList
+$englishHighlights
+
+---
+
+$chineseHighlights
 
 ### Included packages / 包含内容
 
