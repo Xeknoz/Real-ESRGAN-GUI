@@ -39,7 +39,7 @@ namespace RealESRGAN_GUI
             try
             {
                 WindowFirstPaintGate.PrepareForFirstPaint(aboutWindow);
-                WindowFirstPaintGate.ReleaseTransitionWhenStable(aboutWindow);
+                WindowFirstPaintGate.CloakUntilStablePaint(aboutWindow);
                 aboutWindow.ShowDialog();
             }
             finally

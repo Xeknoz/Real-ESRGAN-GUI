@@ -17,7 +17,8 @@
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType">
-    <Border Padding="24">
+    <Border Padding="24"
+            Background="{DynamicResource BgBrush}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

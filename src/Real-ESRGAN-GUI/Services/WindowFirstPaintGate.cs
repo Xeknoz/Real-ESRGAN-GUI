@@ -14,8 +14,10 @@ namespace RealESRGAN_GUI.Services
 
         private const int WmEraseBackground = 0x0014;
         private const int DwmwaTransitionsForcedDisabled = 3;
+        private const int DwmwaCloak = 13;
         private static readonly TimeSpan PaintWaitTimeout = TimeSpan.FromSeconds(2);
         private static readonly ConditionalWeakTable<Window, NativePaintGuard> PaintGuards = new();
+        private static readonly ConditionalWeakTable<Window, DwmCloakRevealGuard> RevealGuards = new();
 
         internal static void PrepareForFirstPaint(Window window, string backgroundResourceKey = "BgBrush")
         {
@@ -32,9 +34,15 @@ namespace RealESRGAN_GUI.Services
             _ = MarkLauncherReadyWhenStableAsync(window);
         }
 
-        internal static void ReleaseTransitionWhenStable(Window window)
+        internal static void CloakUntilStablePaint(Window window)
         {
-            _ = ReleaseTransitionWhenStableAsync(window);
+            if (RevealGuards.TryGetValue(window, out _))
+                return;
+
+            var guard = new DwmCloakRevealGuard(window);
+            RevealGuards.Add(window, guard);
+            guard.Attach();
+            _ = guard.RevealWhenStableAsync();
         }
 
         private static async Task MarkLauncherReadyWhenStableAsync(Window window)
@@ -47,22 +55,6 @@ namespace RealESRGAN_GUI.Services
             catch
             {
                 // Keep startup resilient; the launcher still has its timeout path.
-            }
-            finally
-            {
-                SetTransitionsForcedDisabled(window, disabled: false);
-            }
-        }
-
-        private static async Task ReleaseTransitionWhenStableAsync(Window window)
-        {
-            try
-            {
-                await WaitForStablePaintAsync(window);
-            }
-            catch
-            {
-                // The guard is a visual refinement; dialog lifetime should not depend on it.
             }
             finally
             {
@@ -168,12 +160,24 @@ namespace RealESRGAN_GUI.Services
                 if (hwnd == IntPtr.Zero)
                     return;
 
-                int value = disabled ? 1 : 0;
-                DwmSetWindowAttribute(hwnd, DwmwaTransitionsForcedDisabled, ref value, sizeof(int));
+                SetDwmBoolAttribute(hwnd, DwmwaTransitionsForcedDisabled, disabled);
             }
             catch
             {
                 // DWM attributes are best-effort and unsupported in some environments.
+            }
+        }
+
+        private static bool SetDwmBoolAttribute(IntPtr hwnd, int attribute, bool enabled)
+        {
+            try
+            {
+                int value = enabled ? 1 : 0;
+                return DwmSetWindowAttribute(hwnd, attribute, ref value, sizeof(int)) == 0;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -239,7 +243,7 @@ namespace RealESRGAN_GUI.Services
 
             private bool FillBackground(IntPtr hdc)
             {
-                Color? color = ResolveBackgroundColor();
+                Color? color = ResolveBackgroundColor(_window, _backgroundResourceKey);
                 if (color is null)
                     return false;
 
@@ -261,24 +265,122 @@ namespace RealESRGAN_GUI.Services
                 }
             }
 
-            private Color? ResolveBackgroundColor()
-            {
-                object? resource = Application.Current.TryFindResource(_backgroundResourceKey);
-                if (resource is SolidColorBrush brush)
-                    return brush.Color;
-
-                if (_window.Background is SolidColorBrush background)
-                    return background.Color;
-
-                return null;
-            }
-
             private void OnClosed(object? sender, EventArgs e)
             {
                 _window.SourceInitialized -= OnSourceInitialized;
                 _source?.RemoveHook(WndProc);
                 _source = null;
             }
+        }
+
+        private sealed class DwmCloakRevealGuard
+        {
+            private readonly Window _window;
+            private IntPtr _hwnd;
+            private bool _cloaked;
+            private bool _closed;
+            private bool _finished;
+
+            internal DwmCloakRevealGuard(Window window)
+            {
+                _window = window;
+            }
+
+            internal void Attach()
+            {
+                _window.SourceInitialized += OnSourceInitialized;
+                _window.Closed += OnClosed;
+                CloakIfReady();
+            }
+
+            internal async Task RevealWhenStableAsync()
+            {
+                try
+                {
+                    await WaitWithTimeoutAsync(WaitForStablePaintAsync(_window));
+                }
+                catch
+                {
+                    // The dialog must never stay invisible because a visual refinement failed.
+                }
+                finally
+                {
+                    Reveal();
+                }
+            }
+
+            private void OnSourceInitialized(object? sender, EventArgs e)
+            {
+                CloakIfReady();
+            }
+
+            private void CloakIfReady()
+            {
+                if (_cloaked)
+                    return;
+
+                _hwnd = new WindowInteropHelper(_window).Handle;
+                if (_hwnd == IntPtr.Zero)
+                    return;
+
+                _cloaked = SetDwmBoolAttribute(_hwnd, DwmwaCloak, enabled: true);
+            }
+
+            private void Reveal()
+            {
+                if (_finished)
+                    return;
+
+                _finished = true;
+
+                if (_closed || _window.Dispatcher.HasShutdownStarted)
+                {
+                    Cleanup();
+                    return;
+                }
+
+                if (_hwnd == IntPtr.Zero)
+                    _hwnd = new WindowInteropHelper(_window).Handle;
+
+                if (_hwnd != IntPtr.Zero)
+                {
+                    if (_cloaked)
+                        SetDwmBoolAttribute(_hwnd, DwmwaCloak, enabled: false);
+                }
+
+                SetTransitionsForcedDisabled(_window, disabled: false);
+                Cleanup();
+            }
+
+            private void OnClosed(object? sender, EventArgs e)
+            {
+                _closed = true;
+                _finished = true;
+
+                if (_cloaked && _hwnd != IntPtr.Zero)
+                    SetDwmBoolAttribute(_hwnd, DwmwaCloak, enabled: false);
+
+                Cleanup();
+            }
+
+            private void Cleanup()
+            {
+                _window.SourceInitialized -= OnSourceInitialized;
+                _window.Closed -= OnClosed;
+                RevealGuards.Remove(_window);
+            }
+        }
+
+        private static Color? ResolveBackgroundColor(Window window, string backgroundResourceKey)
+        {
+            object? resource = Application.Current.TryFindResource(backgroundResourceKey);
+            if (resource is SolidColorBrush brush)
+                return brush.Color;
+
+            if (window.Background is SolidColorBrush background)
+                return background.Color;
+
+            return null;
         }
 
         private static int ToColorRef(Color color)
