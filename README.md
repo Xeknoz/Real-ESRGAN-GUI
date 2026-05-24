@@ -31,23 +31,26 @@ You can also open the [latest release page](https://github.com/Xeknoz/Real-ESRGA
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app. Those files are for developers and do not contain a ready-to-run GUI package.
 
-## Verify downloads
+## Check the downloaded file
 
-Release binaries are currently unsigned. Windows may show an "Unknown publisher" or SmartScreen warning. This does not prove the file is unsafe, but it does mean you should verify that the file came from this GitHub Release before running it. Do not disable Windows security features to install the app.
+This app is unsigned for now, so Windows may show "Unknown publisher" or a SmartScreen warning. That is expected for this release. Do not turn off Windows security; check the downloaded file first.
 
-Each release includes:
+Quick check:
 
-- [`SHA256SUMS.txt`](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/SHA256SUMS.txt)
-- [`release-manifest.json`](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/release-manifest.json)
-
-After downloading an installer or portable executable, compare its SHA256 hash with `SHA256SUMS.txt`:
+1. Download the installer or portable file from the latest Release.
+2. Download [`SHA256SUMS.txt`](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/SHA256SUMS.txt) from the same Release.
+3. Open PowerShell in the folder where the downloaded file is saved, then run:
 
 ```powershell
 Get-FileHash .\Real-ESRGAN-GUI-Setup-x64.exe -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
 ```
 
-`release-manifest.json` records the tag, commit, workflow run, release asset sizes, SHA256 hashes, and submodule revisions. Public release builds also publish GitHub artifact attestations when GitHub supports them for the repository:
+4. Compare the long SHA256 value with the line for the same file name in `SHA256SUMS.txt`. If the values are different, delete the file and download it again.
+
+This only checks that your local file matches the file published in the Release. It does not require an account.
+
+For extra detail, [`release-manifest.json`](https://github.com/Xeknoz/Real-ESRGAN-GUI/releases/latest/download/release-manifest.json) lists the tag, commit, workflow run, file sizes, SHA256 hashes, and submodule revisions. If you already use GitHub CLI, you can also check the release provenance:
 
 ```powershell
 gh attestation verify .\Real-ESRGAN-GUI-Setup-x64.exe -R Xeknoz/Real-ESRGAN-GUI

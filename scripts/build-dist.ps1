@@ -384,6 +384,8 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
 Copy-Item -LiteralPath (Join-Path $repoRoot "THIRD_PARTY_NOTICES.md") -Destination (Join-Path $distDir "THIRD_PARTY_NOTICES.md") -Force
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "licenses\Real-ESRGAN-LICENSE.txt") -DestinationFileName "Real-ESRGAN-LICENSE.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\LICENSE") -DestinationFileName "Real-ESRGAN-ncnn-vulkan-Enhanced-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "licenses\dirent-MIT-LICENSE.txt") -DestinationFileName "dirent-MIT-LICENSE.txt"
+Copy-LicenseFile -SourcePath (Join-Path $repoRoot "licenses\stb-LICENSE.txt") -DestinationFileName "stb-LICENSE.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\LICENSE.txt") -DestinationFileName "ncnn-LICENSE.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\ncnn\glslang\LICENSE.txt") -DestinationFileName "glslang-LICENSE.txt"
 Copy-LicenseFile -SourcePath (Join-Path $repoRoot "third_party\ncnn_src\src\libwebp\COPYING") -DestinationFileName "libwebp-COPYING.txt"

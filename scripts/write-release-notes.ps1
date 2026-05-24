@@ -51,8 +51,8 @@ function Get-ReleaseHighlights {
                 "- The About window is clearer."
             )
             Chinese = @(
-                "- 打开软件时更稳定。",
-                "- 关于窗口里的说明更清楚。"
+                "- 改进软件启动稳定性。",
+                "- 关于窗口说明更加清晰。"
             )
         }
     }
@@ -63,8 +63,8 @@ function Get-ReleaseHighlights {
             "- For most people, the x64 installer is the right download."
         )
         Chinese = @(
-            "- 这个版本包含最新的软件改进。",
-            "- 大多数用户下载 x64 安装包即可。"
+            "- 本版本包含最新的软件改进。",
+            "- 大多数用户建议下载 x64 安装包。"
         )
     }
 }
@@ -78,7 +78,7 @@ $content = @"
 
 Most people should download the x64 installer. It includes the GUI, launcher, backend, models, and .NET runtime.
 
-大多数 Windows 10/11 用户下载 x64 安装包即可。安装包已经包含 GUI、启动器、后端、模型和 .NET runtime。
+大多数 Windows 10/11 用户建议下载 x64 安装包。安装包已经包含 GUI、启动器、后端、模型和 .NET runtime。
 
 | Your computer / 你的电脑 | Download / 下载 |
 | --- | --- |
@@ -89,33 +89,38 @@ Most people should download the x64 installer. It includes the GUI, launcher, ba
 
 Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want to use the app.
 
-如果只是使用软件，不要下载 "Source code (zip)" 或 "Source code (tar.gz)"。
+仅使用软件时，请不要下载 "Source code (zip)" 或 "Source code (tar.gz)"。
 
-## Verify the download / 验证下载
+## Check the download / 验证下载文件
 
-This release is not code-signed. Windows may show an "Unknown publisher" or SmartScreen warning. Only download files from this GitHub Release, then compare the SHA256 hash before running the installer or portable executable.
+This release is unsigned, so Windows may show "Unknown publisher" or a SmartScreen warning. That is expected for this version. Do not turn off Windows security; check the downloaded file first.
 
-本版本未做代码签名。Windows 可能显示 "Unknown publisher" 或 SmartScreen 提示。请只从这个 GitHub Release 下载文件，并在运行安装包或绿色版之前核对 SHA256。
+当前发布二进制未做代码签名。Windows 可能显示 "Unknown publisher" 或 SmartScreen 提示。这是本版本的预期情况；请不要关闭 Windows 安全功能，并先验证下载文件。
 
-Download the hash and manifest files:
+Quick check / 验证步骤：
 
-- [SHA256SUMS.txt]($sha256Sums)
-- [release-manifest.json]($releaseManifest)
-
-PowerShell check example:
+1. Download the installer or portable file from this Release. / 从本 Release 下载安装包或绿色版。
+2. Download [SHA256SUMS.txt]($sha256Sums) from the same Release. / 从同一个 Release 下载 [SHA256SUMS.txt]($sha256Sums)。
+3. Open PowerShell in the folder where the downloaded file is saved, then run: / 在文件所在目录打开 PowerShell，运行：
 
 ~~~powershell
 Get-FileHash .\Real-ESRGAN-GUI-Setup-x64.exe -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
 ~~~
 
-The manifest records the tag, commit, workflow run, release asset sizes, SHA256 hashes, and submodule revisions. Public repository builds also publish GitHub artifact attestations; if available, you can verify them with:
+4. Compare the SHA256 value with the line for the same file name in SHA256SUMS.txt. If the values differ, delete the file and download it again. / 将输出的 SHA256 与 SHA256SUMS.txt 中同名文件的记录进行比对。如果两者不一致，请删除文件并重新下载。
+
+This only checks that your local file matches the file published in the Release. It does not require a GitHub account.
+
+这一步只是确认你电脑上的文件和 Release 里发布的文件一致，不需要 GitHub 账号。
+
+For extra detail, [release-manifest.json]($releaseManifest) lists the tag, commit, workflow run, file sizes, SHA256 hashes, and submodule revisions. If you already use GitHub CLI, you can also check the release provenance:
+
+如需查看更完整的发布记录，可以下载 [release-manifest.json]($releaseManifest)。它会列出 tag、commit、workflow run、文件大小、SHA256 和子模块版本。已经安装 GitHub CLI 的用户，也可以验证来源证明：
 
 ~~~powershell
 gh attestation verify .\Real-ESRGAN-GUI-Setup-x64.exe -R Xeknoz/Real-ESRGAN-GUI
 ~~~
-
-manifest 会记录 tag、commit、workflow run、发布资产大小、SHA256 和子模块版本。公开仓库构建还会发布 GitHub artifact attestation；如果该 release 提供 attestation，可以用上面的 gh attestation verify 命令验证来源。
 
 ## What's new / 更新内容
 
@@ -134,7 +139,7 @@ $chineseHighlights
 ---
 
 - 大多数 Windows 10/11 电脑请选择上方的 x64 安装包。
-- 建议使用独立显卡和较新的显卡驱动，处理速度会更稳定。
+- 建议使用独立显卡和较新的显卡驱动，有助于提升处理速度和稳定性。
 - 特别大的图片可能需要更久时间和更多内存。
 "@
 

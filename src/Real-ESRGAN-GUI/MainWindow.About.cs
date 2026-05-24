@@ -125,6 +125,16 @@ namespace RealESRGAN_GUI
                 Path.Combine("third_party", "ncnn_src", "LICENSE"));
             AddLicenseDocument(
                 documents,
+                "dirent - MIT License",
+                root,
+                Path.Combine("licenses", "dirent-MIT-LICENSE.txt"));
+            AddLicenseDocument(
+                documents,
+                "stb image headers - MIT / Public Domain License",
+                root,
+                Path.Combine("licenses", "stb-LICENSE.txt"));
+            AddLicenseDocument(
+                documents,
                 "ncnn - License and third-party notices",
                 root,
                 Path.Combine("licenses", "ncnn-LICENSE.txt"),

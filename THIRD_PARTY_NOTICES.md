@@ -24,6 +24,24 @@ The entries below identify each component and the downstream notice handling use
 - Copyright notices retained: Copyright (c) 2021 Xintao Wang; Copyright (c) 2019 nihui for portions based on `realsr-ncnn-vulkan`.
 - Downstream notice handling: MIT requires the copyright notice and permission notice to be included in all copies or substantial portions of the software. The full required text is distributed as `licenses/Real-ESRGAN-ncnn-vulkan-Enhanced-LICENSE.txt`.
 
+## dirent
+
+- Source: https://github.com/tronkko/dirent
+- Build input: `third_party/ncnn_src/src/win32dirent.h`
+- Used for: Windows directory iteration in the local backend.
+- License: MIT.
+- Copyright notice retained: Copyright (c) 1998-2019 Toni Ronkko.
+- Downstream notice handling: MIT requires the copyright notice and permission notice to be included in all copies or substantial portions of the software. The full required text is distributed as `licenses/dirent-MIT-LICENSE.txt`.
+
+## stb image headers
+
+- Source: https://github.com/nothings/stb
+- Build input: `third_party/ncnn_src/src/stb_image.h` and `third_party/ncnn_src/src/stb_image_write.h`
+- Used for: image loading and image writing in the local backend.
+- License: dual MIT License or Public Domain / Unlicense-style dedication.
+- Copyright notice retained: Copyright (c) 2017 Sean Barrett.
+- Downstream notice handling: the public-domain alternative has no notice condition, but this distribution still carries the upstream dual-license text as `licenses/stb-LICENSE.txt` for traceability.
+
 ## ncnn
 
 - Source: https://github.com/Tencent/ncnn

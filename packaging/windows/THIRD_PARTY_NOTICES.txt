@@ -47,6 +47,31 @@ software. This distribution preserves the full required text in the
 application's About > Licenses window.
 
 
+dirent
+------
+Source: https://github.com/tronkko/dirent
+Used for: Windows directory iteration in the local backend.
+License: MIT.
+Copyright notice retained:
+Copyright (c) 1998-2019 Toni Ronkko.
+Redistribution notice: the MIT license requires the copyright notice and
+permission notice to be included in all copies or substantial portions of the
+software. This distribution preserves the full required text in the
+application's About > Licenses window.
+
+
+stb image headers
+-----------------
+Source: https://github.com/nothings/stb
+Used for: image loading and image writing in the local backend.
+License: dual MIT License or Public Domain / Unlicense-style dedication.
+Copyright notice retained:
+Copyright (c) 2017 Sean Barrett.
+Redistribution notice: the public-domain alternative has no notice condition,
+but this distribution still carries the upstream dual-license text in the
+application's About > Licenses window for traceability.
+
+
 ncnn
 ----
 Source: https://github.com/Tencent/ncnn
