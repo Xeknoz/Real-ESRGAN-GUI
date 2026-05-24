@@ -54,20 +54,11 @@ body:
     id: package-types
     attributes:
       label: Affected package type
-      description: Select any package type where this matters.
+      description: Select any package type where this matters. Leave this blank if the request is not package-specific.
       options:
         - label: Installer
         - label: Single-file portable
         - label: Portable folder
-        - label: Not package-specific
-
-  - type: checkboxes
-    id: source-build
-    attributes:
-      label: Source build
-      options:
-        - label: This request involves a build made from source
-          required: false
 
   - type: textarea
     id: alternatives
