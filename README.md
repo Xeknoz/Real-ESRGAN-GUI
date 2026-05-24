@@ -15,8 +15,9 @@ Your images are processed locally. They are not uploaded to a cloud service.
 ## Screenshots
 
 | Light theme | Dark theme |
-| --- | --- |
-| <img src="assets/screenshots/main-window-light.png" alt="Real-ESRGAN GUI light theme screenshot" width="420"> | <img src="assets/screenshots/main-window-dark.png" alt="Real-ESRGAN GUI dark theme screenshot" width="420"> |
+| :---: | :---: |
+| <a href="assets/screenshots/main-window-light.png"><img src="assets/screenshots/main-window-light-display.png" alt="Real-ESRGAN GUI light theme screenshot" width="420"></a> | <a href="assets/screenshots/main-window-dark.png"><img src="assets/screenshots/main-window-dark-display.png" alt="Real-ESRGAN GUI dark theme screenshot" width="420"></a> |
+| [View original](assets/screenshots/main-window-light.png) | [View original](assets/screenshots/main-window-dark.png) |
 
 ## License and third-party notices
 
