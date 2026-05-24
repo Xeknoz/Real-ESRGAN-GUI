@@ -39,6 +39,115 @@ $setupX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Setup-x86.exe"
 $portableX64 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x64.exe"
 $portableX86 = "$releaseBaseUrl/Real-ESRGAN-GUI-Portable-x86.exe"
 
+function Get-GitOutput {
+    param(
+        [string[]]$Arguments
+    )
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        return @()
+    }
+
+    $output = & git -C $repoRoot @Arguments 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return @()
+    }
+
+    return @($output)
+}
+
+function ConvertTo-VersionObject {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $null
+    }
+
+    $normalized = $Value.Trim()
+    if ($normalized.StartsWith("v", [System.StringComparison]::OrdinalIgnoreCase)) {
+        $normalized = $normalized.Substring(1)
+    }
+
+    if ($normalized -notmatch '^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:\.(?<revision>0|[1-9]\d*))?$') {
+        return $null
+    }
+
+    $revision = if ($Matches["revision"]) { [int]$Matches["revision"] } else { 0 }
+    return [version]::new([int]$Matches["major"], [int]$Matches["minor"], [int]$Matches["patch"], $revision)
+}
+
+function Get-PreviousVersionTag {
+    param([string]$CurrentTag)
+
+    $currentVersion = ConvertTo-VersionObject -Value $CurrentTag
+    if (-not $currentVersion) {
+        return $null
+    }
+
+    $candidates = New-Object System.Collections.Generic.List[object]
+    foreach ($candidateTag in @(Get-GitOutput -Arguments @("tag", "--list", "v[0-9]*"))) {
+        if ([string]::IsNullOrWhiteSpace($candidateTag) -or $candidateTag -eq $CurrentTag) {
+            continue
+        }
+
+        $candidateVersion = ConvertTo-VersionObject -Value $candidateTag
+        if ($candidateVersion -and $candidateVersion -lt $currentVersion) {
+            $candidates.Add([pscustomobject]@{
+                Tag = $candidateTag
+                Version = $candidateVersion
+            })
+        }
+    }
+
+    $previous = $candidates | Sort-Object -Property Version -Descending | Select-Object -First 1
+    if ($previous) {
+        return $previous.Tag
+    }
+
+    return $null
+}
+
+function Format-ChangeList {
+    param([string]$PreviousTag)
+
+    if ([string]::IsNullOrWhiteSpace($PreviousTag)) {
+        return @(
+            "- First release of Real-ESRGAN GUI $version.",
+            "- Includes Windows installers for x64 and x86.",
+            "- Includes single-file portable executables for x64 and x86.",
+            "- Bundles the GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, models, .NET runtime files, and license notices.",
+            "- Supports folder-based batch upscaling, photo/anime/video model choices, PNG/JPG/WebP output, GPU and thread settings, and enhanced-quality mode."
+        )
+    }
+
+    $subjects = @(Get-GitOutput -Arguments @("log", "--first-parent", "--max-count=12", "--pretty=format:%s", "$PreviousTag..HEAD")) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+    if ($subjects.Count -eq 0) {
+        return @("- Maintenance update built from tag $Tag.")
+    }
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    foreach ($subject in $subjects) {
+        $lines.Add("- $subject")
+    }
+
+    if ($subjects.Count -eq 12) {
+        $lines.Add("- Additional internal build, documentation, and release maintenance updates.")
+    }
+
+    return @($lines)
+}
+
+$previousTag = Get-PreviousVersionTag -CurrentTag $Tag
+$changeHeading = if ($previousTag) {
+    "Changes since $previousTag / 自 $previousTag 以来的变化"
+}
+else {
+    "Initial release / 首次发布"
+}
+$changeList = (Format-ChangeList -PreviousTag $previousTag) -join "`r`n"
+
 $content = @"
 ## Download / 下载
 
@@ -59,20 +168,22 @@ Do not download "Source code (zip)" or "Source code (tar.gz)" if you only want t
 
 ## What's new / 更新内容
 
-- First release of Real-ESRGAN GUI $version.
+### $changeHeading
+
+$changeList
+
+### Included packages / 包含内容
+
 - Includes Windows installers for x64 and x86.
 - Includes single-file portable executables for x64 and x86.
 - Bundles the GUI, launcher, Real-ESRGAN NCNN/Vulkan backend, models, .NET runtime files, and license notices.
-- Supports folder-based batch upscaling, photo/anime/video model choices, PNG/JPG/WebP output, GPU and thread settings, and enhanced-quality mode.
 - The installer uses current-user installation by default and can be switched to all-users installation when needed.
 
 ---
 
-- Real-ESRGAN GUI $version 首个发布版本。
 - 提供 x64 和 x86 Windows 安装包。
 - 提供 x64 和 x86 单文件绿色版。
 - 随包包含 GUI、启动器、Real-ESRGAN NCNN/Vulkan 后端、模型、.NET runtime 文件和许可证说明。
-- 支持按文件夹批量处理，支持照片、动漫、动画帧等模型选择，支持 PNG/JPG/WebP 输出、GPU 和线程设置，以及质量增强模式。
 - 安装包默认仅为当前用户安装，需要时可以切换为所有用户安装。
 
 ## Notes / 注意事项

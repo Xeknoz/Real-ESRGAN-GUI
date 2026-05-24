@@ -37,7 +37,7 @@ body:
     attributes:
       label: App version
       description: Open About or check VERSION.txt in the portable folder, if available.
-      placeholder: 1.0.0.88 dev
+      placeholder: 1.0.1
     validations:
       required: true
 
