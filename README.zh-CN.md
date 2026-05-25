@@ -305,7 +305,3 @@ artifacts\portable\x86\
 ```
 
 完整 WPR、WPA Exporter 和 xperf 命令用法见 Skill 内的 [`references/wpt-command-reference.md`](skills/windows-wpf-trace-analysis/references/wpt-command-reference.md)。
-
-## 许可证
-
-GUI、启动器、脚本和本仓库专属文档使用 MIT License。随包附带的第三方组件保留各自原始许可证和署名，详见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
