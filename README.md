@@ -303,7 +303,3 @@ Its export script temporarily redirects `LOCALAPPDATA`, `TEMP`, and `TMP` to the
 ```
 
 See [`references/wpt-command-reference.md`](skills/windows-wpf-trace-analysis/references/wpt-command-reference.md) inside the Skill for the full WPR, WPA Exporter, and xperf command references.
-
-## License
-
-The GUI, launcher, scripts, and repository-specific documentation are licensed under the MIT License. Bundled third-party components keep their own licenses and attributions; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
