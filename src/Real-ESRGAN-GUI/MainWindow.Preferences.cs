@@ -3,17 +3,46 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace RealESRGAN_GUI
 {
     public partial class MainWindow
     {
+        private const double ScaleInfoPopupGap = 6;
+
+        private readonly DispatcherTimer _scaleInfoPopupTimer = new()
+        {
+            Interval = TimeSpan.FromSeconds(5),
+        };
+
+        public static CustomPopupPlacementCallback ScaleInfoPopupPlacementCallback { get; } = PlaceScaleInfoPopup;
+
+        private static CustomPopupPlacement[] PlaceScaleInfoPopup(Size popupSize, Size targetSize, Point offset)
+        {
+            double centeredX = (targetSize.Width - popupSize.Width) / 2 + offset.X;
+            double topY = -popupSize.Height - ScaleInfoPopupGap + offset.Y;
+            double rightAlignedX = targetSize.Width - popupSize.Width + offset.X;
+            double belowY = targetSize.Height + ScaleInfoPopupGap + offset.Y;
+
+            return new[]
+            {
+                new CustomPopupPlacement(new Point(centeredX, topY), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(rightAlignedX, topY), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(centeredX, belowY), PopupPrimaryAxis.Horizontal),
+            };
+        }
+
         private void ConfigureHeaderActions()
         {
             AboutButton.Click += OnAboutClick;
+            ConfigureScaleInfoHint();
         }
 
         private void PopulatePreferenceCombos()
@@ -88,6 +117,7 @@ namespace RealESRGAN_GUI
 
             _updatingSelections = false;
             ModelCombo.SelectionChanged += OnModelChanged;
+            UpdateScaleInfoHint(showTransient: false);
         }
 
         private static void SetComboItems(ComboBox combo, ComboItem[] items, string selectedTag)
@@ -130,6 +160,115 @@ namespace RealESRGAN_GUI
             _updatingSelections = true;
             SetComboItems(ScaleCombo, BuildScaleItems(DefaultScaleFor(mi.Tag)), scale);
             _updatingSelections = false;
+            UpdateScaleInfoHint(showTransient: true);
+        }
+
+        private void ConfigureScaleInfoHint()
+        {
+            ScaleCombo.SelectionChanged += OnScaleChanged;
+            ScaleInfoIcon.MouseEnter += OnScaleInfoIconMouseEnter;
+            ScaleInfoIcon.MouseLeave += OnScaleInfoIconMouseLeave;
+            _scaleInfoPopupTimer.Tick += OnScaleInfoPopupTimerTick;
+            Deactivated += (_, _) => CloseScaleInfoPopup();
+            LocationChanged += (_, _) => CloseScaleInfoPopup();
+            SizeChanged += (_, _) => CloseScaleInfoPopup();
+            StateChanged += (_, _) => CloseScaleInfoPopup();
+            Closed += (_, _) => CloseScaleInfoPopup();
+            UpdateScaleInfoHintText();
+        }
+
+        private void OnScaleChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_updatingSelections)
+            {
+                return;
+            }
+
+            UpdateScaleInfoHint(showTransient: true);
+        }
+
+        private void UpdateScaleInfoHint(bool showTransient)
+        {
+            bool isNonNative = IsNonNativeScaleSelected();
+            ScaleInfoIcon.Visibility = isNonNative ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!isNonNative)
+            {
+                CloseScaleInfoPopup();
+                return;
+            }
+
+            UpdateScaleInfoHintText();
+
+            if (showTransient)
+            {
+                ShowScaleInfoPopup(transient: true);
+            }
+        }
+
+        private bool IsNonNativeScaleSelected()
+        {
+            if (ModelCombo.SelectedItem is not ComboItem modelItem)
+            {
+                return false;
+            }
+
+            string? selectedScale = SelectedTag(ScaleCombo);
+            return !string.IsNullOrWhiteSpace(selectedScale) &&
+                int.TryParse(selectedScale, NumberStyles.None, CultureInfo.InvariantCulture, out int outputScale) &&
+                outputScale != DefaultScaleFor(modelItem.Tag);
+        }
+
+        private void UpdateScaleInfoHintText()
+        {
+            string helpText = T("ScaleInfoHelp");
+            ScaleInfoPopupText.Text = helpText;
+            AutomationProperties.SetName(ScaleInfoIcon, T("ScaleInfoAutomationName"));
+            AutomationProperties.SetHelpText(ScaleInfoIcon, helpText);
+        }
+
+        private void ShowScaleInfoPopup(bool transient)
+        {
+            if (ScaleInfoIcon.Visibility != Visibility.Visible)
+            {
+                return;
+            }
+
+            UpdateScaleInfoHintText();
+            ScaleInfoPopup.IsOpen = true;
+            _scaleInfoPopupTimer.Stop();
+
+            if (transient)
+            {
+                _scaleInfoPopupTimer.Start();
+            }
+        }
+
+        private void CloseScaleInfoPopup()
+        {
+            _scaleInfoPopupTimer.Stop();
+            ScaleInfoPopup.IsOpen = false;
+        }
+
+        private void OnScaleInfoIconMouseEnter(object sender, MouseEventArgs e)
+        {
+            ShowScaleInfoPopup(transient: false);
+        }
+
+        private void OnScaleInfoIconMouseLeave(object sender, MouseEventArgs e)
+        {
+            CloseScaleInfoPopup();
+        }
+
+        private void OnScaleInfoPopupTimerTick(object? sender, EventArgs e)
+        {
+            if (ScaleInfoIcon.IsMouseOver)
+            {
+                _scaleInfoPopupTimer.Stop();
+                return;
+            }
+
+            CloseScaleInfoPopup();
         }
 
         private void InitializeDefaults()
@@ -287,6 +426,7 @@ namespace RealESRGAN_GUI
             SettingsSectionTitleText.Text = T("SettingsSection");
             ModelLabelText.Text = T("ModelLabel");
             ScaleLabelText.Text = T("ScaleLabel");
+            UpdateScaleInfoHint(showTransient: false);
             FormatLabelText.Text = T("FormatLabel");
             UpdateAdvancedToggleText();
             UpdateLogToggleText();
