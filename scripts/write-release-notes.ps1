@@ -44,6 +44,19 @@ $releaseManifest = "$releaseBaseUrl/release-manifest.json"
 function Get-ReleaseHighlights {
     param([string]$Version)
 
+    if ($Version -eq "1.0.2") {
+        return [pscustomobject]@{
+            English = @(
+                "- Scale choices are easier to understand.",
+                "- License information is more complete."
+            )
+            Chinese = @(
+                "- 放大倍数选择更清楚。",
+                "- 许可证说明更完整。"
+            )
+        }
+    }
+
     if ($Version -eq "1.0.1") {
         return [pscustomobject]@{
             English = @(
