@@ -175,6 +175,46 @@
             <Setter Property="StrokeLineJoin" Value="Round"/>
             <Setter Property="Fill" Value="Transparent"/>
         </Style>
+
+        <Style x:Key="ScaleInfoButton" TargetType="Button">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="MinWidth" Value="18"/>
+            <Setter Property="MinHeight" Value="18"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="False"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -479,7 +519,35 @@
                                     <TextBlock x:Name="ScaleLabelText"
                                                Text="放大倍数"
                                                Style="{StaticResource FieldLabel}"/>
-                                    <ComboBox x:Name="ScaleCombo"/>
+                                    <Grid>
+                                        <ComboBox x:Name="ScaleCombo"/>
+                                        <Button x:Name="ScaleInfoIcon"
+                                                Style="{StaticResource ScaleInfoButton}"
+                                                Content="i"
+                                                Focusable="False"
+                                                HorizontalAlignment="Right"
+                                                IsTabStop="False"
+                                                VerticalAlignment="Top"
+                                                Margin="0,-7,-7,0"
+                                                Visibility="Collapsed"
+                                                Panel.ZIndex="1"/>
+                                        <Popup x:Name="ScaleInfoPopup"
+                                               AllowsTransparency="True"
+                                               Focusable="False"
+                                               IsHitTestVisible="False"
+                                               Placement="Custom"
+                                               PlacementTarget="{Binding ElementName=ScaleInfoIcon}"
+                                               StaysOpen="True"
+                                               CustomPopupPlacementCallback="{x:Static local:MainWindow.ScaleInfoPopupPlacementCallback}">
+                                            <Border Style="{StaticResource DropdownPopupBorder}"
+                                                    Padding="10,9"
+                                                    Width="280">
+                                                <TextBlock x:Name="ScaleInfoPopupText"
+                                                           Foreground="{DynamicResource ForegroundBrush}"
+                                                           TextWrapping="Wrap"/>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
                                 </StackPanel>
                                 <StackPanel x:Name="FormatField" Grid.Row="0" Grid.Column="4">
                                     <TextBlock x:Name="FormatLabelText"
