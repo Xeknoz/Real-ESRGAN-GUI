@@ -47,12 +47,14 @@ function Get-ReleaseHighlights {
     if ($Version -eq "1.0.2") {
         return [pscustomobject]@{
             English = @(
-                "- Scale choices are easier to understand.",
-                "- License information is more complete."
+                "- Fixed a bug when processing image scaling.",
+                "- Added a hint to the image scaling dropdown.",
+                "- Updated and expanded license information."
             )
             Chinese = @(
-                "- 放大倍数选择更清楚。",
-                "- 许可证说明更完整。"
+                "- 修复处理图像缩放时的 Bug",
+                "- 添加图像缩放下拉菜单的提示",
+                "- 变更并完善许可证说明"
             )
         }
     }
