@@ -149,13 +149,13 @@ namespace RealESRGAN_GUI
             if (!Directory.Exists(dir))
                 return T("FolderCreateOnStart");
 
-            int count = FolderStateService.CountSupportedFiles(dir);
+            int count = FolderStateService.CountInputFiles(dir);
             if (count < 0)
                 return T("FolderUnreadable");
 
             return count == 0
-                ? T("InputNoImages")
-                : string.Format(CultureInfo.CurrentCulture, T("InputCount"), count);
+                ? T(IsAnimeVideoModelSelected() ? "InputNoFrames" : "InputNoImages")
+                : string.Format(CultureInfo.CurrentCulture, T(IsAnimeVideoModelSelected() ? "InputFrameCount" : "InputCount"), count);
         }
 
         private string DescribeOutputFolder(string dir)
@@ -166,13 +166,13 @@ namespace RealESRGAN_GUI
             if (!Directory.Exists(dir))
                 return T("FolderCreateOnStart");
 
-            int count = FolderStateService.CountSupportedFiles(dir);
+            int count = FolderStateService.CountOutputFiles(dir, SelectedOutputFormat());
             if (count < 0)
                 return T("FolderUnreadable");
 
             return count == 0
                 ? T("OutputNoFiles")
-                : string.Format(CultureInfo.CurrentCulture, T("OutputCount"), count);
+                : string.Format(CultureInfo.CurrentCulture, T(IsAnimeVideoModelSelected() ? "OutputFrameCount" : "OutputCount"), count);
         }
     }
 }

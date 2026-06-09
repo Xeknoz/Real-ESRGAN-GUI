@@ -104,7 +104,7 @@ namespace RealESRGAN_GUI
 
                 if (!preflight.HasInputImages)
                 {
-                    MessageBox.Show(this, T("NoImagesFound"), "Real-ESRGAN GUI",
+                    MessageBox.Show(this, T(IsAnimeVideoModelSelected() ? "NoFramesFound" : "NoImagesFound"), "Real-ESRGAN GUI",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }

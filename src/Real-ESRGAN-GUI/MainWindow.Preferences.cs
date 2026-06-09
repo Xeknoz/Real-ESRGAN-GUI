@@ -78,12 +78,13 @@ namespace RealESRGAN_GUI
         {
             string model = SelectedTag(ModelCombo) ?? "realesrgan-x4plus";
             string scale = SelectedTag(ScaleCombo) ?? string.Empty;
-            string format = SelectedTag(FormatCombo) ?? "png";
+            string format = SelectedOutputFormat();
             string threads = SelectedTag(ThreadsCombo) ?? "0";
             string gpu = SelectedTag(GpuCombo) ?? string.Empty;
             NormalizeModelAndScaleSelection(ref model, ref scale);
 
             ModelCombo.SelectionChanged -= OnModelChanged;
+            FormatCombo.SelectionChanged -= OnFormatChanged;
             _updatingSelections = true;
 
             SetComboItems(ModelCombo, new[]
@@ -94,12 +95,7 @@ namespace RealESRGAN_GUI
             }, model);
 
             SetComboItems(ScaleCombo, BuildScaleItemsForModel(model), scale);
-            SetComboItems(FormatCombo, new[]
-            {
-                new ComboItem("png",  T("FormatPng")),
-                new ComboItem("jpg",  T("FormatJpg")),
-                new ComboItem("webp", T("FormatWebp")),
-            }, format);
+            SetComboItems(FormatCombo, BuildFormatItemsForModel(model), format);
 
             SetComboItems(ThreadsCombo, new[]
             {
@@ -120,6 +116,8 @@ namespace RealESRGAN_GUI
 
             _updatingSelections = false;
             ModelCombo.SelectionChanged += OnModelChanged;
+            FormatCombo.SelectionChanged += OnFormatChanged;
+            UpdateModelDependentText();
             UpdateScaleInfoHint(showTransient: false);
         }
 
@@ -135,6 +133,12 @@ namespace RealESRGAN_GUI
 
         private static bool IsAnimeVideoModel(string model)
             => string.Equals(model, AnimeVideoModelTag, StringComparison.Ordinal);
+
+        private bool IsAnimeVideoModelSelected()
+            => IsAnimeVideoModel(SelectedTag(ModelCombo) ?? string.Empty);
+
+        private string SelectedOutputFormat()
+            => SelectedTag(FormatCombo) ?? "png";
 
         private static bool TryGetConcreteAnimeVideoScale(string model, out int scale)
         {
@@ -178,6 +182,25 @@ namespace RealESRGAN_GUI
                 ? BuildExplicitScaleItems()
                 : BuildScaleItems(DefaultScaleFor(model));
 
+        private ComboItem[] BuildFormatItemsForModel(string model)
+            => IsAnimeVideoModel(model)
+                ? BuildFrameFormatItems()
+                : BuildImageFormatItems();
+
+        private ComboItem[] BuildImageFormatItems() => new[]
+        {
+            new ComboItem("png",  T("FormatPng")),
+            new ComboItem("jpg",  T("FormatJpg")),
+            new ComboItem("webp", T("FormatWebp")),
+        };
+
+        private ComboItem[] BuildFrameFormatItems() => new[]
+        {
+            new ComboItem("png",  T("FrameFormatPng")),
+            new ComboItem("jpg",  T("FrameFormatJpg")),
+            new ComboItem("webp", T("FrameFormatWebp")),
+        };
+
         private ComboItem[] BuildExplicitScaleItems()
             => SupportedScales
                 .Select(scale => new ComboItem(scale.ToString(CultureInfo.InvariantCulture), $"{scale}x"))
@@ -203,16 +226,37 @@ namespace RealESRGAN_GUI
         {
             if (_updatingSelections || ModelCombo.SelectedItem is not ComboItem mi) return;
             string scale = DefaultScaleTagForModel(mi.Tag);
+            string format = SelectedOutputFormat();
             _updatingSelections = true;
             SetComboItems(ScaleCombo, BuildScaleItemsForModel(mi.Tag), scale);
+            SetComboItems(FormatCombo, BuildFormatItemsForModel(mi.Tag), format);
             _updatingSelections = false;
+            UpdateModelDependentText();
             UpdateScaleInfoHint(showTransient: true);
+            RefreshFolderSummaries();
         }
 
         private static string DefaultScaleTagForModel(string model)
             => IsAnimeVideoModel(model)
                 ? DefaultAnimeVideoScale.ToString(CultureInfo.InvariantCulture)
                 : string.Empty;
+
+        private void OnFormatChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_updatingSelections)
+            {
+                return;
+            }
+
+            RefreshFolderSummaries();
+        }
+
+        private void UpdateModelDependentText()
+        {
+            bool animeVideo = IsAnimeVideoModelSelected();
+            FormatLabelText.Text = T(animeVideo ? "FrameFormatLabel" : "FormatLabel");
+            HintText.Text = T(animeVideo ? "HintAnimeVideo" : "Hint");
+        }
 
         private void ConfigureScaleInfoHint()
         {
@@ -509,14 +553,13 @@ namespace RealESRGAN_GUI
             ModelLabelText.Text = T("ModelLabel");
             ScaleLabelText.Text = T("ScaleLabel");
             UpdateScaleInfoHint(showTransient: false);
-            FormatLabelText.Text = T("FormatLabel");
+            UpdateModelDependentText();
             UpdateAdvancedToggleText();
             UpdateLogToggleText();
             LogHeaderText.Text = T("LogHeader");
             ThreadsLabelText.Text = T("ThreadsLabel");
             GpuLabelText.Text = T("GpuLabel");
             TtaCheck.Content = T("Tta");
-            HintText.Text = T("Hint");
             RenderStatusText();
             RenderProgressText();
             RefreshFolderSummaries();

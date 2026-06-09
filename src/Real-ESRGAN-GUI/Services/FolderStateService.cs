@@ -11,8 +11,17 @@ namespace RealESRGAN_GUI.Services
 
     internal static class FolderStateService
     {
-        private static readonly HashSet<string> SupportedExts = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> SupportedInputExts = new(StringComparer.OrdinalIgnoreCase)
             { ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff" };
+
+        private static readonly HashSet<string> PngOutputExts = new(StringComparer.OrdinalIgnoreCase)
+            { ".png" };
+
+        private static readonly HashSet<string> JpgOutputExts = new(StringComparer.OrdinalIgnoreCase)
+            { ".jpg", ".jpeg" };
+
+        private static readonly HashSet<string> WebpOutputExts = new(StringComparer.OrdinalIgnoreCase)
+            { ".webp" };
 
         public static Task<RunPreflightResult> PrepareRunFoldersAsync(string inputDir, string outputDir, CancellationToken token)
         {
@@ -56,11 +65,33 @@ namespace RealESRGAN_GUI.Services
             }, token);
         }
 
-        public static int CountSupportedFiles(string dir)
+        public static int CountInputFiles(string dir)
+        {
+            return CountFiles(dir, SupportedInputExts);
+        }
+
+        public static int CountOutputFiles(string dir, string format)
+        {
+            return CountFiles(dir, OutputExtensionsFor(format));
+        }
+
+        private static bool HasSupportedInputs(string dir)
+        {
+            if (!Directory.Exists(dir)) return false;
+            return Directory.EnumerateFiles(dir).Any(IsSupportedInputFile);
+        }
+
+        private static bool IsSupportedInputFile(string path)
+        {
+            return SupportedInputExts.Contains(Path.GetExtension(path));
+        }
+
+        private static int CountFiles(string dir, HashSet<string> extensions)
         {
             try
             {
-                return Directory.EnumerateFiles(dir).Count(IsSupportedFile);
+                return Directory.EnumerateFiles(dir)
+                    .Count(path => extensions.Contains(Path.GetExtension(path)));
             }
             catch
             {
@@ -68,15 +99,19 @@ namespace RealESRGAN_GUI.Services
             }
         }
 
-        private static bool HasSupportedInputs(string dir)
+        private static HashSet<string> OutputExtensionsFor(string format)
         {
-            if (!Directory.Exists(dir)) return false;
-            return Directory.EnumerateFiles(dir).Any(IsSupportedFile);
-        }
+            if (string.Equals(format, "jpg", StringComparison.OrdinalIgnoreCase))
+            {
+                return JpgOutputExts;
+            }
 
-        private static bool IsSupportedFile(string path)
-        {
-            return SupportedExts.Contains(Path.GetExtension(path));
+            if (string.Equals(format, "webp", StringComparison.OrdinalIgnoreCase))
+            {
+                return WebpOutputExts;
+            }
+
+            return PngOutputExts;
         }
     }
 }

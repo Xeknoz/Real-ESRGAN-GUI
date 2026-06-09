@@ -95,15 +95,17 @@ If the input folder is empty, add images before starting. The app does not ship 
 
 | Setting | Practical choice |
 | --- | --- |
-| Model type | Use Photo / portrait for real photos, Anime / illustration for drawings, and the Anime video option for animation frames. |
+| Model type | Use Photo / portrait for real photos, Anime / illustration for drawings, and Anime video frames for animation frame folders. |
 | Scale | Keep Model default unless you specifically need 2x, 3x, or 4x output. |
-| Format | Use PNG when you care most about preservation, JPG for smaller files, and WebP for web use. |
+| Format | Use PNG when you care most about preservation, JPG for smaller files, and WebP for web use. For Anime video frames, this is the output frame format. |
 | Enhanced quality | Try a normal run first. Enhanced quality may improve some images, but it is slower. |
 | Advanced settings | Keep threads and GPU on Auto unless you are troubleshooting a device problem. |
 
 Supported input files: `png`, `jpg`, `jpeg`, `bmp`, `webp`, `tif`, `tiff`.
 
 Supported output formats: `png`, `jpg`, `webp`.
+
+The Anime video model works on extracted frame images. It does not read `mp4`, `avi`, or `mov` files directly; split a video into frames before choosing that model type.
 
 ## Notes for users
 
