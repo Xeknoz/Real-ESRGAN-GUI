@@ -511,7 +511,7 @@
 
                                 <StackPanel x:Name="ModelField" Grid.Row="0" Grid.Column="0">
                                     <TextBlock x:Name="ModelLabelText"
-                                               Text="图片类型"
+                                               Text="模型类型"
                                                Style="{StaticResource FieldLabel}"/>
                                     <ComboBox x:Name="ModelCombo"/>
                                 </StackPanel>
@@ -600,7 +600,7 @@
                                     Padding="12"
                                     Margin="0,18,0,0">
                                 <TextBlock x:Name="HintText"
-                                           Text="请先根据图片内容选择类型，模型不匹配可能影响效果；其余设置保持默认即可。"
+                                           Text="请先根据图片内容选择模型类型，模型不匹配可能影响效果；其余设置保持默认即可。"
                                            Foreground="{DynamicResource AccentBrush}"
                                            TextWrapping="Wrap"/>
                             </Border>

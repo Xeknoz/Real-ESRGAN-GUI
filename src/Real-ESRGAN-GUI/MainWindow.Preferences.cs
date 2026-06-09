@@ -15,12 +15,16 @@ namespace RealESRGAN_GUI
 {
     public partial class MainWindow
     {
+        private const string AnimeVideoModelTag = "realesr-animevideov3";
+        private const int DefaultAnimeVideoScale = 2;
         private const double ScaleInfoPopupGap = 6;
+        private static readonly int[] SupportedScales = { 2, 3, 4 };
 
         private readonly DispatcherTimer _scaleInfoPopupTimer = new()
         {
             Interval = TimeSpan.FromSeconds(5),
         };
+        private bool _hasShownScaleInfoAutoPopup;
 
         public static CustomPopupPlacementCallback ScaleInfoPopupPlacementCallback { get; } = PlaceScaleInfoPopup;
 
@@ -77,6 +81,7 @@ namespace RealESRGAN_GUI
             string format = SelectedTag(FormatCombo) ?? "png";
             string threads = SelectedTag(ThreadsCombo) ?? "0";
             string gpu = SelectedTag(GpuCombo) ?? string.Empty;
+            NormalizeModelAndScaleSelection(ref model, ref scale);
 
             ModelCombo.SelectionChanged -= OnModelChanged;
             _updatingSelections = true;
@@ -85,12 +90,10 @@ namespace RealESRGAN_GUI
             {
                 new ComboItem("realesrgan-x4plus",       T("ModelPhoto")),
                 new ComboItem("realesrgan-x4plus-anime", T("ModelAnime")),
-                new ComboItem("realesr-animevideov3-x2", T("ModelVideo2")),
-                new ComboItem("realesr-animevideov3-x3", T("ModelVideo3")),
-                new ComboItem("realesr-animevideov3-x4", T("ModelVideo4")),
+                new ComboItem(AnimeVideoModelTag,        T("ModelVideo")),
             }, model);
 
-            SetComboItems(ScaleCombo, BuildScaleItems(DefaultScaleFor(model)), scale);
+            SetComboItems(ScaleCombo, BuildScaleItemsForModel(model), scale);
             SetComboItems(FormatCombo, new[]
             {
                 new ComboItem("png",  T("FormatPng")),
@@ -130,12 +133,55 @@ namespace RealESRGAN_GUI
         private static string? SelectedTag(ComboBox combo)
             => combo.SelectedItem is ComboItem item ? item.Tag : null;
 
+        private static bool IsAnimeVideoModel(string model)
+            => string.Equals(model, AnimeVideoModelTag, StringComparison.Ordinal);
+
+        private static bool TryGetConcreteAnimeVideoScale(string model, out int scale)
+        {
+            scale = model switch
+            {
+                "realesr-animevideov3-x2" => 2,
+                "realesr-animevideov3-x3" => 3,
+                "realesr-animevideov3-x4" => 4,
+                _ => 0,
+            };
+
+            return scale != 0;
+        }
+
+        private static void NormalizeModelAndScaleSelection(ref string model, ref string scale)
+        {
+            if (TryGetConcreteAnimeVideoScale(model, out int animeVideoScale))
+            {
+                model = AnimeVideoModelTag;
+
+                if (string.IsNullOrWhiteSpace(scale))
+                {
+                    scale = animeVideoScale.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+            else if (IsAnimeVideoModel(model) && string.IsNullOrWhiteSpace(scale))
+            {
+                scale = DefaultAnimeVideoScale.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
         private static int DefaultScaleFor(string model) => model switch
         {
             "realesr-animevideov3-x2" => 2,
             "realesr-animevideov3-x3" => 3,
             _                         => 4,
         };
+
+        private ComboItem[] BuildScaleItemsForModel(string model)
+            => IsAnimeVideoModel(model)
+                ? BuildExplicitScaleItems()
+                : BuildScaleItems(DefaultScaleFor(model));
+
+        private ComboItem[] BuildExplicitScaleItems()
+            => SupportedScales
+                .Select(scale => new ComboItem(scale.ToString(CultureInfo.InvariantCulture), $"{scale}x"))
+                .ToArray();
 
         private ComboItem[] BuildScaleItems(int defaultScale)
         {
@@ -144,7 +190,7 @@ namespace RealESRGAN_GUI
                 new(string.Empty, string.Format(CultureInfo.CurrentCulture, T("ScaleAuto"), defaultScale)),
             };
 
-            foreach (int scale in new[] { 2, 3, 4 })
+            foreach (int scale in SupportedScales)
             {
                 if (scale == defaultScale) continue;
                 items.Add(new ComboItem(scale.ToString(CultureInfo.InvariantCulture), $"{scale}x"));
@@ -156,12 +202,17 @@ namespace RealESRGAN_GUI
         private void OnModelChanged(object? sender, SelectionChangedEventArgs e)
         {
             if (_updatingSelections || ModelCombo.SelectedItem is not ComboItem mi) return;
-            string scale = SelectedTag(ScaleCombo) ?? string.Empty;
+            string scale = DefaultScaleTagForModel(mi.Tag);
             _updatingSelections = true;
-            SetComboItems(ScaleCombo, BuildScaleItems(DefaultScaleFor(mi.Tag)), scale);
+            SetComboItems(ScaleCombo, BuildScaleItemsForModel(mi.Tag), scale);
             _updatingSelections = false;
             UpdateScaleInfoHint(showTransient: true);
         }
+
+        private static string DefaultScaleTagForModel(string model)
+            => IsAnimeVideoModel(model)
+                ? DefaultAnimeVideoScale.ToString(CultureInfo.InvariantCulture)
+                : string.Empty;
 
         private void ConfigureScaleInfoHint()
         {
@@ -200,8 +251,9 @@ namespace RealESRGAN_GUI
 
             UpdateScaleInfoHintText();
 
-            if (showTransient)
+            if (showTransient && !_hasShownScaleInfoAutoPopup)
             {
+                _hasShownScaleInfoAutoPopup = true;
                 ShowScaleInfoPopup(transient: true);
             }
         }
@@ -213,10 +265,40 @@ namespace RealESRGAN_GUI
                 return false;
             }
 
+            if (IsAnimeVideoModel(modelItem.Tag))
+            {
+                return false;
+            }
+
             string? selectedScale = SelectedTag(ScaleCombo);
             return !string.IsNullOrWhiteSpace(selectedScale) &&
                 int.TryParse(selectedScale, NumberStyles.None, CultureInfo.InvariantCulture, out int outputScale) &&
                 outputScale != DefaultScaleFor(modelItem.Tag);
+        }
+
+        private static string ResolveBackendModel(string model, string scale)
+        {
+            if (!IsAnimeVideoModel(model))
+            {
+                return model;
+            }
+
+            int animeVideoScale = ResolveAnimeVideoScale(scale);
+            return "realesr-animevideov3-x" + animeVideoScale.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string ResolveBackendScale(string model, string scale)
+            => IsAnimeVideoModel(model) ? string.Empty : scale;
+
+        private static int ResolveAnimeVideoScale(string scale)
+        {
+            if (int.TryParse(scale, NumberStyles.None, CultureInfo.InvariantCulture, out int parsed) &&
+                SupportedScales.Contains(parsed))
+            {
+                return parsed;
+            }
+
+            return DefaultAnimeVideoScale;
         }
 
         private void UpdateScaleInfoHintText()
