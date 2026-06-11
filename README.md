@@ -6,7 +6,7 @@
 
 Real-ESRGAN GUI is a Windows app for making images larger and sharper on your own PC. It uses the bundled Real-ESRGAN NCNN/Vulkan backend, but you do not need to type commands or install Python, PyTorch, CUDA, or the .NET Runtime.
 
-The usual workflow is simple: choose an input folder, choose an output folder, pick the image type, then start. The app is meant for photos, portraits, anime images, illustrations, and animation frames.
+The usual workflow is simple: choose an input folder, choose an output folder, pick the model type, then start. The app is meant for photos, portraits, anime images, illustrations, and animation frames.
 
 Your images are processed locally. They are not uploaded to a cloud service.
 
@@ -83,7 +83,7 @@ The installer includes the GUI, launcher, backend executable, .NET runtime files
 2. Open Real-ESRGAN GUI.
 3. Click `Choose image folder` and select the folder with your images.
 4. Click `Choose output folder` and select where the results should be saved.
-5. Pick the image type.
+5. Pick the model type.
 6. Keep the default settings for your first run.
 7. Click `Start upscaling`.
 
@@ -93,15 +93,17 @@ If the input folder is empty, add images before starting. The app does not ship 
 
 | Setting | Practical choice |
 | --- | --- |
-| Image type | Use Photo / portrait for real photos, Anime / illustration for drawings, and the anime video options for animation frames. |
+| Model type | Use Photo / portrait for real photos, Anime / illustration for drawings, and Anime video frames for animation frame folders. |
 | Scale | Keep Model default unless you specifically need 2x, 3x, or 4x output. |
-| Format | Use PNG when you care most about preservation, JPG for smaller files, and WebP for web use. |
+| Format | Use PNG when you care most about preservation, JPG for smaller files, and WebP for web use. For Anime video frames, this is the output frame format. |
 | Enhanced quality | Try a normal run first. Enhanced quality may improve some images, but it is slower. |
 | Advanced settings | Keep threads and GPU on Auto unless you are troubleshooting a device problem. |
 
 Supported input files: `png`, `jpg`, `jpeg`, `bmp`, `webp`, `tif`, `tiff`.
 
 Supported output formats: `png`, `jpg`, `webp`.
+
+The Anime video model works on extracted frame images. It does not read `mp4`, `avi`, or `mov` files directly; split a video into frames before choosing that model type.
 
 ## Notes for users
 

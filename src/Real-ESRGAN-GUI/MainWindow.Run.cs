@@ -104,7 +104,7 @@ namespace RealESRGAN_GUI
 
                 if (!preflight.HasInputImages)
                 {
-                    MessageBox.Show(this, T("NoImagesFound"), "Real-ESRGAN GUI",
+                    MessageBox.Show(this, T(IsAnimeVideoModelSelected() ? "NoFramesFound" : "NoImagesFound"), "Real-ESRGAN GUI",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -190,11 +190,14 @@ namespace RealESRGAN_GUI
 
         private string BuildArgs(string input, string output)
         {
+            string model = ((ComboItem)ModelCombo.SelectedItem).Tag;
+            string scale = ((ComboItem)ScaleCombo.SelectedItem).Tag;
+
             return BackendCommandBuilder.Build(new BackendCommandOptions(
                 input,
                 output,
-                ((ComboItem)ModelCombo.SelectedItem).Tag,
-                ((ComboItem)ScaleCombo.SelectedItem).Tag,
+                ResolveBackendModel(model, scale),
+                ResolveBackendScale(model, scale),
                 ((ComboItem)FormatCombo.SelectedItem).Tag,
                 ((ComboItem)ThreadsCombo.SelectedItem).Tag,
                 ((ComboItem)GpuCombo.SelectedItem).Tag,
