@@ -44,6 +44,21 @@ $releaseManifest = "$releaseBaseUrl/release-manifest.json"
 function Get-ReleaseHighlights {
     param([string]$Version)
 
+    if ($Version -eq "1.0.3") {
+        return [pscustomobject]@{
+            English = @(
+                "- Added update checking in the About window.",
+                "- Improved the version display when a newer version is available.",
+                "- Improved Anime Video model scale and frame-format handling."
+            )
+            Chinese = @(
+                "- 在 About 窗口中添加检查更新功能。",
+                "- 改进发现新版本时的版本号展示。",
+                "- 改进 Anime Video 模型的倍率选择和帧格式处理。"
+            )
+        }
+    }
+
     if ($Version -eq "1.0.2") {
         return [pscustomobject]@{
             English = @(
