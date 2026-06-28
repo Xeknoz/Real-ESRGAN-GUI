@@ -211,41 +211,11 @@
                               SelectionChanged="OnAutoCheckUpdatesSelectionChanged"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2"
+                <StackPanel x:Name="FooterActionsPanel"
+                            Grid.Column="2"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Bottom">
-                    <Button x:Name="PreviewDebugButton"
-                            Margin="0,0,8,0"
-                            Width="30"
-                            Height="30"
-                            MinWidth="30"
-                            MinHeight="30"
-                            Style="{StaticResource AboutIconButton}"
-                            VerticalAlignment="Center"
-                            ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                            Visibility="Collapsed"
-                            Click="OnPreviewDebugClick">
-                        <Viewbox Width="16"
-                                 Height="16"
-                                 Stretch="Uniform"
-                                 SnapsToDevicePixels="True">
-                            <Canvas Width="24" Height="24">
-                                <Path Data="M4 17L10 11L4 5"
-                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                      StrokeThickness="2"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"/>
-                                <Path Data="M12 19H20"
-                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                      StrokeThickness="2"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round"/>
-                            </Canvas>
-                        </Viewbox>
-                    </Button>
-
                     <Button x:Name="RepositoryButton"
                             Style="{StaticResource AccentButton}"
                             Click="OnRepositoryClick"/>

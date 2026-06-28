@@ -16,7 +16,14 @@
     <PublishReadyToRun>false</PublishReadyToRun>
     <SatelliteResourceLanguages>zh-Hans;zh-Hant</SatelliteResourceLanguages>
     <DebugType>embedded</DebugType>
+    <AppChannel Condition="'$(AppChannel)' == ''">dev</AppChannel>
+    <DefineConstants Condition="'$(AppChannel)' != 'release'">$(DefineConstants);PREVIEW_DEBUG</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(AppChannel)' == 'release'">
+    <Compile Remove="PreviewDebugWindow.xaml.cs" />
+    <Page Remove="PreviewDebugWindow.xaml" />
+  </ItemGroup>
 
   <!-- Runtime window/taskbar icon only. Keep PE application icon ownership with Launcher.exe. -->
   <ItemGroup>

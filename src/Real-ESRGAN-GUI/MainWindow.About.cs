@@ -30,9 +30,11 @@ namespace RealESRGAN_GUI
                 T("LicenseSection"),
                 T("LicenseMissing"),
                 T("OpenRepository"),
+#if PREVIEW_DEBUG
                 T("PreviewDebug"),
                 IsPreviewDebugEnabled(),
                 BuildPreviewDebugWindowLabels(),
+#endif
                 T("CheckForUpdates"),
                 T("CheckForUpdatesChecking"),
                 T("LatestVersion"),
@@ -77,6 +79,7 @@ namespace RealESRGAN_GUI
             new ComboItem("never", T("UpdateCheckIntervalNever")),
         };
 
+#if PREVIEW_DEBUG
         private PreviewDebugWindowLabels BuildPreviewDebugWindowLabels() => new(
             T("PreviewDebugTitle"),
             T("PreviewDebugUpdateCheck"),
@@ -91,6 +94,7 @@ namespace RealESRGAN_GUI
             T("PreviewDebugOpenReleasePage"),
             T("OpenReleaseFailed"),
             T("Close"));
+#endif
 
         private static string GetVersionNumber()
         {
@@ -109,12 +113,14 @@ namespace RealESRGAN_GUI
             return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
         }
 
+#if PREVIEW_DEBUG
         private static bool IsPreviewDebugEnabled()
         {
             string? channel = ReadFirstNonBlankAppFileLine("CHANNEL.txt");
             return string.Equals(channel, "dev", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(channel, "preview", StringComparison.OrdinalIgnoreCase);
         }
+#endif
 
         private static bool IsDevChannel()
         {

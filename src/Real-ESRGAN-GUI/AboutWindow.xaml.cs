@@ -7,8 +7,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+#if PREVIEW_DEBUG
+using System.Windows.Data;
+#endif
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+#if PREVIEW_DEBUG
+using System.Windows.Shapes;
+#endif
 using RealESRGAN_GUI.Services;
 
 namespace RealESRGAN_GUI
@@ -27,7 +33,9 @@ namespace RealESRGAN_GUI
         private readonly string _checkUpdatesCheckingLabel;
         private readonly string _updateCheckFailedLabel;
         private readonly string _downloadLatestVersionLabel;
+#if PREVIEW_DEBUG
         private readonly PreviewDebugWindowLabels _previewDebugLabels;
+#endif
         private readonly string _currentVersion;
         private readonly Action<string> _updateCheckIntervalChanged;
         private string _latestReleaseUrl = UpdateCheckService.ReleasesPageUrl;
@@ -43,9 +51,11 @@ namespace RealESRGAN_GUI
             string licenseSectionTitle,
             string licenseMissingMessage,
             string openRepositoryLabel,
+#if PREVIEW_DEBUG
             string previewDebugLabel,
             bool isPreviewDebugEnabled,
             PreviewDebugWindowLabels previewDebugLabels,
+#endif
             string checkUpdatesLabel,
             string checkUpdatesCheckingLabel,
             string latestVersionLabel,
@@ -73,7 +83,9 @@ namespace RealESRGAN_GUI
             _checkUpdatesCheckingLabel = checkUpdatesCheckingLabel;
             _updateCheckFailedLabel = updateCheckFailedLabel;
             _downloadLatestVersionLabel = downloadLatestVersionLabel;
+#if PREVIEW_DEBUG
             _previewDebugLabels = previewDebugLabels;
+#endif
             _currentVersion = version;
             _updateCheckIntervalChanged = updateCheckIntervalChanged;
 
@@ -83,8 +95,10 @@ namespace RealESRGAN_GUI
             SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
             LicenseSectionTitleText.Text = licenseSectionTitle;
             RepositoryButton.Content = openRepositoryLabel;
-            SetPreviewDebugButtonLabel(previewDebugLabel);
-            PreviewDebugButton.Visibility = isPreviewDebugEnabled ? Visibility.Visible : Visibility.Collapsed;
+#if PREVIEW_DEBUG
+            if (isPreviewDebugEnabled)
+                FooterActionsPanel.Children.Insert(0, CreatePreviewDebugButton(previewDebugLabel));
+#endif
             SetCheckUpdatesButtonLabel(_checkUpdatesLabel);
             AutoCheckUpdatesLabelText.Text = autoCheckUpdatesLabel;
             AutomationProperties.SetName(AutoCheckUpdatesCombo, autoCheckUpdatesLabel);
@@ -162,6 +176,7 @@ namespace RealESRGAN_GUI
             OpenExternalUrl(_repositoryUrl, _openRepositoryFailedMessage);
         }
 
+#if PREVIEW_DEBUG
         private void OnPreviewDebugClick(object sender, RoutedEventArgs e)
         {
             var debugWindow = new PreviewDebugWindow(
@@ -174,6 +189,7 @@ namespace RealESRGAN_GUI
 
             debugWindow.ShowDialog();
         }
+#endif
 
         private async void OnCheckUpdatesClick(object sender, RoutedEventArgs e)
         {
@@ -196,7 +212,7 @@ namespace RealESRGAN_GUI
                     .CheckLatestReleaseAsync(_currentVersion, CancellationToken.None)
                     .ConfigureAwait(true);
 
-                ApplyUpdateCheckStatus(PreviewUpdateCheckStatus.FromResult(result));
+                ApplyUpdateCheckStatus(UpdateCheckStatus.FromResult(result));
             }
             finally
             {
@@ -205,11 +221,11 @@ namespace RealESRGAN_GUI
             }
         }
 
-        private void ApplyUpdateCheckStatus(PreviewUpdateCheckStatus status)
+        private void ApplyUpdateCheckStatus(UpdateCheckStatus status)
         {
             LatestReleaseLinkText.Visibility = Visibility.Collapsed;
 
-            if (status.Kind == PreviewUpdateCheckStatusKind.Failed)
+            if (status.Kind == UpdateCheckStatusKind.Failed)
             {
                 VersionLabelText.Text = _versionLabel;
                 SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
@@ -217,7 +233,7 @@ namespace RealESRGAN_GUI
                 return;
             }
 
-            if (status.Kind == PreviewUpdateCheckStatusKind.Canceled)
+            if (status.Kind == UpdateCheckStatusKind.Canceled)
             {
                 VersionLabelText.Text = _versionLabel;
                 SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
@@ -225,7 +241,7 @@ namespace RealESRGAN_GUI
                 return;
             }
 
-            if (status.Kind == PreviewUpdateCheckStatusKind.UpdateAvailable)
+            if (status.Kind == UpdateCheckStatusKind.UpdateAvailable)
             {
                 VersionLabelText.Text = _newVersionLabel;
                 SetVersionDisplay(UpdateVersionDisplayState.FromStatus(_currentVersion, status));
@@ -273,11 +289,67 @@ namespace RealESRGAN_GUI
             CheckUpdatesButton.ToolTip = label;
         }
 
-        private void SetPreviewDebugButtonLabel(string label)
+#if PREVIEW_DEBUG
+        private Button CreatePreviewDebugButton(string label)
         {
-            AutomationProperties.SetName(PreviewDebugButton, label);
-            PreviewDebugButton.ToolTip = label;
+            var button = new Button
+            {
+                Width = 30,
+                Height = 30,
+                MinWidth = 30,
+                MinHeight = 30,
+                Margin = new Thickness(0, 0, 8, 0),
+                Style = (Style)FindResource("AboutIconButton"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Content = CreatePreviewDebugIcon(),
+            };
+
+            ToolTipService.SetShowsToolTipOnKeyboardFocus(button, true);
+            AutomationProperties.SetName(button, label);
+            button.ToolTip = label;
+            button.Click += OnPreviewDebugClick;
+            return button;
         }
+
+        private static Viewbox CreatePreviewDebugIcon()
+        {
+            var canvas = new Canvas
+            {
+                Width = 24,
+                Height = 24,
+            };
+            canvas.Children.Add(CreatePreviewDebugIconPath("M4 17L10 11L4 5"));
+            canvas.Children.Add(CreatePreviewDebugIconPath("M12 19H20"));
+
+            return new Viewbox
+            {
+                Width = 16,
+                Height = 16,
+                Stretch = Stretch.Uniform,
+                SnapsToDevicePixels = true,
+                Child = canvas,
+            };
+        }
+
+        private static Path CreatePreviewDebugIconPath(string data)
+        {
+            var path = new Path
+            {
+                Data = Geometry.Parse(data),
+                StrokeThickness = 2,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round,
+            };
+            path.SetBinding(
+                Shape.StrokeProperty,
+                new Binding("Foreground")
+                {
+                    RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(Button), 1),
+                });
+            return path;
+        }
+#endif
 
         private void SetVersionDisplay(UpdateVersionDisplayState state)
         {

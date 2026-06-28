@@ -20,9 +20,9 @@ namespace RealESRGAN_GUI.Services
 
         public static UpdateVersionDisplayState FromStatus(
             string currentVersion,
-            PreviewUpdateCheckStatus status)
+            UpdateCheckStatus status)
         {
-            if (status.Kind == PreviewUpdateCheckStatusKind.UpdateAvailable &&
+            if (status.Kind == UpdateCheckStatusKind.UpdateAvailable &&
                 !string.IsNullOrWhiteSpace(status.LatestVersion))
             {
                 return new(status.LatestVersion, currentVersion, PreviousVersionPlacement.BelowPrimary);

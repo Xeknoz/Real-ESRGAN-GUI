@@ -23,15 +23,16 @@ namespace RealESRGAN_GUI
 
     public partial class PreviewDebugWindow : Window
     {
+        private const string DefaultSimulatedLatestVersion = "v999.999.999-preview";
         private readonly string _currentVersion;
         private readonly PreviewDebugWindowLabels _labels;
-        private readonly Action<PreviewUpdateCheckStatus> _applyDetectedUpdate;
+        private readonly Action<UpdateCheckStatus> _applyDetectedUpdate;
         private string _latestReleaseUrl = UpdateCheckService.ReleasesPageUrl;
 
         internal PreviewDebugWindow(
             string currentVersion,
             PreviewDebugWindowLabels labels,
-            Action<PreviewUpdateCheckStatus> applyDetectedUpdate)
+            Action<UpdateCheckStatus> applyDetectedUpdate)
         {
             InitializeComponent();
 
@@ -45,7 +46,7 @@ namespace RealESRGAN_GUI
             CurrentVersionLabelText.Text = labels.CurrentVersionLabel;
             CurrentVersionValueText.Text = _currentVersion;
             SimulatedLatestVersionLabelText.Text = labels.SimulatedLatestVersionLabel;
-            SimulatedLatestVersionTextBox.Text = PreviewUpdateCheckStatus.DefaultForcedPreviewLatestVersion;
+            SimulatedLatestVersionTextBox.Text = DefaultSimulatedLatestVersion;
             AutomationProperties.SetName(SimulatedLatestVersionTextBox, labels.SimulatedLatestVersionLabel);
             LatestVersionLabelText.Text = labels.LatestVersionLabel;
             LatestVersionValueText.Text = labels.UnknownVersion;
@@ -60,13 +61,17 @@ namespace RealESRGAN_GUI
 
         private void OnSimulateUpdateAvailableClick(object sender, RoutedEventArgs e)
         {
-            PreviewUpdateCheckStatus status = PreviewUpdateCheckStatus.CreateForcedUpdateAvailable(
-                SimulatedLatestVersionTextBox.Text);
+            string simulatedLatestVersion = string.IsNullOrWhiteSpace(SimulatedLatestVersionTextBox.Text)
+                ? DefaultSimulatedLatestVersion
+                : SimulatedLatestVersionTextBox.Text.Trim();
+            UpdateCheckStatus status = UpdateCheckStatus.CreateUpdateAvailable(
+                simulatedLatestVersion,
+                UpdateCheckService.ReleasesPageUrl);
             _applyDetectedUpdate(status);
             ApplyUpdateCheckStatus(status);
         }
 
-        private void ApplyUpdateCheckStatus(PreviewUpdateCheckStatus status)
+        private void ApplyUpdateCheckStatus(UpdateCheckStatus status)
         {
             LatestVersionValueText.Text = string.IsNullOrWhiteSpace(status.LatestVersion)
                 ? _labels.UnknownVersion
@@ -84,7 +89,7 @@ namespace RealESRGAN_GUI
 
             StatusValueText.Text = status.Kind switch
             {
-                PreviewUpdateCheckStatusKind.UpdateAvailable => _labels.UpdateAvailableStatus,
+                UpdateCheckStatusKind.UpdateAvailable => _labels.UpdateAvailableStatus,
                 _ => _labels.ReadyStatus,
             };
         }

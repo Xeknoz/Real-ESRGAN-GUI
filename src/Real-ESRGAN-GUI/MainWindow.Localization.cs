@@ -54,6 +54,7 @@ namespace RealESRGAN_GUI
             "LicenseMissing" => "未找到许可证文件。",
             "OpenRepository" => "打开 GitHub 仓库",
             "OpenRepositoryFailed" => "无法打开 GitHub 仓库链接。",
+#if PREVIEW_DEBUG
             "PreviewDebug" => "调试面板",
             "PreviewDebugTitle" => "Preview 调试面板",
             "PreviewDebugUpdateCheck" => "新版本检测行为",
@@ -66,6 +67,7 @@ namespace RealESRGAN_GUI
             "PreviewDebugUnknownVersion" => "未知",
             "PreviewDebugCheckUpdates" => "模拟发现新版本",
             "PreviewDebugOpenReleasePage" => "打开版本发布页",
+#endif
             "CheckForUpdates" => "检查更新",
             "CheckForUpdatesChecking" => "正在检查...",
             "LatestVersion" => "最新版本",
@@ -174,6 +176,7 @@ namespace RealESRGAN_GUI
             "LicenseMissing" => "No license files were found.",
             "OpenRepository" => "Open GitHub repository",
             "OpenRepositoryFailed" => "Could not open the GitHub repository link.",
+#if PREVIEW_DEBUG
             "PreviewDebug" => "Debug panel",
             "PreviewDebugTitle" => "Preview debug panel",
             "PreviewDebugUpdateCheck" => "Update detection behavior",
@@ -186,6 +189,7 @@ namespace RealESRGAN_GUI
             "PreviewDebugUnknownVersion" => "Unknown",
             "PreviewDebugCheckUpdates" => "Simulate update available",
             "PreviewDebugOpenReleasePage" => "Open release page",
+#endif
             "CheckForUpdates" => "Check for updates",
             "CheckForUpdatesChecking" => "Checking...",
             "LatestVersion" => "Latest Version",

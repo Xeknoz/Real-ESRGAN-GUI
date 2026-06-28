@@ -318,7 +318,7 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 if ($ForceRestore -or -not (Test-DotNetRestoreAssets -AssetsPath $restoreAssetsPath -ProjectPath $projectPath -RuntimeIdentifier $runtimeIdentifier -PackagesPath $nuGetPackagesPath)) {
     Write-Host "Restoring .NET assets..."
-    & dotnet restore $projectPath -r $runtimeIdentifier -p:Platform=$Architecture -p:NuGetAudit=false
+    & dotnet restore $projectPath -r $runtimeIdentifier -p:Platform=$Architecture -p:AppChannel=$($appVersion.Channel) -p:NuGetAudit=false
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet restore failed."
     }
@@ -342,6 +342,7 @@ $publishArgs = @(
     "-p:InformationalVersion=$($appVersion.InformationalVersion)",
     "-p:IncludeSourceRevisionInInformationalVersion=false",
     "-p:SourceRevisionId=",
+    "-p:AppChannel=$($appVersion.Channel)",
     "-p:ApplicationManifest=$generatedManifestPath"
 )
 

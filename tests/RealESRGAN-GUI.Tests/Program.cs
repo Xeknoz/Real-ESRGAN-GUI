@@ -5,9 +5,8 @@ using RealESRGAN_GUI.Services;
 var tests = new (string Name, Action Body)[]
 {
     ("release version comparison handles tag prefixes and dev suffixes", ReleaseVersionComparisonHandlesTagsAndSuffixes),
-    ("preview debug update status distinguishes update, current, failed, and canceled results", PreviewDebugUpdateStatusDistinguishesResults),
-    ("preview debug can force an update available result without live checking", PreviewDebugCanForceUpdateAvailableResult),
-    ("preview debug can force a custom update version", PreviewDebugCanForceCustomUpdateVersion),
+    ("update status distinguishes update, current, failed, and canceled results", UpdateStatusDistinguishesResults),
+    ("update status can create a custom update available result", UpdateStatusCanCreateCustomUpdateAvailableResult),
     ("update available version display replaces current version and keeps previous version", UpdateAvailableVersionDisplayReplacesCurrentVersion),
     ("later update available display replaces earlier detected version", LaterUpdateAvailableDisplayReplacesEarlierDetectedVersion),
 };
@@ -42,50 +41,43 @@ static void ReleaseVersionComparisonHandlesTagsAndSuffixes()
     AssertTrue(UpdateCheckService.IsLatestReleaseNewer("1.0.2.120 dev", "v1.0.3"));
 }
 
-static void PreviewDebugUpdateStatusDistinguishesResults()
+static void UpdateStatusDistinguishesResults()
 {
-    PreviewUpdateCheckStatus update = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus update = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Success(true, "v1.0.3", "https://example.test/release"));
-    AssertEqual(PreviewUpdateCheckStatusKind.UpdateAvailable, update.Kind);
+    AssertEqual(UpdateCheckStatusKind.UpdateAvailable, update.Kind);
     AssertEqual("v1.0.3", update.LatestVersion);
     AssertEqual("https://example.test/release", update.ReleaseUrl);
 
-    PreviewUpdateCheckStatus current = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus current = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Success(false, "v1.0.2", "https://example.test/current"));
-    AssertEqual(PreviewUpdateCheckStatusKind.UpToDate, current.Kind);
+    AssertEqual(UpdateCheckStatusKind.UpToDate, current.Kind);
     AssertEqual("v1.0.2", current.LatestVersion);
 
-    PreviewUpdateCheckStatus failed = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus failed = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Failed("network unavailable"));
-    AssertEqual(PreviewUpdateCheckStatusKind.Failed, failed.Kind);
+    AssertEqual(UpdateCheckStatusKind.Failed, failed.Kind);
     AssertEqual("network unavailable", failed.ErrorMessage);
 
-    PreviewUpdateCheckStatus canceled = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus canceled = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Canceled());
-    AssertEqual(PreviewUpdateCheckStatusKind.Canceled, canceled.Kind);
+    AssertEqual(UpdateCheckStatusKind.Canceled, canceled.Kind);
 }
 
-static void PreviewDebugCanForceUpdateAvailableResult()
+static void UpdateStatusCanCreateCustomUpdateAvailableResult()
 {
-    PreviewUpdateCheckStatus forced = PreviewUpdateCheckStatus.CreateForcedUpdateAvailable();
+    UpdateCheckStatus forced = UpdateCheckStatus.CreateUpdateAvailable(
+        "  v2.5.0-preview  ",
+        UpdateCheckService.ReleasesPageUrl);
 
-    AssertEqual(PreviewUpdateCheckStatusKind.UpdateAvailable, forced.Kind);
-    AssertEqual("v999.999.999-preview", forced.LatestVersion);
-    AssertEqual(UpdateCheckService.ReleasesPageUrl, forced.ReleaseUrl);
-}
-
-static void PreviewDebugCanForceCustomUpdateVersion()
-{
-    PreviewUpdateCheckStatus forced = PreviewUpdateCheckStatus.CreateForcedUpdateAvailable("  v2.5.0-preview  ");
-
-    AssertEqual(PreviewUpdateCheckStatusKind.UpdateAvailable, forced.Kind);
+    AssertEqual(UpdateCheckStatusKind.UpdateAvailable, forced.Kind);
     AssertEqual("v2.5.0-preview", forced.LatestVersion);
     AssertEqual(UpdateCheckService.ReleasesPageUrl, forced.ReleaseUrl);
 }
 
 static void UpdateAvailableVersionDisplayReplacesCurrentVersion()
 {
-    PreviewUpdateCheckStatus update = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus update = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Success(true, "v1.0.3", UpdateCheckService.ReleasesPageUrl));
 
     UpdateVersionDisplayState updateDisplay = UpdateVersionDisplayState.FromStatus("1.0.2 dev", update);
@@ -94,7 +86,7 @@ static void UpdateAvailableVersionDisplayReplacesCurrentVersion()
     AssertEqual(PreviousVersionPlacement.BelowPrimary, updateDisplay.PreviousVersionPlacement);
     AssertTrue(updateDisplay.HasPreviousVersion);
 
-    PreviewUpdateCheckStatus current = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus current = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Success(false, "v1.0.2", UpdateCheckService.ReleasesPageUrl));
 
     UpdateVersionDisplayState currentDisplay = UpdateVersionDisplayState.FromStatus("1.0.2 dev", current);
@@ -106,9 +98,9 @@ static void UpdateAvailableVersionDisplayReplacesCurrentVersion()
 
 static void LaterUpdateAvailableDisplayReplacesEarlierDetectedVersion()
 {
-    PreviewUpdateCheckStatus firstUpdate = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus firstUpdate = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Success(true, "v1.0.3", UpdateCheckService.ReleasesPageUrl));
-    PreviewUpdateCheckStatus laterUpdate = PreviewUpdateCheckStatus.FromResult(
+    UpdateCheckStatus laterUpdate = UpdateCheckStatus.FromResult(
         UpdateCheckResult.Success(true, "v1.0.4", UpdateCheckService.ReleasesPageUrl));
 
     UpdateVersionDisplayState firstDisplay = UpdateVersionDisplayState.FromStatus("1.0.2 dev", firstUpdate);
