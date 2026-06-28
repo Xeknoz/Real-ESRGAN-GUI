@@ -15,6 +15,7 @@ namespace RealESRGAN_GUI
         private const string AboutNativeTitle = "About Real-ESRGAN GUI";
         private static readonly Regex MarkdownLinkRegex = new(@"\[([^\]]+)\]\(([^)]+)\)");
         private static readonly Regex MarkdownInlineCodeRegex = new(@"`([^`]+)`");
+        private string _updateCheckIntervalPreference = "daily";
 
         private void OnAboutClick(object sender, RoutedEventArgs e)
         {
@@ -29,8 +30,18 @@ namespace RealESRGAN_GUI
                 T("LicenseSection"),
                 T("LicenseMissing"),
                 T("OpenRepository"),
-                T("Close"),
+                T("CheckForUpdates"),
+                T("CheckForUpdatesChecking"),
+                T("LatestVersion"),
+                T("NewVersion"),
+                T("UpdateCheckFailedShort"),
+                T("DownloadLatestVersion"),
+                T("AutoCheckUpdates"),
+                BuildUpdateCheckIntervalItems(),
+                _updateCheckIntervalPreference,
+                selectedInterval => _updateCheckIntervalPreference = selectedInterval,
                 T("OpenRepositoryFailed"),
+                T("OpenReleaseFailed"),
                 ReadLicenseDocuments())
             {
                 Owner = this,
@@ -53,6 +64,15 @@ namespace RealESRGAN_GUI
             string version = GetVersionNumber();
             return IsDevChannel() ? $"{version} dev" : version;
         }
+
+        private ComboItem[] BuildUpdateCheckIntervalItems() => new[]
+        {
+            new ComboItem("daily", T("UpdateCheckIntervalDaily")),
+            new ComboItem("weekly", T("UpdateCheckIntervalWeekly")),
+            new ComboItem("monthly", T("UpdateCheckIntervalMonthly")),
+            new ComboItem("startup", T("UpdateCheckIntervalStartup")),
+            new ComboItem("never", T("UpdateCheckIntervalNever")),
+        };
 
         private static string GetVersionNumber()
         {

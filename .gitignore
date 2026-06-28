@@ -26,6 +26,8 @@ dist/
 RealESRGAN-GUI-App/
 src/**/bin/
 src/**/obj/
+tests/**/bin/
+tests/**/obj/
 third_party/ncnn_src/src/build/
 third_party/ncnn_src/src/build-*/
 
