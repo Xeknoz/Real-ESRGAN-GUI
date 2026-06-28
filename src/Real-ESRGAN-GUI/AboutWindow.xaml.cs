@@ -27,6 +27,7 @@ namespace RealESRGAN_GUI
         private readonly string _checkUpdatesCheckingLabel;
         private readonly string _updateCheckFailedLabel;
         private readonly string _downloadLatestVersionLabel;
+        private readonly PreviewDebugWindowLabels _previewDebugLabels;
         private readonly string _currentVersion;
         private readonly Action<string> _updateCheckIntervalChanged;
         private string _latestReleaseUrl = UpdateCheckService.ReleasesPageUrl;
@@ -42,6 +43,9 @@ namespace RealESRGAN_GUI
             string licenseSectionTitle,
             string licenseMissingMessage,
             string openRepositoryLabel,
+            string previewDebugLabel,
+            bool isPreviewDebugEnabled,
+            PreviewDebugWindowLabels previewDebugLabels,
             string checkUpdatesLabel,
             string checkUpdatesCheckingLabel,
             string latestVersionLabel,
@@ -69,15 +73,18 @@ namespace RealESRGAN_GUI
             _checkUpdatesCheckingLabel = checkUpdatesCheckingLabel;
             _updateCheckFailedLabel = updateCheckFailedLabel;
             _downloadLatestVersionLabel = downloadLatestVersionLabel;
+            _previewDebugLabels = previewDebugLabels;
             _currentVersion = version;
             _updateCheckIntervalChanged = updateCheckIntervalChanged;
 
             Title = title;
             DescriptionText.Text = description;
             VersionLabelText.Text = _versionLabel;
-            VersionValueText.Text = _currentVersion;
+            SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
             LicenseSectionTitleText.Text = licenseSectionTitle;
             RepositoryButton.Content = openRepositoryLabel;
+            SetPreviewDebugButtonLabel(previewDebugLabel);
+            PreviewDebugButton.Visibility = isPreviewDebugEnabled ? Visibility.Visible : Visibility.Collapsed;
             SetCheckUpdatesButtonLabel(_checkUpdatesLabel);
             AutoCheckUpdatesLabelText.Text = autoCheckUpdatesLabel;
             AutomationProperties.SetName(AutoCheckUpdatesCombo, autoCheckUpdatesLabel);
@@ -155,6 +162,19 @@ namespace RealESRGAN_GUI
             OpenExternalUrl(_repositoryUrl, _openRepositoryFailedMessage);
         }
 
+        private void OnPreviewDebugClick(object sender, RoutedEventArgs e)
+        {
+            var debugWindow = new PreviewDebugWindow(
+                _currentVersion,
+                _previewDebugLabels,
+                ApplyUpdateCheckStatus)
+            {
+                Owner = this,
+            };
+
+            debugWindow.ShowDialog();
+        }
+
         private async void OnCheckUpdatesClick(object sender, RoutedEventArgs e)
         {
             await CheckForUpdatesAsync();
@@ -176,31 +196,49 @@ namespace RealESRGAN_GUI
                     .CheckLatestReleaseAsync(_currentVersion, CancellationToken.None)
                     .ConfigureAwait(true);
 
-                if (!result.Succeeded)
-                {
-                    VersionLabelText.Text = _versionLabel;
-                    SetCheckUpdatesButtonLabel(_updateCheckFailedLabel);
-                    return;
-                }
-
-                if (result.UpdateAvailable)
-                {
-                    VersionLabelText.Text = _newVersionLabel;
-                    _latestReleaseUrl = result.ReleaseUrl ?? UpdateCheckService.ReleasesPageUrl;
-                    LatestReleaseLinkRun.Text = _downloadLatestVersionLabel;
-                    LatestReleaseLinkText.Visibility = Visibility.Visible;
-                    SetCheckUpdatesButtonLabel(_newVersionLabel);
-                    return;
-                }
-
-                VersionLabelText.Text = _latestVersionLabel;
-                SetCheckUpdatesButtonLabel(_latestVersionLabel);
+                ApplyUpdateCheckStatus(PreviewUpdateCheckStatus.FromResult(result));
             }
             finally
             {
                 _isCheckingForUpdates = false;
                 SetUpdateCheckingAnimation(isChecking: false);
             }
+        }
+
+        private void ApplyUpdateCheckStatus(PreviewUpdateCheckStatus status)
+        {
+            LatestReleaseLinkText.Visibility = Visibility.Collapsed;
+
+            if (status.Kind == PreviewUpdateCheckStatusKind.Failed)
+            {
+                VersionLabelText.Text = _versionLabel;
+                SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
+                SetCheckUpdatesButtonLabel(_updateCheckFailedLabel);
+                return;
+            }
+
+            if (status.Kind == PreviewUpdateCheckStatusKind.Canceled)
+            {
+                VersionLabelText.Text = _versionLabel;
+                SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
+                SetCheckUpdatesButtonLabel(_checkUpdatesLabel);
+                return;
+            }
+
+            if (status.Kind == PreviewUpdateCheckStatusKind.UpdateAvailable)
+            {
+                VersionLabelText.Text = _newVersionLabel;
+                SetVersionDisplay(UpdateVersionDisplayState.FromStatus(_currentVersion, status));
+                _latestReleaseUrl = status.ReleaseUrl ?? UpdateCheckService.ReleasesPageUrl;
+                LatestReleaseLinkRun.Text = _downloadLatestVersionLabel;
+                LatestReleaseLinkText.Visibility = Visibility.Visible;
+                SetCheckUpdatesButtonLabel(_newVersionLabel);
+                return;
+            }
+
+            VersionLabelText.Text = _latestVersionLabel;
+            SetVersionDisplay(UpdateVersionDisplayState.Current(_currentVersion));
+            SetCheckUpdatesButtonLabel(_latestVersionLabel);
         }
 
         private void OnLatestReleaseClick(object sender, RoutedEventArgs e)
@@ -233,6 +271,29 @@ namespace RealESRGAN_GUI
         {
             AutomationProperties.SetName(CheckUpdatesButton, label);
             CheckUpdatesButton.ToolTip = label;
+        }
+
+        private void SetPreviewDebugButtonLabel(string label)
+        {
+            AutomationProperties.SetName(PreviewDebugButton, label);
+            PreviewDebugButton.ToolTip = label;
+        }
+
+        private void SetVersionDisplay(UpdateVersionDisplayState state)
+        {
+            VersionValueText.Text = state.PrimaryVersion;
+
+            if (!state.HasPreviousVersion)
+            {
+                PreviousVersionValueText.Text = string.Empty;
+                PreviousVersionValueText.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            PreviousVersionValueText.Text = state.PreviousVersion!;
+            PreviousVersionValueText.Visibility = state.PreviousVersionPlacement == PreviousVersionPlacement.BelowPrimary
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         private void SetUpdateCheckingAnimation(bool isChecking)

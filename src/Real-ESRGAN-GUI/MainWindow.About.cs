@@ -30,6 +30,9 @@ namespace RealESRGAN_GUI
                 T("LicenseSection"),
                 T("LicenseMissing"),
                 T("OpenRepository"),
+                T("PreviewDebug"),
+                IsPreviewDebugEnabled(),
+                BuildPreviewDebugWindowLabels(),
                 T("CheckForUpdates"),
                 T("CheckForUpdatesChecking"),
                 T("LatestVersion"),
@@ -74,6 +77,21 @@ namespace RealESRGAN_GUI
             new ComboItem("never", T("UpdateCheckIntervalNever")),
         };
 
+        private PreviewDebugWindowLabels BuildPreviewDebugWindowLabels() => new(
+            T("PreviewDebugTitle"),
+            T("PreviewDebugUpdateCheck"),
+            T("PreviewDebugCurrentVersion"),
+            T("PreviewDebugSimulatedLatestVersion"),
+            T("PreviewDebugLatestVersion"),
+            T("PreviewDebugStatus"),
+            T("PreviewDebugNotChecked"),
+            T("PreviewDebugUpdateAvailable"),
+            T("PreviewDebugUnknownVersion"),
+            T("PreviewDebugCheckUpdates"),
+            T("PreviewDebugOpenReleasePage"),
+            T("OpenReleaseFailed"),
+            T("Close"));
+
         private static string GetVersionNumber()
         {
             string? versionFromFile = ReadFirstNonBlankAppFileLine("VERSION.txt");
@@ -89,6 +107,13 @@ namespace RealESRGAN_GUI
                 return informationalVersion.Split('+', 2)[0];
 
             return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
+        }
+
+        private static bool IsPreviewDebugEnabled()
+        {
+            string? channel = ReadFirstNonBlankAppFileLine("CHANNEL.txt");
+            return string.Equals(channel, "dev", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(channel, "preview", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsDevChannel()
