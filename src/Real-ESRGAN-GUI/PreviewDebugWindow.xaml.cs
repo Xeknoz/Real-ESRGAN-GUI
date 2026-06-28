@@ -15,6 +15,7 @@ namespace RealESRGAN_GUI
         string StatusLabel,
         string ReadyStatus,
         string UpdateAvailableStatus,
+        string UpToDateStatus,
         string UnknownVersion,
         string SimulateUpdateAvailableLabel,
         string OpenReleasePageLabel,
@@ -64,7 +65,8 @@ namespace RealESRGAN_GUI
             string simulatedLatestVersion = string.IsNullOrWhiteSpace(SimulatedLatestVersionTextBox.Text)
                 ? DefaultSimulatedLatestVersion
                 : SimulatedLatestVersionTextBox.Text.Trim();
-            UpdateCheckStatus status = UpdateCheckStatus.CreateUpdateAvailable(
+            UpdateCheckStatus status = UpdateCheckStatus.FromLatestVersion(
+                _currentVersion,
                 simulatedLatestVersion,
                 UpdateCheckService.ReleasesPageUrl);
             _applyDetectedUpdate(status);
@@ -90,6 +92,7 @@ namespace RealESRGAN_GUI
             StatusValueText.Text = status.Kind switch
             {
                 UpdateCheckStatusKind.UpdateAvailable => _labels.UpdateAvailableStatus,
+                UpdateCheckStatusKind.UpToDate => _labels.UpToDateStatus,
                 _ => _labels.ReadyStatus,
             };
         }

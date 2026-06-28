@@ -235,6 +235,7 @@ for ($index = 0; $index -lt $architectures.Count; $index++) {
     Assert-RequiredFile -Path (Join-Path $portableDir "engine\realesrgan-ncnn-vulkan.exe") -Description "$arch backend executable"
     Assert-RequiredFile -Path (Join-Path $portableDir "VERSION.txt") -Description "$arch VERSION.txt"
     Assert-RequiredFile -Path (Join-Path $portableDir "CHANNEL.txt") -Description "$arch CHANNEL.txt"
+    Assert-RequiredFile -Path (Join-Path $portableDir "PACKAGE_KIND.txt") -Description "$arch PACKAGE_KIND.txt"
     Assert-RequiredFile -Path $architectureMarkerPath -Description "$arch ARCHITECTURE.txt"
 
     $distArchitecture = (Get-Content -LiteralPath $architectureMarkerPath -TotalCount 1).Trim()

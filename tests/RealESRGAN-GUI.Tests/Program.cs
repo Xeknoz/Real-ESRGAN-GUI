@@ -5,8 +5,10 @@ using RealESRGAN_GUI.Services;
 var tests = new (string Name, Action Body)[]
 {
     ("release version comparison handles tag prefixes and dev suffixes", ReleaseVersionComparisonHandlesTagsAndSuffixes),
+    ("package kind controls auto check updates availability", PackageKindControlsAutoCheckUpdatesAvailability),
     ("update status distinguishes update, current, failed, and canceled results", UpdateStatusDistinguishesResults),
     ("update status can create a custom update available result", UpdateStatusCanCreateCustomUpdateAvailableResult),
+    ("update status compares custom latest version before reporting update", UpdateStatusComparesCustomLatestVersionBeforeReportingUpdate),
     ("update available version display replaces current version and keeps previous version", UpdateAvailableVersionDisplayReplacesCurrentVersion),
     ("later update available display replaces earlier detected version", LaterUpdateAvailableDisplayReplacesEarlierDetectedVersion),
 };
@@ -41,6 +43,15 @@ static void ReleaseVersionComparisonHandlesTagsAndSuffixes()
     AssertTrue(UpdateCheckService.IsLatestReleaseNewer("1.0.2.120 dev", "v1.0.3"));
 }
 
+static void PackageKindControlsAutoCheckUpdatesAvailability()
+{
+    AssertTrue(PackageKindService.IsAutoCheckUpdatesAvailable("installed"));
+    AssertTrue(PackageKindService.IsAutoCheckUpdatesAvailable(" INSTALLED "));
+    AssertFalse(PackageKindService.IsAutoCheckUpdatesAvailable("portable"));
+    AssertFalse(PackageKindService.IsAutoCheckUpdatesAvailable(null));
+    AssertFalse(PackageKindService.IsAutoCheckUpdatesAvailable(""));
+}
+
 static void UpdateStatusDistinguishesResults()
 {
     UpdateCheckStatus update = UpdateCheckStatus.FromResult(
@@ -73,6 +84,25 @@ static void UpdateStatusCanCreateCustomUpdateAvailableResult()
     AssertEqual(UpdateCheckStatusKind.UpdateAvailable, forced.Kind);
     AssertEqual("v2.5.0-preview", forced.LatestVersion);
     AssertEqual(UpdateCheckService.ReleasesPageUrl, forced.ReleaseUrl);
+}
+
+static void UpdateStatusComparesCustomLatestVersionBeforeReportingUpdate()
+{
+    UpdateCheckStatus older = UpdateCheckStatus.FromLatestVersion(
+        "1.0.2.123 dev",
+        "  v1.0.2.121 dev  ",
+        UpdateCheckService.ReleasesPageUrl);
+    AssertEqual(UpdateCheckStatusKind.UpToDate, older.Kind);
+    AssertEqual("v1.0.2.121 dev", older.LatestVersion);
+    AssertEqual(null, older.ReleaseUrl);
+
+    UpdateCheckStatus newer = UpdateCheckStatus.FromLatestVersion(
+        "1.0.2.123 dev",
+        "v1.0.3",
+        UpdateCheckService.ReleasesPageUrl);
+    AssertEqual(UpdateCheckStatusKind.UpdateAvailable, newer.Kind);
+    AssertEqual("v1.0.3", newer.LatestVersion);
+    AssertEqual(UpdateCheckService.ReleasesPageUrl, newer.ReleaseUrl);
 }
 
 static void UpdateAvailableVersionDisplayReplacesCurrentVersion()

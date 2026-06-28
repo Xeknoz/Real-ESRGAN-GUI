@@ -83,11 +83,13 @@ Type: filesandordirs; Name: "{app}\licenses"
 Type: files; Name: "{app}\ARCHITECTURE.txt"
 Type: files; Name: "{app}\CHANNEL.txt"
 Type: files; Name: "{app}\LICENSE.txt"
+Type: files; Name: "{app}\PACKAGE_KIND.txt"
 Type: files; Name: "{app}\THIRD_PARTY_NOTICES.md"
 Type: files; Name: "{app}\VERSION.txt"
 
 [Files]
 Source: "{#AppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "PACKAGE_KIND.installed.txt"; DestDir: "{app}"; DestName: "PACKAGE_KIND.txt"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\Launcher.exe"; WorkingDir: "{app}"

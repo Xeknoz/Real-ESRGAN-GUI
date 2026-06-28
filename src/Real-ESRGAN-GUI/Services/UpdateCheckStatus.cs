@@ -23,6 +23,23 @@ namespace RealESRGAN_GUI.Services
                 null);
         }
 
+        public static UpdateCheckStatus FromLatestVersion(
+            string currentVersion,
+            string latestVersion,
+            string releaseUrl)
+        {
+            string normalizedLatestVersion = latestVersion.Trim();
+            bool updateAvailable = UpdateCheckService.IsLatestReleaseNewer(
+                currentVersion,
+                normalizedLatestVersion);
+
+            return new(
+                updateAvailable ? UpdateCheckStatusKind.UpdateAvailable : UpdateCheckStatusKind.UpToDate,
+                normalizedLatestVersion,
+                updateAvailable ? releaseUrl : null,
+                null);
+        }
+
         public static UpdateCheckStatus FromResult(UpdateCheckResult result)
         {
             if (result.IsCancelled)

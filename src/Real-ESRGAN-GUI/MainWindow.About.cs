@@ -41,6 +41,7 @@ namespace RealESRGAN_GUI
                 T("NewVersion"),
                 T("UpdateCheckFailedShort"),
                 T("DownloadLatestVersion"),
+                IsAutoCheckUpdatesAvailable(),
                 T("AutoCheckUpdates"),
                 BuildUpdateCheckIntervalItems(),
                 _updateCheckIntervalPreference,
@@ -79,6 +80,12 @@ namespace RealESRGAN_GUI
             new ComboItem("never", T("UpdateCheckIntervalNever")),
         };
 
+        private static bool IsAutoCheckUpdatesAvailable()
+        {
+            string? packageKind = PackageKindService.ReadPackageKind(AppContext.BaseDirectory);
+            return PackageKindService.IsAutoCheckUpdatesAvailable(packageKind);
+        }
+
 #if PREVIEW_DEBUG
         private PreviewDebugWindowLabels BuildPreviewDebugWindowLabels() => new(
             T("PreviewDebugTitle"),
@@ -89,6 +96,7 @@ namespace RealESRGAN_GUI
             T("PreviewDebugStatus"),
             T("PreviewDebugNotChecked"),
             T("PreviewDebugUpdateAvailable"),
+            T("PreviewDebugUpToDate"),
             T("PreviewDebugUnknownVersion"),
             T("PreviewDebugCheckUpdates"),
             T("PreviewDebugOpenReleasePage"),

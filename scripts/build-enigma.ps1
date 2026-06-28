@@ -459,12 +459,14 @@ for ($index = 0; $index -lt $architectures.Count; $index++) {
     $wpfFile = Join-Path $resolvedDistDir "Real-ESRGAN GUI.exe"
     $backendFile = Join-Path $resolvedDistDir "engine\realesrgan-ncnn-vulkan.exe"
     $architectureMarkerPath = Join-Path $resolvedDistDir "ARCHITECTURE.txt"
+    $packageKindMarkerPath = Join-Path $resolvedDistDir "PACKAGE_KIND.txt"
     $thirdPartyNoticePath = Join-Path $resolvedDistDir "THIRD_PARTY_NOTICES.md"
 
     Assert-RequiredFile -Path $inputFile -Description "$arch Launcher.exe"
     Assert-RequiredFile -Path $wpfFile -Description "$arch Real-ESRGAN GUI.exe"
     Assert-RequiredFile -Path $backendFile -Description "$arch backend executable"
     Assert-RequiredFile -Path $architectureMarkerPath -Description "$arch ARCHITECTURE.txt"
+    Assert-RequiredFile -Path $packageKindMarkerPath -Description "$arch PACKAGE_KIND.txt"
     Assert-RequiredFile -Path $thirdPartyNoticePath -Description "$arch THIRD_PARTY_NOTICES.md"
 
     $distArchitecture = (Get-Content -LiteralPath $architectureMarkerPath -TotalCount 1).Trim()

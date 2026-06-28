@@ -176,7 +176,8 @@ $requiredDistFiles = @(
     "Real-ESRGAN GUI.exe",
     "engine\realesrgan-ncnn-vulkan.exe",
     "VERSION.txt",
-    "CHANNEL.txt"
+    "CHANNEL.txt",
+    "PACKAGE_KIND.txt"
 )
 
 foreach ($relativePath in $requiredDistFiles) {

@@ -62,6 +62,7 @@ namespace RealESRGAN_GUI
             string newVersionLabel,
             string updateCheckFailedLabel,
             string downloadLatestVersionLabel,
+            bool isAutoCheckUpdatesAvailable,
             string autoCheckUpdatesLabel,
             IReadOnlyList<ComboItem> updateCheckIntervalItems,
             string selectedUpdateCheckInterval,
@@ -100,9 +101,16 @@ namespace RealESRGAN_GUI
                 FooterActionsPanel.Children.Insert(0, CreatePreviewDebugButton(previewDebugLabel));
 #endif
             SetCheckUpdatesButtonLabel(_checkUpdatesLabel);
-            AutoCheckUpdatesLabelText.Text = autoCheckUpdatesLabel;
-            AutomationProperties.SetName(AutoCheckUpdatesCombo, autoCheckUpdatesLabel);
-            PopulateUpdateCheckIntervalCombo(updateCheckIntervalItems, selectedUpdateCheckInterval);
+            if (isAutoCheckUpdatesAvailable)
+            {
+                AutoCheckUpdatesLabelText.Text = autoCheckUpdatesLabel;
+                AutomationProperties.SetName(AutoCheckUpdatesCombo, autoCheckUpdatesLabel);
+                PopulateUpdateCheckIntervalCombo(updateCheckIntervalItems, selectedUpdateCheckInterval);
+            }
+            else
+            {
+                AutoCheckUpdatesPanel.Visibility = Visibility.Collapsed;
+            }
 
             foreach (var document in licenseDocuments)
                 LicenseCombo.Items.Add(document);

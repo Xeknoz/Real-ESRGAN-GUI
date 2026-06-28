@@ -199,7 +199,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0"
+                <StackPanel x:Name="AutoCheckUpdatesPanel"
+                            Grid.Column="0"
                             Orientation="Horizontal"
                             VerticalAlignment="Bottom">
                     <TextBlock x:Name="AutoCheckUpdatesLabelText"

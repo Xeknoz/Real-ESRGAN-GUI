@@ -64,8 +64,9 @@ namespace RealESRGAN_GUI
             "PreviewDebugStatus" => "状态",
             "PreviewDebugNotChecked" => "待触发",
             "PreviewDebugUpdateAvailable" => "已模拟发现新版本",
+            "PreviewDebugUpToDate" => "未发现更高版本",
             "PreviewDebugUnknownVersion" => "未知",
-            "PreviewDebugCheckUpdates" => "模拟发现新版本",
+            "PreviewDebugCheckUpdates" => "模拟检查结果",
             "PreviewDebugOpenReleasePage" => "打开版本发布页",
 #endif
             "CheckForUpdates" => "检查更新",
@@ -186,8 +187,9 @@ namespace RealESRGAN_GUI
             "PreviewDebugStatus" => "Status",
             "PreviewDebugNotChecked" => "Ready to simulate",
             "PreviewDebugUpdateAvailable" => "Simulated update available",
+            "PreviewDebugUpToDate" => "No newer version detected",
             "PreviewDebugUnknownVersion" => "Unknown",
-            "PreviewDebugCheckUpdates" => "Simulate update available",
+            "PreviewDebugCheckUpdates" => "Simulate update check",
             "PreviewDebugOpenReleasePage" => "Open release page",
 #endif
             "CheckForUpdates" => "Check for updates",

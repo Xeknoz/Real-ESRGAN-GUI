@@ -265,6 +265,7 @@ $defaultOutputDir = Join-Path (Join-Path "artifacts" "portable") $Architecture
 $distDir = Resolve-FullPath -Path $(if ([string]::IsNullOrWhiteSpace($OutputDir)) { $defaultOutputDir } else { $OutputDir }) -BasePath $repoRoot
 $licenseRoot = Join-Path $distDir "licenses"
 $architectureMarkerPath = Join-Path $distDir "ARCHITECTURE.txt"
+$packageKindMarkerPath = Join-Path $distDir "PACKAGE_KIND.txt"
 $nuGetPackagesPath = Use-NuGetPackageCache -RuntimeIdentifier $runtimeIdentifier
 
 $requiredPayload = @(
@@ -373,6 +374,10 @@ foreach ($modelFile in Get-ChildItem -LiteralPath $modelArtifactDir -File | Wher
 [System.IO.File]::WriteAllText(
     (Join-Path $distDir "CHANNEL.txt"),
     $appVersion.Channel + [Environment]::NewLine,
+    $utf8NoBom)
+[System.IO.File]::WriteAllText(
+    $packageKindMarkerPath,
+    "portable" + [Environment]::NewLine,
     $utf8NoBom)
 [System.IO.File]::WriteAllText(
     $architectureMarkerPath,
